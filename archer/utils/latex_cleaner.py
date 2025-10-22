@@ -26,3 +26,202 @@ class CommentType:
             cls.INLINE_ANNOTATIONS,
             cls.INLINE_DATES,
         }
+
+
+def should_preserve_line(line: str) -> bool:
+    """
+    Check if a line should be preserved without modification.
+
+    Preserves:
+    - Lines with only escaped percentages (\\%)
+    - Lines ending with '%' alone (whitespace suppression)
+
+    Args:
+        line: The line to check
+
+    Returns:
+        True if line should be preserved as-is
+    """
+    # Check if line contains only escaped percentages
+    temp = line.replace(r"\%", "")
+    if "%" not in temp:
+        return True
+
+    # Check if this is line-ending whitespace suppression (ends with just %)
+    # Pattern: non-comment content followed by optional whitespace and single %
+    if re.search(r"[^%\s]\s*%\s*$", line) and line.strip() != "%":
+        # This is likely whitespace suppression - preserve it
+        # But make sure it's not also a comment line
+        stripped = line.strip()
+        if not stripped.startswith("%") or re.match(r"^[^%]+%\s*$", line):
+            return True
+
+    return False
+
+
+def matches_comment_type(line: str, comment_type: str) -> bool:
+    """
+    Check if a line matches a specific comment type.
+
+    Args:
+        line: The line to check
+        comment_type: The type of comment to match against
+
+    Returns:
+        True if the line matches the comment type
+    """
+    if comment_type == CommentType.DECORATIVE:
+        # Lines with only % characters (separators)
+        return bool(re.match(r"^\s*%+\s*$", line))
+
+    elif comment_type == CommentType.SECTION_HEADERS:
+        # Lines like: %%%%  My imports  %%%%%%%%%%%%%
+        return bool(re.match(r"^\s*%%%.*%%%", line))
+
+    elif comment_type == CommentType.DESCRIPTIVE:
+        # Simple descriptive comments: % text (not starting with - or \)
+        # Excludes line-ending % and separator comments
+        return bool(re.match(r"^\s*%\s+[^-\\%]", line))
+
+    elif comment_type == CommentType.COMMENTED_CODE:
+        # Commented-out LaTeX commands: % \command
+        return bool(re.match(r"^\s*%\s*\\", line))
+
+    elif comment_type == CommentType.INLINE_ANNOTATIONS:
+        # Inline comments after code with dashes: \command % ---------
+        return bool(re.search(r"[^\s%].*%\s*-+\s*$", line))
+
+    elif comment_type == CommentType.INLINE_DATES:
+        # Inline date comments: {}%Aug 2024 -- May 2025}
+        return bool(re.search(r"}%[A-Za-z{]", line))
+
+    return False
+
+
+def remove_inline_comment(line: str, comment_types: Set[str]) -> str:
+    """
+    Remove inline comments from a line if they match enabled types.
+
+    Args:
+        line: The line to process
+        comment_types: Set of enabled comment types
+
+    Returns:
+        Line with inline comments removed if applicable
+    """
+    # Check for inline dates pattern: }%{dates} or }%dates
+    if CommentType.INLINE_DATES in comment_types:
+        # Remove comments like: {}%Aug 2024 -- May 2025}
+        line = re.sub(r"}%\{[^}]*\}", "}", line)
+        line = re.sub(r"}%[^}]*\}(?=\s*$)", "}", line)
+        # Also handle simpler cases: {}%comment at end
+        line = re.sub(r"}%[^}]+$", "}", line)
+
+    # Check for inline annotation pattern: % ------
+    if CommentType.INLINE_ANNOTATIONS in comment_types:
+        if re.search(r"%\s*-+\s*$", line):
+            # Remove the comment part
+            line = re.sub(r"\s*%\s*-+\s*$", "", line)
+
+    return line
+
+
+def clean_latex_content(content: str, comment_types: Set[str]) -> str:
+    """
+    Clean LaTeX content by removing specified comment types.
+
+    Args:
+        content: The LaTeX content to clean
+        comment_types: Set of comment types to remove (use CommentType constants)
+
+    Returns:
+        Cleaned LaTeX content
+    """
+    # Expand "all" to all specific types
+    if CommentType.ALL in comment_types:
+        comment_types = CommentType.get_all_types()
+    elif CommentType.NONE in comment_types:
+        comment_types = set()
+
+    lines = content.split("\n")
+    cleaned_lines = []
+
+    for line in lines:
+        # First check if we should preserve this line entirely
+        if should_preserve_line(line):
+            cleaned_lines.append(line)
+            continue
+
+        # Separate inline comment types from full-line comment types
+        inline_types = {CommentType.INLINE_ANNOTATIONS, CommentType.INLINE_DATES}
+        full_line_types = comment_types - inline_types
+
+        # Check if this is a full-line comment that should be removed entirely
+        should_remove = False
+        for comment_type in full_line_types:
+            if matches_comment_type(line, comment_type):
+                should_remove = True
+                break
+
+        if should_remove:
+            continue  # Skip this line entirely
+
+        # Check for inline comments that should have their comment part removed
+        line = remove_inline_comment(line, comment_types)
+
+        cleaned_lines.append(line)
+
+    result = "\n".join(cleaned_lines)
+
+    return result
+
+
+
+def process_file(
+    input_path: Path,
+    output_path: Path,
+    comment_types: Set[str],
+    dry_run: bool = False,
+) -> tuple[bool, str]:
+    """
+    Process a single LaTeX file.
+
+    Args:
+        input_path: Path to input .tex file
+        output_path: Path to output .tex file
+        comment_types: Set of comment types to remove
+        dry_run: If True, don't write output file
+
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    try:
+        # Read input file
+        with open(input_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Clean content
+        cleaned_content = clean_latex_content(content, comment_types)
+
+        # Calculate statistics
+        original_lines = len(content.split("\n"))
+        cleaned_lines = len(cleaned_content.split("\n"))
+        removed_lines = original_lines - cleaned_lines
+
+        message = (
+            f"Processed {input_path.name}: "
+            f"{removed_lines} lines removed ({original_lines} → {cleaned_lines})"
+        )
+
+        # Write output file unless dry run
+        if not dry_run:
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(cleaned_content)
+        else:
+            message += " [DRY RUN - no changes written]"
+
+        return True, message
+
+    except Exception as e:
+        return False, f"Error processing {input_path.name}: {str(e)}"
+
