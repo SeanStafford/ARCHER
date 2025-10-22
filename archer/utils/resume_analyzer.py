@@ -70,6 +70,9 @@ def enumerate_field_values(resume_dir):
     """
     tex_files = sorted(resume_dir.glob("*.tex"))
 
+    if not tex_files:
+        raise ValueError(f"No .tex files found in {resume_dir}")
+
     field_values = {}
 
     for tex_file in tex_files:
@@ -94,6 +97,11 @@ def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> in
     """
     Count occurrences of a pattern in text, supporting both exact and regex matching.
 
+    Args:
+        text: Text to search in
+        pattern: Pattern to search for
+        is_regex: If True, treat pattern as regex; if False, use exact substring matching
+
     Returns:
         Number of matches found
     """
@@ -104,14 +112,28 @@ def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> in
         return text.count(pattern)
 
 
-def analyze_keywords_in_field(resume_dir, keyword_categories, field_name, is_regex):
+def analyze_keywords_in_field(
+    resume_dir: Path,
+    keyword_categories: Dict[str, List[str]],
+    field_name: str,
+    is_regex: bool = False
+) -> Tuple[int, int, Dict[str, int], Dict[str, int]]:
     """
     Analyze keyword frequencies within a specific LaTeX field across all resumes.
+
+    Args:
+        resume_dir: Directory containing .tex resume files
+        keyword_categories: Dict mapping category names to lists of keywords/patterns
+        field_name: LaTeX field to search within (e.g., "brand", "ProfessionalProfile")
+        is_regex: If True, treat keywords as regex patterns
 
     Returns:
         Tuple of (num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count)
     """
     tex_files = sorted(resume_dir.glob("*.tex"))
+
+    if not tex_files:
+        raise ValueError(f"No .tex files found in {resume_dir}")
 
     total_chars = 0
     all_keywords = [kw for keywords in keyword_categories.values() for kw in keywords]
@@ -132,7 +154,6 @@ def analyze_keywords_in_field(resume_dir, keyword_categories, field_name, is_reg
         field_content = fields[field_name]
         total_chars += len(field_content)
 
-        # same pattern counting logic as before
         for keyword in all_keywords:
             count = count_pattern_matches(field_content, keyword, is_regex)
             if keyword not in keyword_total_occurrences:
@@ -252,21 +273,40 @@ def format_analysis_report(
             )
 
         lines.append("")
+
     return "\n".join(lines)
 
-def format_field_report( field_values, num_resumes, resume_dir ):
+
+def format_field_enumeration_report(
+    field_values: Dict[str, Dict[str, int]],
+    num_resumes: int,
+    resume_dir: Path,
+) -> str:
+    """
+    Format field value enumeration as a human-readable report.
+
+    Args:
+        field_values: Dict mapping field names to dicts of {value: count}
+        num_resumes: Total number of resumes analyzed
+        resume_dir: Path to resume directory (for header)
+
+    Returns:
+        Formatted report string
+    """
     lines = []
-    lines.append("\n" + "-" * 100)
-    lines.append("LATEX FIELDS")
-    lines.append("-" * 100)
+    lines.append("\n" + "=" * 100)
+    lines.append("LATEX FIELD VALUE ENUMERATION")
+    lines.append("=" * 100)
     lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}\n")
 
     # Sort fields by name for consistent output
     for field_name in sorted(field_values.keys()):
         values = field_values[field_name]
 
-        lines.append("-" * 100)
+        lines.append("=" * 100)
         lines.append(f"Field: \\renewcommand{{\\{field_name}}}")
+        lines.append("=" * 100)
+        lines.append(f"{'Value':<70} {'Count':<10} {'% Resumes':<15}")
         lines.append("-" * 100)
 
         # Sort by count (descending)
@@ -275,8 +315,12 @@ def format_field_report( field_values, num_resumes, resume_dir ):
         for value, count in sorted_values:
             percent = (count / num_resumes) * 100
 
-            lines.append(f"{value:<70} {count:<10} {percent:>13.1f}%")
+            # Truncate long values for display
+            display_value = value if len(value) <= 68 else value[:65] + "..."
+
+            lines.append(f"{display_value:<70} {count:<10} {percent:>13.1f}%")
 
         lines.append(f"\nTotal unique values: {len(values)}")
+        lines.append("")
 
     return "\n".join(lines)

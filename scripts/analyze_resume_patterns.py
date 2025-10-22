@@ -163,8 +163,12 @@ def main(
         )
 
         # Part 2: Field value enumeration
-        # field_values = enumerate_field_values(RESUME_ARCHIVE_PATH)
-        field_report = ""
+        field_values = enumerate_field_values(RESUME_ARCHIVE_PATH)
+        field_report = format_field_enumeration_report(
+            field_values,
+            num_resumes,
+            RESUME_ARCHIVE_PATH
+        )
 
         # Combine reports
         report = keyword_report + "\n\n" + field_report
