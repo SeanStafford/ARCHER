@@ -254,12 +254,29 @@ def format_analysis_report(
         lines.append("")
     return "\n".join(lines)
 
-# still debugging
 def format_field_report( field_values, num_resumes, resume_dir ):
     lines = []
-    lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}")
+    lines.append("\n" + "-" * 100)
+    lines.append("LATEX FIELDS")
+    lines.append("-" * 100)
+    lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}\n")
 
-    for field_name in field_values.keys():
+    # Sort fields by name for consistent output
+    for field_name in sorted(field_values.keys()):
+        values = field_values[field_name]
+
+        lines.append("-" * 100)
         lines.append(f"Field: \\renewcommand{{\\{field_name}}}")
-        
-    return lines
+        lines.append("-" * 100)
+
+        # Sort by count (descending)
+        sorted_values = sorted(values.items(), key=lambda x: x[1], reverse=True)
+
+        for value, count in sorted_values:
+            percent = (count / num_resumes) * 100
+
+            lines.append(f"{value:<70} {count:<10} {percent:>13.1f}%")
+
+        lines.append(f"\nTotal unique values: {len(values)}")
+
+    return "\n".join(lines)

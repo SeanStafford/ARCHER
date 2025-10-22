@@ -22,7 +22,12 @@ from typing_extensions import Annotated
 import typer
 from dotenv import load_dotenv
 
-from archer.utils.resume_analyzer import analyze_keyword_frequencies, format_analysis_report
+from archer.utils.resume_analyzer import (
+    analyze_keyword_frequencies,
+    enumerate_field_values,
+    format_analysis_report,
+    format_field_enumeration_report,
+)
 
 # Load environment variables
 load_dotenv()
@@ -143,11 +148,12 @@ def main(
         raise typer.Exit(code=1)
 
     try:
+        # Part 1: Keyword frequency analysis
         num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count = (
             analyze_keyword_frequencies(RESUME_ARCHIVE_PATH, KEYWORDS)
         )
 
-        report = format_analysis_report(
+        keyword_report = format_analysis_report(
             num_resumes,
             total_chars,
             KEYWORDS,
@@ -155,6 +161,13 @@ def main(
             keyword_resume_count,
             RESUME_ARCHIVE_PATH
         )
+
+        # Part 2: Field value enumeration
+        # field_values = enumerate_field_values(RESUME_ARCHIVE_PATH)
+        field_report = ""
+
+        # Combine reports
+        report = keyword_report + "\n\n" + field_report
 
         if output:
             # If output is not absolute, treat it as relative to LOGS_PATH
