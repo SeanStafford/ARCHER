@@ -73,6 +73,43 @@ ARCHER automates the tedious process of tailoring resumes to specific job postin
 - **Rendering** publication-quality PDFs with consistent branding
 
 
+## Architecture
+
+ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded contexts, each with isolated responsibilities:
+
+### 1. Intake Context
+**Responsibility**: Job description ingestion and parsing
+- Accepts job descriptions
+- Normalizes job information into internal representation
+
+**Owns**: Job description parsing logic
+**Never**: Makes targeting decisions or modifies templates
+
+### 2. Targeting Context
+**Responsibility**: Algorithmic content prioritization
+- Evalutates relevance of experience, projects, and skills against job requirements
+- Determines which content to include from archive of existing manually created resumes
+
+**Owns**: Prioritization algorithms, relevance scoring, content selection logic
+**Never**: Directly accesses job descriptions or templates
+
+### 3. Templating Context
+**Responsibility**: LaTeX template building and population
+- Manages custom LaTeX style system
+- Populates templates with targeted content
+
+**Owns**: LaTeX template system, template population, structure management
+**Never**: Makes content prioritization decisions
+
+### 4. Rendering Context
+**Responsibility**: PDF compilation and output management
+- Compiles LaTeX to PDF using `pdflatex`
+- Validates compilation success
+- Manages output files and directory structure
+
+**Owns**: LaTeX compilation, PDF generation, output management
+**Never**: Modifies template content
+
 ### Context Communication
 
 
