@@ -1,20 +1,46 @@
-def analyze_keyword_frequencies(resume_dir, keyword_categories):
+"""
+Resume Pattern Analysis Utilities
+
+Analyzes keyword frequency patterns across LaTeX resume files to inform
+template structure and understand common variations.
+"""
+
+from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+
+def analyze_keyword_frequencies(
+    resume_dir: Path,
+    keyword_categories: Dict[str, List[str]]
+) -> Tuple[int, int, Dict[str, int], Dict[str, int]]:
     """
     Analyze keyword frequencies across all .tex files in a directory.
+
+    Args:
+        resume_dir: Directory containing .tex resume files
+        keyword_categories: Dict mapping category names to lists of keywords
+
+    Returns:
+        Tuple of (num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count)
+        where:
+        - num_resumes: Number of resume files analyzed
+        - total_chars: Total characters across all resumes
+        - keyword_total_occurrences: Dict of keyword -> total occurrence count
+        - keyword_resume_count: Dict of keyword -> number of resumes containing it
     """
     tex_files = sorted(resume_dir.glob("*.tex"))
 
     if not tex_files:
         raise ValueError(f"No .tex files found in {resume_dir}")
-        
+
     total_chars = 0
     all_keywords = [kw for keywords in keyword_categories.values() for kw in keywords]
     keyword_total_occurrences = {}
     keyword_resume_count = {}
 
     for tex_file in tex_files:
-        with open(tex_file, "r") as f:
-            content = f.read()
+        content = tex_file.read_text(encoding='utf-8')
         total_chars += len(content)
 
         for keyword in all_keywords:
@@ -30,10 +56,25 @@ def analyze_keyword_frequencies(resume_dir, keyword_categories):
         dict(keyword_resume_count)
     )
 
+
 def format_analysis_report(
-    num_resumes, total_chars, keyword_categories, keyword_total_occurrences, keyword_resume_count, resume_dir, ) -> str:
+    num_resumes: int,
+    total_chars: int,
+    keyword_categories: Dict[str, List[str]],
+    keyword_total_occurrences: Dict[str, int],
+    keyword_resume_count: Dict[str, int],
+    resume_dir: Path
+) -> str:
     """
     Format analysis results as a human-readable report.
+
+    Args:
+        num_resumes: Number of resumes analyzed
+        total_chars: Total characters across all resumes
+        keyword_categories: Dict mapping category names to keywords
+        keyword_total_occurrences: Dict of keyword -> total occurrences
+        keyword_resume_count: Dict of keyword -> number of resumes with keyword
+        resume_dir: Path to resume directory (for header)
 
     Returns:
         Formatted report string
@@ -51,8 +92,14 @@ def format_analysis_report(
         )
         lines.append("-" * 100)
 
+        # Sort by prevalence (% of resumes)
+        sorted_keywords = sorted(
+            keywords,
+            key=lambda k: keyword_resume_count.get(k, 0),
+            reverse=True
+        )
 
-        for keyword in keywords:
+        for keyword in sorted_keywords:
             resumes_with = keyword_resume_count.get(keyword, 0)
             percent_resumes = (resumes_with / num_resumes) * 100
             total_occur = keyword_total_occurrences.get(keyword, 0)
