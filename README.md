@@ -208,9 +208,10 @@ ARCHER/
 │   │   ├── targeting/      # Content prioritization
 │   │   ├── templating/     # LaTeX template management
 │   │   └── rendering/      # PDF compilation
-│   └── utils/              
+│   └── utils/              # Shared utilities (latex_cleaner, etc.)
 ├── data/                   
 │   └── resume_archive/     # Cleaned, processed resume content
+├── scripts/                # Python CLI utilities
 ├── outs/
 │   └── resumes/            # Generated resumes
 └── pyproject.toml          # Project setup and config

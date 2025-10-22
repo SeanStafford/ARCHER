@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-Batch clean all resume files
+Batch clean all resume files from raw/ to parent directory.
+
+Removes inline annotations (% ----), commented-out code (% \command), and
+\suggest{...} blocks from all .tex files in data/resume_archive/raw/, writing
+cleaned versions to data/resume_archive/.
+
+Usage:
+    python scripts/clean_all_resumes.py
 """
 
 import os
@@ -18,6 +25,12 @@ RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 
 
 def main():
+    """
+    Clean all resume files from raw directory to output directory.
+
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+    """
 
     # File processing settings
     # Define which comment types to remove (see CommentType class for more info)
@@ -71,6 +84,9 @@ def main():
     print(f"\n{'='*60}")
     print(f"Summary: {success_count} succeeded, {error_count} failed")
     print(f"{'='*60}")
+
+    return 0 if error_count == 0 else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
