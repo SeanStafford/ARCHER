@@ -25,6 +25,7 @@ from typing_extensions import Annotated
 from archer.utils.latex_cleaner import (
     CommentType,
     process_file,
+    process_directory,
 )
 
 
@@ -187,25 +188,38 @@ def main(
     # Process files and collect results
     results = []
 
-    if output_file is None:
-        output_file = input_file
+    if directory:
         if verbose:
-            typer.echo(f"Output file not specified, will overwrite: {input_file}")
+            typer.echo(f"Processing directory: {directory}")
+            typer.echo()
 
-    if verbose:
-        typer.echo(f"Processing file: {input_file}")
-        if output_file != input_file:
-            typer.echo(f"Output file: {output_file}")
-        typer.echo()
+        results = process_directory(
+            directory,
+            comment_types_set,
+            remove_suggest_blocks,
+            dry_run
+        )
 
-    success, message = process_file(
-        input_file,
-        output_file,
-        comment_types_set,
-        remove_suggest_blocks,
-        dry_run
-    )
-    results = [(success, message)]
+    else:
+        if output_file is None:
+            output_file = input_file
+            if verbose:
+                typer.echo(f"Output file not specified, will overwrite: {input_file}")
+
+        if verbose:
+            typer.echo(f"Processing file: {input_file}")
+            if output_file != input_file:
+                typer.echo(f"Output file: {output_file}")
+            typer.echo()
+
+        success, message = process_file(
+            input_file,
+            output_file,
+            comment_types_set,
+            remove_suggest_blocks,
+            dry_run
+        )
+        results = [(success, message)]
 
     # Print results and summary
     success_count = 0

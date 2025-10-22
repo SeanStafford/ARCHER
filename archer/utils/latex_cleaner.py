@@ -275,3 +275,27 @@ def process_file(
 
     except Exception as e:
         return False, f"Error processing {input_path.name}: {str(e)}"
+
+
+def process_directory(
+    directory_path: Path,
+    comment_types: Set[str],
+    remove_suggest_blocks: bool = False,
+    dry_run: bool = False,
+) -> List[tuple[bool, str]]:
+    results = []
+
+    # Find all .tex files
+    tex_files = sorted(directory_path.glob("*.tex"))
+
+    if not tex_files:
+        return [(False, f"No .tex files found in {directory_path}")]
+
+    for tex_file in tex_files:
+        # Process in-place (overwrite)
+        success, message = process_file(
+            tex_file, tex_file, comment_types, remove_suggest_blocks, dry_run
+        )
+        results.append((success, message))
+
+    return results
