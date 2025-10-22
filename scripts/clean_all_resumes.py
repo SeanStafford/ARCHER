@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Batch clean all resume files
+"""
 
 import os
 import sys
@@ -15,20 +18,46 @@ RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 
 
 def main():
-    tex_files = list(RAW_ARCHIVE_PATH.glob("*.tex"))
+
+    # File processing settings
+    # Define which comment types to remove (see CommentType class for more info)
+    comment_types = {
+        CommentType.INLINE_ANNOTATIONS,  # Removes % ---- style comments
+        CommentType.COMMENTED_CODE,      # Removes % \setlength{...} style lines
+    }
+    # Note: This preserves descriptive comments, decorative separators, and inline dates
+    remove_suggest_blocks=True # Also remove \suggest{...} blocks
+    dry_run=False  # Actually write files (not just preview changes)
+
+    # Get all raw tex files
+    # glob() returns generator, sorted() converts to list in consistent order
+    tex_files = sorted(RAW_ARCHIVE_PATH.glob("*.tex"))
+
+    # Exit early if no files found
+    if not tex_files:
+        print(f"No .tex files found in {RAW_ARCHIVE_PATH}")
+        return 1
+
+    # Print configuration summary
+    print(f"Cleaning {len(tex_files)} resume files...")
+    print(f"Source: {RAW_ARCHIVE_PATH}")
+    print(f"Destination: {RESUME_ARCHIVE_PATH}")
+    print(f"Comment types: {', '.join(comment_types)}")
+    print(f"Remove suggest blocks: True\n")
+
     success_count = 0
     error_count = 0
     for tex_file in tex_files:
 
         output_file = RESUME_ARCHIVE_PATH / tex_file.name
 
-        # process_file handles reading, cleaning, and writing
+        # process_file() handles reading, cleaning, and writing
         success, message = process_file(
             tex_file,
             output_file,
-            ["all"],
-            remove_suggest_blocks=True,
-            dry_run=False,
+            comment_types,
+            remove_suggest_blocks=remove_suggest_blocks,
+            dry_run=dry_run,
         )
 
         if success:
@@ -38,7 +67,10 @@ def main():
             error_count += 1
             print(f"✗ {message}", file=sys.stderr)
 
+    # Print outcome summary
+    print(f"\n{'='*60}")
     print(f"Summary: {success_count} succeeded, {error_count} failed")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -283,6 +283,18 @@ def process_directory(
     remove_suggest_blocks: bool = False,
     dry_run: bool = False,
 ) -> List[tuple[bool, str]]:
+    """
+    Process all .tex files in a directory.
+
+    Args:
+        directory_path: Path to directory containing .tex files
+        comment_types: Set of comment types to remove
+        remove_suggest_blocks: Whether to remove \\suggest{...} blocks
+        dry_run: If True, don't write output files
+
+    Returns:
+        List of (success, message) tuples for each file
+    """
     results = []
 
     # Find all .tex files
