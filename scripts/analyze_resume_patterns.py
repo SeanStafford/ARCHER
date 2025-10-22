@@ -117,7 +117,6 @@ def main(
             "-o",
             help="Save report to file (prints to stdout if not specified)",
             dir_okay=False,
-            resolve_path=True,
         )
     ] = None,
 ):
@@ -158,6 +157,10 @@ def main(
         )
 
         if output:
+            # If output is not absolute, treat it as relative to LOGS_PATH
+            if not output.is_absolute():
+                output = LOGS_PATH / output
+
             # Ensure parent directory exists
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(report)

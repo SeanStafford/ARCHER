@@ -10,8 +10,7 @@ from typing import Dict, List, Tuple
 
 
 def analyze_keyword_frequencies(
-    resume_dir: Path,
-    keyword_categories: Dict[str, List[str]]
+    resume_dir: Path, keyword_categories: Dict[str, List[str]]
 ) -> Tuple[int, int, Dict[str, int], Dict[str, int]]:
     """
     Analyze keyword frequencies across all .tex files in a directory.
@@ -39,14 +38,14 @@ def analyze_keyword_frequencies(
     keyword_resume_count = {}
 
     for tex_file in tex_files:
-        content = tex_file.read_text(encoding='utf-8')
+        content = tex_file.read_text(encoding="utf-8")
         total_chars += len(content)
 
         for keyword in all_keywords:
             count = content.count(keyword)
             if keyword not in keyword_total_occurrences:
                 keyword_total_occurrences[keyword] = 0
-            keyword_total_occurrences[keyword] += count    
+            keyword_total_occurrences[keyword] += count
             if count > 0:
                 if keyword not in keyword_resume_count:
                     keyword_resume_count[keyword] = 0
@@ -56,7 +55,7 @@ def analyze_keyword_frequencies(
         len(tex_files),
         total_chars,
         dict(keyword_total_occurrences),
-        dict(keyword_resume_count)
+        dict(keyword_resume_count),
     )
 
 
@@ -66,7 +65,7 @@ def format_analysis_report(
     keyword_categories: Dict[str, List[str]],
     keyword_total_occurrences: Dict[str, int],
     keyword_resume_count: Dict[str, int],
-    resume_dir: Path
+    resume_dir: Path,
 ) -> str:
     """
     Format analysis results as a human-readable report.
@@ -90,16 +89,12 @@ def format_analysis_report(
         lines.append("=" * 100)
         lines.append(category)
         lines.append("=" * 100)
-        lines.append(
-            f"{'Keyword':<50} {'In N Resumes':<15} {'% Resumes':<15} {'Occurrences':<12}"
-        )
+        lines.append(f"{'Keyword':<50} {'In N Resumes':<15} {'% Resumes':<15} {'Occurrences':<12}")
         lines.append("-" * 100)
 
         # Sort by prevalence (% of resumes)
         sorted_keywords = sorted(
-            keywords,
-            key=lambda k: keyword_resume_count.get(k, 0),
-            reverse=True
+            keywords, key=lambda k: keyword_resume_count.get(k, 0), reverse=True
         )
 
         for keyword in sorted_keywords:
