@@ -14,6 +14,9 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
     """
     Extract all \\renewcommand{<field>}{<value>} patterns from LaTeX content.
 
+    Args:
+        content: LaTeX file content as string
+
     Returns:
         Dict mapping field names to their values (e.g., {"brand": "ML Engineer | Physicist"})
     """
@@ -44,7 +47,6 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
                 brace_count -= 1
             pos += 1
 
-
         if brace_count == 0:
             field_value = content[start_pos:pos-1]
             fields[field_name] = field_value
@@ -58,11 +60,18 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
 def enumerate_field_values(resume_dir):
     """
     Enumerate all unique values for each \\renewcommand field across all resumes.
-    """
 
+    Args:
+        resume_dir: Directory containing .tex resume files
+
+    Returns:
+        Dict mapping field names to dicts of {value: count}
+        Example: {"brand": {"ML Engineer | Physicist": 15, "AI Engineer": 5, ...}}
+    """
     tex_files = sorted(resume_dir.glob("*.tex"))
 
     field_values = {}
+
     for tex_file in tex_files:
         content = tex_file.read_text(encoding="utf-8")
         fields = extract_latex_fields(content)
@@ -98,6 +107,9 @@ def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> in
 def analyze_keywords_in_field(resume_dir, keyword_categories, field_name, is_regex):
     """
     Analyze keyword frequencies within a specific LaTeX field across all resumes.
+
+    Returns:
+        Tuple of (num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count)
     """
     tex_files = sorted(resume_dir.glob("*.tex"))
 
@@ -240,5 +252,14 @@ def format_analysis_report(
             )
 
         lines.append("")
-
     return "\n".join(lines)
+
+# still debugging
+def format_field_report( field_values, num_resumes, resume_dir ):
+    lines = []
+    lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}")
+
+    for field_name in field_values.keys():
+        lines.append(f"Field: \\renewcommand{{\\{field_name}}}")
+        
+    return lines
