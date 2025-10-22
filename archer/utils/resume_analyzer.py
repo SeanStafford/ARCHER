@@ -10,17 +10,22 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
-# Extract field patterns from LaTeX content.
 def extract_latex_fields(content: str) -> Dict[str, str]:
-    
+    """
+    Extract all \\renewcommand{<field>}{<value>} patterns from LaTeX content.
+
+    Returns:
+        Dict mapping field names to their values (e.g., {"brand": "ML Engineer | Physicist"})
+    """
     fields = {}
 
+    # Pattern matches \renewcommand{\fieldname}{
     pattern = r'\\renewcommand\{\\([^}]+)\}\{'
 
-    for match in re.findall(pattern, content):
+    for match in re.finditer(pattern, content):
         # find the match to get field name and starting position
         field_name = match.group(1)
-        start_pos = match.end() # position after the opening brace
+        start_pos = match.end()
 
         # Count braces to find the matching closing brace
         brace_count = 1
@@ -50,6 +55,31 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
     return fields
 
 
+def enumerate_field_values(resume_dir):
+    """
+    Enumerate all unique values for each \\renewcommand field across all resumes.
+    """
+
+    tex_files = sorted(resume_dir.glob("*.tex"))
+
+    field_values = {}
+    for tex_file in tex_files:
+        content = tex_file.read_text(encoding="utf-8")
+        fields = extract_latex_fields(content)
+
+        for field_name, field_value in fields.items():
+            if field_name not in field_values:
+                field_values[field_name] = {}
+
+            # Clean up value (strip whitespace, normalize)
+            cleaned_value = field_value.strip()
+
+            if cleaned_value not in field_values[field_name]:
+                field_values[field_name][cleaned_value] = 0
+            field_values[field_name][cleaned_value] += 1
+
+    return field_values
+
 
 def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> int:
     """
@@ -63,6 +93,51 @@ def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> in
         return len(matches)
     else:
         return text.count(pattern)
+
+
+def analyze_keywords_in_field(resume_dir, keyword_categories, field_name, is_regex):
+    """
+    Analyze keyword frequencies within a specific LaTeX field across all resumes.
+    """
+    tex_files = sorted(resume_dir.glob("*.tex"))
+
+    total_chars = 0
+    all_keywords = [kw for keywords in keyword_categories.values() for kw in keywords]
+    keyword_total_occurrences = {}
+    keyword_resume_count = {}
+
+    resumes_with_field = 0
+
+    for tex_file in tex_files:
+        content = tex_file.read_text(encoding="utf-8")
+        fields = extract_latex_fields(content)
+
+        # Only analyze if this resume has the specified field
+        if field_name not in fields:
+            continue
+
+        resumes_with_field += 1
+        field_content = fields[field_name]
+        total_chars += len(field_content)
+
+        # same pattern counting logic as before
+        for keyword in all_keywords:
+            count = count_pattern_matches(field_content, keyword, is_regex)
+            if keyword not in keyword_total_occurrences:
+                keyword_total_occurrences[keyword] = 0
+            keyword_total_occurrences[keyword] += count
+            if count > 0:
+                if keyword not in keyword_resume_count:
+                    keyword_resume_count[keyword] = 0
+                keyword_resume_count[keyword] += 1
+
+    return (
+        resumes_with_field,
+        total_chars,
+        dict(keyword_total_occurrences),
+        dict(keyword_resume_count),
+    )
+
 
 def analyze_keyword_frequencies(
     resume_dir: Path, keyword_categories: Dict[str, List[str]]
