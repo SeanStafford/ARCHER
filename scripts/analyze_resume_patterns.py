@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -56,22 +57,32 @@ KEYWORDS = {
 
 
 def main():
+    """Run keyword frequency analysis on resume archive."""
+    if not RESUME_ARCHIVE_PATH.exists():
+        print(f"Error: Directory {RESUME_ARCHIVE_PATH} does not exist")
+        return 1
 
-    num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count = (
-        analyze_keyword_frequencies(RESUME_ARCHIVE_PATH, KEYWORDS)
-    )
+    try:
+        num_resumes, total_chars, keyword_total_occurrences, keyword_resume_count = (
+            analyze_keyword_frequencies(RESUME_ARCHIVE_PATH, KEYWORDS)
+        )
 
-    report = format_analysis_report(
-        num_resumes,
-        total_chars,
-        KEYWORDS,
-        keyword_total_occurrences,
-        keyword_resume_count,
-        RESUME_ARCHIVE_PATH
-    )
+        report = format_analysis_report(
+            num_resumes,
+            total_chars,
+            KEYWORDS,
+            keyword_total_occurrences,
+            keyword_resume_count,
+            RESUME_ARCHIVE_PATH
+        )
 
-    print(report)
+        print(report)
+        return 0
+
+    except ValueError as e:
+        print(f"Error: {e}")
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
