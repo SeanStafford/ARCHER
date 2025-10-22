@@ -5,7 +5,6 @@ Analyzes keyword frequency patterns across LaTeX resume files to inform
 template structure and understand common variations.
 """
 
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -45,8 +44,12 @@ def analyze_keyword_frequencies(
 
         for keyword in all_keywords:
             count = content.count(keyword)
-            keyword_total_occurrences[keyword] += count
+            if keyword not in keyword_total_occurrences:
+                keyword_total_occurrences[keyword] = 0
+            keyword_total_occurrences[keyword] += count    
             if count > 0:
+                if keyword not in keyword_resume_count:
+                    keyword_resume_count[keyword] = 0
                 keyword_resume_count[keyword] += 1
 
     return (
