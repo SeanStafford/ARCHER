@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+Statistical analysis of LaTeX resume patterns.
+
+Analyzes keyword frequency across resume files to inform template structure:
+1. Percentage of resumes containing keyword at least once
+2. Percentage of total text composed of keyword
+"""
 
 import os
 import sys
@@ -43,6 +50,29 @@ KEYWORDS = {
         "\\renewcommand{\\myname}{Sean Stafford}",
     ],
 
+    "Project Section Titles": [
+        "LLM Research Portfolio",
+        "Other Projects I'm Proud Of",
+        "Projects I'm Proud Of",
+    ],
+
+    "Special Sections": [
+        "HPC Highlights",
+        "Passions",
+        "\\phantomsection",
+    ],
+
+    "Subsection Formatting": [
+        "\\item[\\faRobot]",
+        "\\item[]",
+        "\\itemLL",
+        "\\item[--]",
+    ],
+
+    "Professional Profile Formatting": [
+        "\\centering \\textbf{",
+        "\\centering {",
+    ],
 
     "Environment Usage": [
         "itemizeAcademic",
