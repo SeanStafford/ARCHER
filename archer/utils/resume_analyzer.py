@@ -5,8 +5,17 @@ Analyzes keyword frequency patterns across LaTeX resume files to inform
 template structure and understand common variations.
 """
 
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+
+def count_pattern_matches(text, pattern, is_regex = False):
+    if is_regex:
+        matches = re.findall(pattern, text)
+        return len(matches)
+    else:
+        return text.count(pattern)
 
 
 def analyze_keyword_frequencies(
