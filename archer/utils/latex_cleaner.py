@@ -1,3 +1,10 @@
+"""
+LaTeX Resume Cleaner
+
+Core functions for cleaning LaTeX resume files by removing various types of comments
+and suggestion blocks while preserving escaped percentages and line-ending formatting.
+"""
+
 import re
 from pathlib import Path
 from typing import List, Set
@@ -126,13 +133,16 @@ def remove_inline_comment(line: str, comment_types: Set[str]) -> str:
     return line
 
 
-def clean_latex_content(content: str, comment_types: Set[str]) -> str:
+def clean_latex_content(
+    content: str, comment_types: Set[str], remove_suggest_blocks: bool = False
+) -> str:
     """
-    Clean LaTeX content by removing specified comment types.
+    Clean LaTeX content by removing specified comment types and suggestion blocks.
 
     Args:
         content: The LaTeX content to clean
         comment_types: Set of comment types to remove (use CommentType constants)
+        remove_suggest_blocks: Whether to remove \\suggest{...} blocks
 
     Returns:
         Cleaned LaTeX content
@@ -173,14 +183,54 @@ def clean_latex_content(content: str, comment_types: Set[str]) -> str:
 
     result = "\n".join(cleaned_lines)
 
+    # Remove \suggest{...} blocks if requested
+    if remove_suggest_blocks:
+        result = remove_suggest_blocks_from_content(result)
+
     return result
 
+
+def remove_suggest_blocks_from_content(content: str) -> str:
+    """
+    Remove all \\suggest{...} blocks from LaTeX content.
+
+    Uses a simple state machine to track brace matching.
+
+    Args:
+        content: The LaTeX content
+
+    Returns:
+        Content with \\suggest{...} blocks removed
+    """
+    result = []
+    i = 0
+
+    while i < len(content):
+        # Look for \suggest{
+        if content[i : i + 9] == r"\suggest{":
+            # Found a suggest block - skip it and its contents
+            i += 9  # Skip '\suggest{'
+            brace_count = 1
+
+            # Find the matching closing brace
+            while i < len(content) and brace_count > 0:
+                if content[i] == "{" and (i == 0 or content[i - 1] != "\\"):
+                    brace_count += 1
+                elif content[i] == "}" and (i == 0 or content[i - 1] != "\\"):
+                    brace_count -= 1
+                i += 1
+        else:
+            result.append(content[i])
+            i += 1
+
+    return "".join(result)
 
 
 def process_file(
     input_path: Path,
     output_path: Path,
     comment_types: Set[str],
+    remove_suggest_blocks: bool = False,
     dry_run: bool = False,
 ) -> tuple[bool, str]:
     """
@@ -190,6 +240,7 @@ def process_file(
         input_path: Path to input .tex file
         output_path: Path to output .tex file
         comment_types: Set of comment types to remove
+        remove_suggest_blocks: Whether to remove \\suggest{...} blocks
         dry_run: If True, don't write output file
 
     Returns:
@@ -201,7 +252,7 @@ def process_file(
             content = f.read()
 
         # Clean content
-        cleaned_content = clean_latex_content(content, comment_types)
+        cleaned_content = clean_latex_content(content, comment_types, remove_suggest_blocks)
 
         # Calculate statistics
         original_lines = len(content.split("\n"))
@@ -224,4 +275,3 @@ def process_file(
 
     except Exception as e:
         return False, f"Error processing {input_path.name}: {str(e)}"
-
