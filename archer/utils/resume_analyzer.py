@@ -10,13 +10,59 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
-def count_pattern_matches(text, pattern, is_regex = False):
+# Extract field patterns from LaTeX content.
+def extract_latex_fields(content: str) -> Dict[str, str]:
+    
+    fields = {}
+
+    pattern = r'\\renewcommand\{\\([^}]+)\}\{'
+
+    for match in re.findall(pattern, content):
+        # find the match to get field name and starting position
+        field_name = match.group(1)
+        start_pos = match.end() # position after the opening brace
+
+        # Count braces to find the matching closing brace
+        brace_count = 1
+        pos = start_pos
+
+
+        while pos < len(content) and brace_count > 0:
+            
+            # Handle escaped backslashes
+            if content[pos] == '\\':
+                pos += 2
+                continue
+            elif content[pos] == '{':
+                brace_count += 1
+            elif content[pos] == '}':
+                brace_count -= 1
+            pos += 1
+
+
+        if brace_count == 0:
+            field_value = content[start_pos:pos-1]
+            fields[field_name] = field_value
+        else:
+            # Unmatched braces, skip this field
+            continue
+
+    return fields
+
+
+
+def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> int:
+    """
+    Count occurrences of a pattern in text, supporting both exact and regex matching.
+
+    Returns:
+        Number of matches found
+    """
     if is_regex:
         matches = re.findall(pattern, text)
         return len(matches)
     else:
         return text.count(pattern)
-
 
 def analyze_keyword_frequencies(
     resume_dir: Path, keyword_categories: Dict[str, List[str]]
