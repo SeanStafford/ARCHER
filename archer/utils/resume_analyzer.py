@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from archer.utils.text_processing import truncate_display
+
 
 def extract_latex_fields(content: str) -> Dict[str, str]:
     """
@@ -171,7 +173,7 @@ def analyze_keywords_in_field(
     resume_dir: Path,
     keyword_categories: Dict[str, List[str]],
     field_name: str,
-    is_regex: bool = False
+    is_regex: bool = False,
 ) -> Tuple[int, int, Dict[str, int], Dict[str, int]]:
     """
     Analyze keyword frequencies within a specific LaTeX field across all resumes.
@@ -320,10 +322,8 @@ def format_analysis_report(
             percent_resumes = (resumes_with / num_resumes) * 100
             total_occur = keyword_total_occurrences.get(keyword, 0)
 
-            display_keyword = keyword if len(keyword) <= 48 else keyword[:45] + "..."
-
             lines.append(
-                f"{display_keyword:<50} {resumes_with:<15} "
+                f"{truncate_display(keyword, 48):<50} {resumes_with:<15} "
                 f"{percent_resumes:>13.1f}% {total_occur:>11}"
             )
 
@@ -370,10 +370,7 @@ def format_field_enumeration_report(
         for value, count in sorted_values:
             percent = (count / num_resumes) * 100
 
-            # Truncate long values for display
-            display_value = value if len(value) <= 68 else value[:65] + "..."
-
-            lines.append(f"{display_value:<70} {count:<10} {percent:>13.1f}%")
+            lines.append(f"{truncate_display(value, 68):<70} {count:<10} {percent:>13.1f}%")
 
         lines.append(f"\nTotal unique values: {len(values)}")
         lines.append("")
@@ -403,7 +400,7 @@ def format_section_enumeration_report(
     lines.append("=" * 100)
     lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}\n")
 
-    lines.append(f"{'Section Name':<50} {'Count':<10} {'% Resumes':<15}")
+    lines.append(f"{'Section Name':<50} {'Count':<10} {'% Resumes':<15}") # header line
     lines.append("-" * 100)
 
     # Sort by count (descending)
@@ -412,10 +409,7 @@ def format_section_enumeration_report(
     for section_name, count in sorted_sections:
         percent = (count / num_resumes) * 100
 
-        # Truncate long section names for display
-        display_name = section_name if len(section_name) <= 48 else section_name[:45] + "..."
-
-        lines.append(f"{display_name:<50} {count:<10} {percent:>13.1f}%")
+        lines.append(f"{truncate_display(section_name, 48):<50} {count:<10} {percent:>13.1f}%")
 
     lines.append(f"\nTotal unique sections: {len(section_counts)}")
     lines.append("")
