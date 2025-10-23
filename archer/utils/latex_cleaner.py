@@ -134,19 +134,18 @@ def remove_inline_comment(line: str, comment_types: Set[str]) -> str:
     return line
 
 
-def clean_latex_content(
-    content: str, comment_types: Set[str], remove_suggest_blocks: bool = False
-) -> str:
+def _clean_section(content: str, comment_types: Set[str]) -> str:
     """
-    Clean LaTeX content by removing specified comment types and suggestion blocks.
+    Clean a section of LaTeX content by removing specified comment types.
+
+    Helper function for clean_latex_content that processes line-by-line.
 
     Args:
-        content: The LaTeX content to clean
+        content: The LaTeX content section to clean
         comment_types: Set of comment types to remove (use CommentType constants)
-        remove_suggest_blocks: Whether to remove \\suggest{...} blocks
 
     Returns:
-        Cleaned LaTeX content
+        Cleaned content section
     """
     # Expand "all" to all specific types
     if CommentType.ALL in comment_types:
@@ -182,19 +181,34 @@ def clean_latex_content(
 
         cleaned_lines.append(line)
 
-    result = "\n".join(cleaned_lines)
+    # Not removing suggestions within this function, done in clean_latex_content
 
-    # Remove \suggest{...} blocks if requested
-    if remove_suggest_blocks:
-        result = remove_suggest_blocks_from_content(result)
+    return "\n".join(cleaned_lines)
 
-    return result
 
-def _clean_section():
-    pass
+def clean_latex_content(
+    content: str,
+    comment_types: Set[str],
+    remove_suggest_blocks: bool = False,
+    preamble_comment_types: Set[str] | None = None,
+) -> str:
+    """
+    Clean LaTeX content by removing specified comment types and suggestion blocks.
 
-def split_by_preamble( content, comment_types, preamble_comment_types):
-    
+    Supports preamble-aware cleaning where different comment removal rules can be
+    applied to the preamble (before \\begin{document}) vs the document body.
+
+    Args:
+        content: The LaTeX content to clean
+        comment_types: Set of comment types to remove from document body
+        remove_suggest_blocks: Whether to remove \\suggest{...} blocks
+        preamble_comment_types: Optional set of comment types to remove from preamble only.
+                               If None, uses comment_types for entire document.
+
+    Returns:
+        Cleaned LaTeX content
+    """
+    # Check if preamble-aware cleaning is requested
     match = re.search(r'\\begin\{document\}', content)
 
     if match and preamble_comment_types is not None:
@@ -211,6 +225,10 @@ def split_by_preamble( content, comment_types, preamble_comment_types):
     else:
         # Use original behavior
         result = _clean_section(content, comment_types)
+
+    # Remove \suggest{...} blocks if requested
+    if remove_suggest_blocks:
+        result = remove_suggest_blocks_from_content(result)
 
     return result
 
