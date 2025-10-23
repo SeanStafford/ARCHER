@@ -190,6 +190,29 @@ def clean_latex_content(
 
     return result
 
+def _clean_section():
+    pass
+
+def split_by_preamble( content, comment_types, preamble_comment_types):
+    
+    match = re.search(r'\\begin\{document\}', content)
+
+    if match and preamble_comment_types is not None:
+        # Split at \begin{document}
+        begin_doc_position = match.end()
+        preamble = content[:begin_doc_position]
+        body = content[begin_doc_position:]
+
+        # Clean preamble and body with different comment filtering
+        cleaned_preamble = _clean_section(preamble, preamble_comment_types)
+        cleaned_body = _clean_section(body, comment_types)
+
+        result = cleaned_preamble + cleaned_body
+    else:
+        # Use original behavior
+        result = _clean_section(content, comment_types)
+
+    return result
 
 def remove_suggest_blocks_from_content(content: str) -> str:
     """
