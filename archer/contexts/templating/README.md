@@ -11,7 +11,7 @@ Resume content is organized into **types** that define the structure and LaTeX r
 
 Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
-## Current Types
+### Current Types
 
 **work_experience** - Job position with company, title, location, dates, bullets, and optional nested projects (uses `itemizeAcademic` environment)
 
@@ -19,9 +19,29 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
 **skill_list_caps** - All-caps unbulleted skill list with small-caps formatting (e.g., Core Skills sections)
 
+## Data Structures
+
+**ResumeDocument** - Complete resume representation with fields, sections, and metadata
+
+**ResumeSection** - Individual section with name and raw content
+
+**DocumentMetadata** - Document-level metadata (name, date, brand, professional profile)
+
+**Page** - Page structure with page number and regions (top, left_column, main_column)
+
+**Section** - Typed section with name, type, content, and optional subsections
+
+## Converter
+
+**TypeRegistry** - Loads and caches type definitions from YAML files
+
+**YAMLToLaTeXConverter** - Generates LaTeX from structured YAML using type definitions (currently supports work_experience, project, skill_list_caps)
+
+**LaTeXToYAMLConverter** - The inverse (TODO)
+
 ## Roadmap
 
-This context will implement parsers and generators to enable:
-- LaTeX → YAML conversion for mining historical resume content
-- YAML → LaTeX generation for producing tailored resumes
-- Complete document structure handling (pages, columns, metadata)
+- Add remaining content types
+- Implement page-level parsing and generation
+- Add complete document metadata extraction
+- Add round-trip validation tests
