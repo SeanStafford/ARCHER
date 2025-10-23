@@ -45,7 +45,7 @@ The question was whether to create a shared data model or assign structure conve
 
 ---
 
-## Design Decision 2: Historical Resume Analysis in Targeting Context
+## Design Decision 3: Historical Resume Analysis in Targeting Context
 
 **Date**: Oct 23, 2025
 
@@ -60,3 +60,30 @@ The question was whether to create a shared data model or assign structure conve
 - Placing them in Targeting makes ownership clear
 
 **Location**: Analysis tools moved to `archer/contexts/targeting/analysis.py`.
+
+---
+
+## Design Decision 4: Use OmegaConf and YAML for Structured Resume Format
+
+**Date**: Oct 23, 2025
+
+**Decision**: Use YAML as the structured format for resume documents, with OmegaConf as the library for reading/writing YAML files.
+
+**Issue**: The Templating context needs a structured intermediate format that is:
+- Human-readable for debugging and manual editing
+- Machine-parseable for algorithmic manipulation
+- Capable of round-trip conversion with LaTeX (no data loss)
+- Type-safe with schema validation
+
+**Rationale**:
+- YAML is more readable than JSON for hierarchical documents with long text content
+- OmegaConf provides schema validation, type checking, and variable interpolation
+- OmegaConf is already a project dependency (used for configuration)
+- YAML's multiline strings handle LaTeX commands better than JSON's escaped strings
+- Consistent formatting conventions enable clean version control diffs
+
+**Trade-offs**:
+- YAML parsing is slower than JSON, but not performance-critical for this use case
+- Learning curve for OmegaConf's specific conventions (e.g., single backslashes, line wrapping)
+
+**Implementation**: All resume YAML files follow OmegaConf formatting conventions (documented in CLAUDE.md). Type definitions stored in `data/resume_archive/structured/types/` guide conversion between YAML and LaTeX.

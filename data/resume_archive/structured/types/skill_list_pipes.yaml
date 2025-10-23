@@ -1,0 +1,10 @@
+type_name: skill_list_pipes
+description: "Pipe-separated inline list"
+
+latex_structure: inline_text
+separator: ' | '
+
+content_structure:
+  list:
+    required: true
+    description: "List items separated by ' | ' separators"
