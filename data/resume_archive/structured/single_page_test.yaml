@@ -1,0 +1,44 @@
+# Test case: Single-page resume with paracol structure
+# Testing page-level parsing: LaTeX <-> YAML
+
+page:
+  page_number: 1
+  regions:
+    top:
+      show_professional_profile: true
+
+    left_column:
+      sections:
+      - name: Core Skills
+        type: skill_list_caps
+        content:
+          list:
+          - Machine Learning
+          - High-Performance\\Computing (HPC)
+          - MLOps
+
+      - name: Languages
+        type: skill_list_pipes
+        content:
+          list:
+          - Python
+          - Bash
+          - C++
+
+    main_column:
+      sections:
+      - name: Experience
+        type: work_history
+        subsections:
+        - type: work_experience
+          metadata:
+            company: Test Company
+            title: Software Engineer
+            location: City, ST
+            dates: 2023 -- Present
+          content:
+            bullets:
+            - text: Built scalable ML infrastructure
+            - text: Reduced latency by 50\%
+
+    bottom: null

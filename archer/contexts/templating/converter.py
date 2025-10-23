@@ -5,6 +5,7 @@ Handles bidirectional conversion between structured YAML and LaTeX resume format
 Uses type definitions from data/resume_archive/structured/types/ to guide conversion.
 """
 
+import re
 import os
 from pathlib import Path
 from typing import Any, Dict, List
@@ -284,6 +285,81 @@ class YAMLToLaTeXConverter:
         lines.append("\\end{itemize}")
 
         return "\n".join(lines)
+
+    def generate_page(self, page_data: Dict[str, Any]) -> str:
+        """
+        Generate complete page with paracol structure.
+        """
+        lines = []
+
+        # Start paracol
+        lines.append(PagePatterns.BEGIN_PARACOL)
+        lines.append("")
+
+        # Generate left column
+        if page_data.get("left_column"):
+            left_column = page_data["left_column"]
+            for section_data in left_column.get("sections", []):
+                section_latex = self._generate_section(section_data)
+                lines.append(section_latex)
+                lines.append("")
+
+        # Switch to main column
+        lines.append(PagePatterns.SWITCHCOLUMN)
+        lines.append("")
+
+        # Generate main column
+        if page_data.get("main_column"):
+            main_column = page_data["main_column"]
+            for section_data in main_column.get("sections", []):
+                section_latex = self._generate_section(section_data)
+                lines.append(section_latex)
+                lines.append("")
+
+        # End paracol
+        lines.append(PagePatterns.END_PARACOL)
+
+        return "\n".join(lines)
+
+    def _generate_section(self, section_data: Dict[str, Any]) -> str:
+        """
+        Generate LaTeX for a single section.
+        """
+        lines = []
+
+        # Section header
+        section_name = section_data["name"]
+        lines.append(f"{SectionPatterns.SECTION_STAR}{{{section_name}}}")
+        lines.append("")
+
+        # Generate content based on type
+        section_type = section_data["type"]
+
+        if section_type == "skill_list_caps":
+            content_latex = self.convert_skill_list_caps({"content": section_data["content"]})
+            lines.append(content_latex)
+
+        elif section_type == "skill_list_pipes":
+            content_latex = self.convert_skill_list_pipes({"content": section_data["content"]})
+            lines.append(content_latex)
+
+        elif section_type == "skill_categories":
+            content_latex = self.convert_skill_categories({"subsections": section_data["subsections"]})
+            lines.append(content_latex)
+
+        elif section_type == "work_history":
+            # Generate all work experience subsections
+            for subsection in section_data.get("subsections", []):
+                subsection_latex = self.convert_work_experience(subsection)
+                lines.append(subsection_latex)
+                lines.append("")
+
+        else:
+            # Unknown type - skip or add placeholder
+            lines.append(f"% Unknown section type: {section_type}")
+
+        return "\n".join(lines)
+
 
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
@@ -729,6 +805,149 @@ class LaTeXToYAMLConverter:
             "type": "skill_categories",
             "subsections": categories
         }
+        
+
+    def extract_page_regions(self, latex_str: str, page_number: int = 1) -> Dict[str, Any]:
+        # Find paracol environment
+        paracol_pattern = re.escape(PagePatterns.BEGIN_PARACOL)
+        paracol_match = re.search(paracol_pattern, latex_str)
+        if not paracol_match:
+            raise ValueError(f"No {PagePatterns.BEGIN_PARACOL} found")
+
+        paracol_start = paracol_match.end()
+
+        # Find \end{paracol}
+        end_pattern = re.escape(PagePatterns.END_PARACOL)
+        end_match = re.search(end_pattern, latex_str[paracol_start:])
+        if not end_match:
+            raise ValueError(f"No matching {PagePatterns.END_PARACOL} found")
+
+        paracol_content = latex_str[paracol_start:paracol_start + end_match.start()]
+
+        # Find \switchcolumn (optional for continuation pages)
+        switch_pattern = re.escape(PagePatterns.SWITCHCOLUMN)
+        switch_match = re.search(switch_pattern, paracol_content)
+
+        if switch_match:
+            # Has both columns
+            left_content = paracol_content[:switch_match.start()].strip()
+            main_content = paracol_content[switch_match.end():].strip()
+
+            left_sections = self._extract_sections_from_column(left_content)
+            main_sections = self._extract_sections_from_column(main_content)
+        else:
+            # No switchcolumn - all content is in main column (continuation page)
+            left_sections = []
+            main_sections = self._extract_sections_from_column(paracol_content.strip())
+
+        return {
+            "top": {
+                "show_professional_profile": (page_number == 1)
+            },
+            "left_column": {
+                "sections": left_sections
+            } if left_sections else None,
+            "main_column": {
+                "sections": main_sections
+            } if main_sections else None,
+            "bottom": None  # TODO: Implement bottom bar extraction
+        }
+
+    def _extract_sections_from_column(self, column_content: str) -> List[Dict[str, Any]]:
+        """
+        Extract all sections from column content.
+        """
+        import re
+
+        sections = []
+
+        # Find all \section* markers
+        section_pattern = r'\\section\*?\{([^}]+)\}'
+        section_matches = list(re.finditer(section_pattern, column_content))
+
+        if not section_matches:
+            return sections
+
+        for i, match in enumerate(section_matches):
+            section_name = match.group(1).strip()
+
+            # Get content from after this section to before next section
+            content_start = match.end()
+            if i + 1 < len(section_matches):
+                content_end = section_matches[i + 1].start()
+            else:
+                content_end = len(column_content)
+
+            section_content = column_content[content_start:content_end].strip()
+
+            # Infer type and parse section
+            section_dict = self._parse_section_by_inference(section_name, section_content)
+            sections.append(section_dict)
+
+        return sections
+
+    def _parse_section_by_inference(self, section_name: str, content: str) -> Dict[str, Any]:
+        """
+        Infer section type from content and parse accordingly.
+        """
+        import re
+
+        # Try to infer type from content structure
+        if EnvironmentPatterns.BEGIN_ITEMIZE_ACADEMIC in content:
+            # Work experience section
+            # Parse all work experience subsections
+            subsections = []
+            begin_pattern = re.escape(EnvironmentPatterns.BEGIN_ITEMIZE_ACADEMIC)
+            for match in re.finditer(begin_pattern, content):
+                # Find corresponding \end{itemizeAcademic}
+                start = match.start()
+                end_pattern = re.escape(EnvironmentPatterns.END_ITEMIZE_ACADEMIC)
+                end_match = re.search(end_pattern, content[start:])
+                if end_match:
+                    subsection_latex = content[start:start + end_match.end()]
+                    subsection = self.parse_work_experience(subsection_latex)
+                    subsections.append(subsection)
+
+            return {
+                "name": section_name,
+                "type": "work_history",
+                "subsections": subsections
+            }
+
+        elif r'\begin{itemize}' in content and r'\item[' in content and FormattingPatterns.SCSHAPE in content:
+            # skill_categories
+            parsed = self.parse_skill_categories(content)
+            return {
+                "name": section_name,
+                "type": "skill_categories",
+                "subsections": parsed["subsections"]
+            }
+
+        elif FormattingPatterns.SETLENGTH in content and FormattingPatterns.BASELINESKIP in content and FormattingPatterns.SCSHAPE in content:
+            # skill_list_caps
+            parsed = self.parse_skill_list_caps(content)
+            return {
+                "name": section_name,
+                "type": "skill_list_caps",
+                "content": parsed["content"]
+            }
+
+        elif FormattingPatterns.TEXTTT in content and '|' in content:
+            # skill_list_pipes
+            parsed = self.parse_skill_list_pipes(content)
+            return {
+                "name": section_name,
+                "type": "skill_list_pipes",
+                "content": parsed["content"]
+            }
+
+        else:
+            # Unknown type - store as raw
+            return {
+                "name": section_name,
+                "type": "unknown",
+                "content": {"raw": content}
+            }
 
 
 def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
