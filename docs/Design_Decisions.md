@@ -44,3 +44,19 @@ The question was whether to create a shared data model or assign structure conve
 **Implementation**: Targeting operates on structured resume data provided by Templating's conversion utilities. Templating provides both parsing (tex → data) and serialization (data → tex) capabilities.
 
 ---
+
+## Design Decision 2: Historical Resume Analysis in Targeting Context
+
+**Date**: Oct 23, 2025
+
+**Decision**: Resume pattern analysis tools (keyword frequency, field analysis, section matching) belong in the Targeting context rather than general utilities.
+
+**Issue**: Analysis tools were initially developed as standalone utilities in `archer/utils/resume_analyzer.py`. As the system grew, it became unclear whether these were generic utilities or domain logic.
+
+**Rationale**:
+- These tools directly support Targeting's responsibility for "historical resume indexing/search"
+- Pattern analysis informs content prioritization decisions
+- The analysis is specific to resume targeting, not a general-purpose capability
+- Placing them in Targeting makes ownership clear
+
+**Location**: Analysis tools moved to `archer/contexts/targeting/analysis.py`.

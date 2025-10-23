@@ -237,6 +237,47 @@ make lint
 make clean
 ```
 
+### Testing
+
+ARCHER uses pytest with several test categories marked for different use cases.
+
+**Run tests:**
+```bash
+# Run all tests (excludes slow tests by default)
+make test
+
+# Run all tests including slow tests
+make test-all
+
+# Run only unit tests (fast, mocked)
+make test-unit
+
+# Run only integration tests
+make test-integration
+
+# Run tests with coverage report
+make test-cov
+
+# Open coverage report in browser
+make test-cov-html
+```
+
+**Test markers** (configured in `pyproject.toml`):
+- `@pytest.mark.unit` - Fast unit tests with mocked dependencies
+- `@pytest.mark.integration` - Integration tests (may involve LaTeX compilation)
+- `@pytest.mark.slow` - Tests taking >1 second (excluded by default)
+- `@pytest.mark.latex` - Tests requiring LaTeX compiler
+
+**Run specific test types manually:**
+```bash
+pytest -m unit                    # Only unit tests
+pytest -m integration             # Only integration tests
+pytest -m latex                   # Only LaTeX-dependent tests
+pytest tests/integration/test_two_page.py  # Specific test file
+```
+
+**Configuration**: Test settings are defined in `pyproject.toml` under `[tool.pytest.ini_options]`. By default, tests run with verbose output, short tracebacks, and slow tests excluded.
+
 ---
 
 ## Future Work

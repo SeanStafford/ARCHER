@@ -68,6 +68,46 @@ format:
 	@echo ">>> Code formatted"
 
 #################################################################################
+# TESTING COMMANDS                                                              #
+#################################################################################
+
+## Run all tests (excluding slow tests by default)
+.PHONY: test
+test:
+	pytest
+	@echo ">>> Tests complete (slow tests excluded)"
+
+## Run all tests including slow tests
+.PHONY: test-all
+test-all:
+	pytest -m ''
+	@echo ">>> All tests complete (including slow)"
+
+## Run only unit tests
+.PHONY: test-unit
+test-unit:
+	pytest -m unit
+	@echo ">>> Unit tests complete"
+
+## Run only integration tests
+.PHONY: test-integration
+test-integration:
+	pytest -m integration
+	@echo ">>> Integration tests complete"
+
+## Run tests with coverage report
+.PHONY: test-cov
+test-cov:
+	pytest --cov=archer --cov-report=term-missing --cov-report=html
+	@echo ">>> Coverage report generated in htmlcov/"
+
+## Run tests and open coverage report
+.PHONY: test-cov-html
+test-cov-html: test-cov
+	@echo ">>> Opening coverage report..."
+	xdg-open htmlcov/index.html 2>/dev/null || open htmlcov/index.html 2>/dev/null || echo "Please open htmlcov/index.html manually"
+
+#################################################################################
 # UTILITY COMMANDS                                                              #
 #################################################################################
 
