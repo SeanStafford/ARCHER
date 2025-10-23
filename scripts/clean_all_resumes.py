@@ -33,12 +33,21 @@ def main():
     """
 
     # File processing settings
-    # Define which comment types to remove (see CommentType class for more info)
-    comment_types = {
-        CommentType.INLINE_ANNOTATIONS,  # Removes % ---- style comments
-        CommentType.COMMENTED_CODE,      # Removes % \setlength{...} style lines
+    # Define which comment types to remove from preamble
+    # Preserve organizational comments in preamble (% margins, % figs, etc.)
+    preamble_comment_types = {
+        CommentType.INLINE_ANNOTATIONS,  # Remove % ---- style comments
+        CommentType.COMMENTED_CODE,      # Remove % \command lines
+        # NOT removing DESCRIPTIVE - keep organizational comments in preamble!
     }
-    # Note: This preserves descriptive comments, decorative separators, and inline dates
+
+    # Define which comment types to remove from document body
+    body_comment_types = {
+        CommentType.INLINE_ANNOTATIONS,  # Remove % ---- style comments
+        CommentType.COMMENTED_CODE,      # Remove % \command lines
+        CommentType.DESCRIPTIVE,         # Remove descriptive scraps in body (% % text)
+    }
+
     remove_suggest_blocks=True # Also remove \suggest{...} blocks
     dry_run=False  # Actually write files (not just preview changes)
 
@@ -55,7 +64,8 @@ def main():
     print(f"Cleaning {len(tex_files)} resume files...")
     print(f"Source: {RAW_ARCHIVE_PATH}")
     print(f"Destination: {RESUME_ARCHIVE_PATH}")
-    print(f"Comment types: {', '.join(comment_types)}")
+    print(f"Preamble comment types: {', '.join(preamble_comment_types)}")
+    print(f"Body comment types: {', '.join(body_comment_types)}")
     print(f"Remove suggest blocks: True\n")
 
     success_count = 0
@@ -64,13 +74,14 @@ def main():
 
         output_file = RESUME_ARCHIVE_PATH / tex_file.name
 
-        # process_file() handles reading, cleaning, and writing
+        # process_file() handles reading, cleaning, and writing with preamble awareness
         success, message = process_file(
             tex_file,
             output_file,
-            comment_types,
+            body_comment_types,
             remove_suggest_blocks=remove_suggest_blocks,
             dry_run=dry_run,
+            preamble_comment_types=preamble_comment_types,
         )
 
         if success:

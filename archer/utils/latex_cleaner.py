@@ -232,6 +232,7 @@ def clean_latex_content(
 
     return result
 
+
 def remove_suggest_blocks_from_content(content: str) -> str:
     """
     Remove all \\suggest{...} blocks from LaTeX content.
@@ -274,6 +275,7 @@ def process_file(
     comment_types: Set[str],
     remove_suggest_blocks: bool = False,
     dry_run: bool = False,
+    preamble_comment_types: Set[str] | None = None,
 ) -> tuple[bool, str]:
     """
     Process a single LaTeX file.
@@ -281,9 +283,10 @@ def process_file(
     Args:
         input_path: Path to input .tex file
         output_path: Path to output .tex file
-        comment_types: Set of comment types to remove
+        comment_types: Set of comment types to remove from document body
         remove_suggest_blocks: Whether to remove \\suggest{...} blocks
         dry_run: If True, don't write output file
+        preamble_comment_types: Optional set of comment types to remove from preamble only
 
     Returns:
         Tuple of (success: bool, message: str)
@@ -294,7 +297,9 @@ def process_file(
             content = f.read()
 
         # Clean content
-        cleaned_content = clean_latex_content(content, comment_types, remove_suggest_blocks)
+        cleaned_content = clean_latex_content(
+            content, comment_types, remove_suggest_blocks, preamble_comment_types
+        )
 
         # Calculate statistics
         original_lines = len(content.split("\n"))
@@ -324,15 +329,17 @@ def process_directory(
     comment_types: Set[str],
     remove_suggest_blocks: bool = False,
     dry_run: bool = False,
+    preamble_comment_types: Set[str] | None = None,
 ) -> List[tuple[bool, str]]:
     """
     Process all .tex files in a directory.
 
     Args:
         directory_path: Path to directory containing .tex files
-        comment_types: Set of comment types to remove
+        comment_types: Set of comment types to remove from document body
         remove_suggest_blocks: Whether to remove \\suggest{...} blocks
         dry_run: If True, don't write output files
+        preamble_comment_types: Optional set of comment types to remove from preamble only
 
     Returns:
         List of (success, message) tuples for each file
@@ -348,7 +355,7 @@ def process_directory(
     for tex_file in tex_files:
         # Process in-place (overwrite)
         success, message = process_file(
-            tex_file, tex_file, comment_types, remove_suggest_blocks, dry_run
+            tex_file, tex_file, comment_types, remove_suggest_blocks, dry_run, preamble_comment_types
         )
         results.append((success, message))
 
