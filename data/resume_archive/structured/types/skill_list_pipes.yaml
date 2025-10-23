@@ -3,6 +3,7 @@ description: "Pipe-separated inline list"
 
 latex_structure: inline_text
 separator: ' | '
+allows_line_breaks: true  # Can use \\ to wrap long lists
 
 content_structure:
   list:
