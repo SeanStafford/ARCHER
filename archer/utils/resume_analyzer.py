@@ -99,46 +99,6 @@ def _clean_section_name(raw_name: str) -> str:
     return cleaned.strip()
 
 
-def _clean_section_name(raw_name: str) -> str:
-    """
-    Clean LaTeX formatting commands and escapes from section name.
-
-    Args:
-        raw_name: Raw section name with LaTeX formatting
-
-    Returns:
-        Cleaned section name with formatting removed
-    """
-    cleaned = raw_name
-
-    # First, remove spacing/positioning commands entirely (including their arguments)
-    spacing_commands = ["hspace", "vspace", "color", "colorbox"]
-    for cmd in spacing_commands:
-        cleaned = re.sub(rf"\\{cmd}\{{[^}}]*\}}", "", cleaned)
-
-    # Then unwrap formatting commands (keep their content)
-    # Pattern matches: \command{content} and keeps just content
-    max_iterations = 10  # Prevent infinite loop
-    for _ in range(max_iterations):
-        before = cleaned
-        cleaned = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", cleaned)
-        if cleaned == before:
-            break
-
-    # Remove any remaining standalone braces (e.g., from \color{red}{Content})
-    cleaned = re.sub(r"^\{([^}]*)\}$", r"\1", cleaned)
-    cleaned = re.sub(r"\{([^}]*)\}", r"\1", cleaned)
-
-    # Replace LaTeX escapes
-    cleaned = cleaned.replace(r"\&", "&")
-    cleaned = cleaned.replace(r"\%", "%")
-    cleaned = cleaned.replace(r"\_", "_")
-    cleaned = cleaned.replace(r"\$", "$")
-
-    # Strip whitespace
-    return cleaned.strip()
-
-
 def extract_sections(content: str) -> List[str]:
     """
     Extract all \\section*{VALUE} and \\section{VALUE} patterns from LaTeX content.
