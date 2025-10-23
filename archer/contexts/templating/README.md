@@ -37,11 +37,11 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
 **YAMLToLaTeXConverter** - Generates LaTeX from structured YAML using type definitions (currently supports work_experience, project, skill_list_caps)
 
-**LaTeXToYAMLConverter** - The inverse (TODO)
+**LaTeXToYAMLConverter** - Parses LaTeX to structured YAML format (currently supports work_experience, project, skill_list_caps)
 
 ## Roadmap
 
-- Add remaining content types
+- Add remaining content types (skill_list_pipes, skill_categories, education)
 - Implement page-level parsing and generation
 - Add complete document metadata extraction
 - Add round-trip validation tests
