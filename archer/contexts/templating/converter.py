@@ -1,4 +1,9 @@
-"""LaTeX <-> YAML bidirectional converter using type definitions."""
+"""
+LaTeX <-> YAML Converter
+
+Handles bidirectional conversion between structured YAML and LaTeX resume format.
+Uses type definitions from data/resume_archive/structured/types/ to guide conversion.
+"""
 
 import os
 from pathlib import Path
@@ -39,7 +44,15 @@ class YAMLToLaTeXConverter:
         self.registry = type_registry or TypeRegistry()
 
     def convert_work_experience(self, subsection: Dict[str, Any]) -> str:
-        """Convert work_experience subsection to LaTeX itemizeAcademic environment."""
+        """
+        Convert work_experience subsection to LaTeX.
+
+        Args:
+            subsection: Dict with type, metadata, and content
+
+        Returns:
+            LaTeX string for itemizeAcademic environment
+        """
         type_def = self.registry.load_type(subsection["type"])
         metadata = subsection["metadata"]
         content = subsection["content"]
@@ -77,7 +90,16 @@ class YAMLToLaTeXConverter:
         return "\n".join(lines)
 
     def convert_project(self, project: Dict[str, Any], indent: str = "") -> str:
-        """Convert project subsection to LaTeX itemizeAProject environment."""
+        """
+        Convert project subsection to LaTeX.
+
+        Args:
+            project: Dict with type, metadata, and bullets
+            indent: Indentation string to prepend to each line
+
+        Returns:
+            LaTeX string for itemizeAProject environment
+        """
         type_def = self.registry.load_type(project["type"])
         metadata = project["metadata"]
 
@@ -101,7 +123,15 @@ class YAMLToLaTeXConverter:
         return "\n".join(lines)
 
     def convert_skill_list_caps(self, section: Dict[str, Any]) -> str:
-        """Convert skill_list_caps to LaTeX braced format with small caps."""
+        """
+        Convert skill_list_caps section to LaTeX.
+
+        Args:
+            section: Dict with type and content (list of items)
+
+        Returns:
+            LaTeX string for skill list in braced format with small caps
+        """
         content = section["content"]
         items = content["list"]
 
@@ -126,7 +156,17 @@ class LaTeXToYAMLConverter:
         self.registry = type_registry or TypeRegistry()
 
     def _extract_braced_params(self, latex_str: str, start_pos: int, num_params: int) -> List[str]:
-        """Extract N brace-delimited parameters from LaTeX starting at position."""
+        """
+        Extract N brace-delimited parameters starting from position.
+
+        Args:
+            latex_str: LaTeX source
+            start_pos: Position to start searching
+            num_params: Number of {...} parameters to extract
+
+        Returns:
+            List of extracted parameter values
+        """
         params = []
         pos = start_pos
 
@@ -160,7 +200,15 @@ class LaTeXToYAMLConverter:
         return params
 
     def parse_work_experience(self, latex_str: str) -> Dict[str, Any]:
-        """Parse LaTeX itemizeAcademic environment to structured dict."""
+        """
+        Parse LaTeX itemizeAcademic environment to structured YAML.
+
+        Args:
+            latex_str: LaTeX source for work experience subsection
+
+        Returns:
+            Dict matching YAML structure
+        """
         import re
 
         # Find \begin{itemizeAcademic}{...}{...}{...}{...}
@@ -317,7 +365,23 @@ class LaTeXToYAMLConverter:
         }
 
     def parse_skill_list_caps(self, latex_str: str) -> Dict[str, Any]:
-        """Parse skill_list_caps braced section with small caps to structured dict."""
+        """
+        Parse skill_list_caps section (e.g., Core Skills).
+
+        Format: { \setlength{...} \scshape
+                  Item 1
+
+                  Item 2\\With Line Break
+
+                  Item 3
+                }
+
+        Args:
+            latex_str: LaTeX source for skill list section
+
+        Returns:
+            Dict matching YAML structure
+        """
         import re
 
         # Find opening brace with spacing commands and \scshape
@@ -365,7 +429,16 @@ class LaTeXToYAMLConverter:
 
 
 def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
-    """Convert YAML resume structure to LaTeX."""
+    """
+    Convert YAML resume structure to LaTeX.
+
+    Args:
+        yaml_path: Path to YAML file
+        output_path: Optional path to write LaTeX output
+
+    Returns:
+        Generated LaTeX string
+    """
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
@@ -385,7 +458,16 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
 
 
 def latex_to_yaml(latex_path: Path, output_path: Path = None) -> Dict[str, Any]:
-    """Convert LaTeX resume to YAML structure."""
+    """
+    Convert LaTeX resume to YAML structure.
+
+    Args:
+        latex_path: Path to LaTeX file
+        output_path: Optional path to write YAML output
+
+    Returns:
+        Parsed YAML structure as dict
+    """
     latex_str = latex_path.read_text(encoding="utf-8")
 
     converter = LaTeXToYAMLConverter()

@@ -1,0 +1,33 @@
+# Test case: skill_categories section (Software Tools with nested categories)
+# Testing round-trip conversion: LaTeX <-> YAML
+
+section:
+  type: skill_categories
+  subsections:
+  - type: skill_category
+    metadata:
+      name: LLM Architectures
+      icon: \faRobot
+    content:
+      list:
+      - Mixture of Experts (MoE)
+      - Multimodal Models
+      - Models for Binary
+  - type: skill_category
+    metadata:
+      name: ML Frameworks
+      icon: \faChartLine
+    content:
+      list:
+      - PyTorch
+      - JAX/Equinox
+      - TensorFlow
+  - type: skill_category
+    metadata:
+      name: Development
+      icon: \faCode
+    content:
+      list:
+      - Git
+      - Docker
+      - CI/CD

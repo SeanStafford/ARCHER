@@ -1,5 +1,14 @@
 """
+Resume Document Structure
+
 Defines structured data representation of resume content for ARCHER.
+This structure serves as the interface between Templating and Targeting contexts.
+
+Templating owns:
+- Parsing .tex files into ResumeDocument instances
+- Serializing ResumeDocument instances back to .tex format
+
+Targeting operates on ResumeDocument instances for analysis and content selection.
 """
 
 from dataclasses import dataclass, field
@@ -16,6 +25,14 @@ from archer.contexts.templating.resume_components_data_structures import (
 class ResumeSection:
     """
     Represents a single section within a resume.
+
+    Attributes:
+        name: Cleaned section name (e.g., "Core Skills", "Experience")
+        raw_content: LaTeX source code between this section header and the next section
+
+    Future extensions:
+        - bullets: List[Bullet] - parsed bullet points and their hierarchy
+        - subsections: List[Subsection] - nested structure for complex sections
     """
     name: str
     raw_content: str
@@ -43,8 +60,18 @@ class ResumeDocument:
         """
         Parse a .tex file into a structured ResumeDocument.
 
+        Args:
+            tex_path: Path to LaTeX resume file
+
         Returns:
             Parsed ResumeDocument instance
+
+        Raises:
+            FileNotFoundError: If tex_path does not exist
+            ValueError: If tex file cannot be parsed
+
+        Note:
+            Implementation will use templating/parser.py functions
         """
         if not tex_path.exists():
             raise FileNotFoundError(f"Resume file not found: {tex_path}")
@@ -75,9 +102,32 @@ class ResumeDocument:
 
         return cls(fields=fields, sections=sections, metadata=metadata)
 
+    def to_tex(self) -> str:
+        """
+        Serialize ResumeDocument back to LaTeX format.
+
+        Returns:
+            LaTeX source code as string
+
+        Note:
+            This is a stub for future implementation. Will be needed when
+            Templating populates templates with content from Targeting.
+        """
+        raise NotImplementedError(
+            "LaTeX serialization not yet implemented. "
+            "This will be added when template population is needed."
+        )
+
     def get_section(self, name: str, case_sensitive: bool = False) -> Optional[ResumeSection]:
         """
         Find a section by name.
+
+        Args:
+            name: Section name to find
+            case_sensitive: Whether to match case exactly
+
+        Returns:
+            ResumeSection if found, None otherwise
         """
         if case_sensitive:
             for section in self.sections:
@@ -93,12 +143,21 @@ class ResumeDocument:
     def get_field(self, field_name: str) -> Optional[str]:
         """
         Get a field value by name.
+
+        Args:
+            field_name: Field name (e.g., "brand", "profile")
+
+        Returns:
+            Field value if exists, None otherwise
         """
         return self.fields.get(field_name)
 
     def get_all_text(self) -> str:
         """
         Get all text content from the resume (fields + sections).
+
+        Returns:
+            Combined text for full-document search
         """
         parts = []
 
