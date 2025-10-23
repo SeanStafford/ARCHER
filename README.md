@@ -87,18 +87,21 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 
 ### 2. Targeting Context
 **Responsibility**: Algorithmic content prioritization
-- Evalutates relevance of experience, projects, and skills against job requirements
+- Evaluates relevance of experience, projects, and skills against job requirements
 - Determines which content to include from archive of existing manually created resumes
+- Indexes and searches historical resume content in structured format
 
-**Owns**: Prioritization algorithms, relevance scoring, content selection logic
-**Never**: Directly accesses job descriptions or templates
+**Owns**: Prioritization algorithms, relevance scoring, content selection logic, historical resume analysis
+**Never**: Directly accesses job descriptions or raw LaTeX files
 
 ### 3. Templating Context
-**Responsibility**: LaTeX template building and population
-- Manages custom LaTeX style system
+**Responsibility**: Resume structure and LaTeX template management
+- Converts between LaTeX (.tex) files and structured data representations
+- Manages resume document structure (fields, sections, content organization)
 - Populates templates with targeted content
+- Handles LaTeX style system and formatting decisions
 
-**Owns**: LaTeX template system, template population, structure management
+**Owns**: LaTeX template system, resume structure representation, tex ↔ structured data conversion
 **Never**: Makes content prioritization decisions
 
 ### 4. Rendering Context
