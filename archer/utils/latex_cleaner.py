@@ -87,12 +87,13 @@ def matches_comment_type(line: str, comment_type: str) -> bool:
 
     elif comment_type == CommentType.DESCRIPTIVE:
         # Simple descriptive comments: % text (not starting with - or \)
-        # Excludes line-ending % and separator comments
-        return bool(re.match(r"^\s*%\s+[^-\\%]", line))
+        # Handles multiple % signs with spaces (% %, % % %, etc.), excludes line-ending %
+        return bool(re.match(r"^\s*%(\s+%)*\s+[^-\\]", line))
 
     elif comment_type == CommentType.COMMENTED_CODE:
-        # Commented-out LaTeX commands: % \command
-        return bool(re.match(r"^\s*%\s*\\", line))
+        # Commented-out LaTeX commands: % \command (handles multiple % signs with spaces)
+        # Pattern matches: % \cmd, % % \cmd, % % % \cmd, etc.
+        return bool(re.match(r"^\s*%(\s+%)*\s*\\", line))
 
     elif comment_type == CommentType.INLINE_ANNOTATIONS:
         # Inline comments after code with dashes: \command % ---------
