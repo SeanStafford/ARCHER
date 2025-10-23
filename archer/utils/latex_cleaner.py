@@ -230,6 +230,9 @@ def clean_latex_content(
     if remove_suggest_blocks:
         result = remove_suggest_blocks_from_content(result)
 
+    # Normalize blank lines
+    result = normalize_blank_lines(result)
+
     return result
 
 
@@ -267,6 +270,37 @@ def remove_suggest_blocks_from_content(content: str) -> str:
             i += 1
 
     return "".join(result)
+
+
+def normalize_blank_lines(content: str, max_consecutive: int = 1) -> str:
+    """
+    Normalize consecutive blank lines to a maximum number.
+
+    Replaces 2 or more consecutive blank lines with max_consecutive blank lines.
+    This standardizes spacing in LaTeX documents for consistent formatting.
+
+    Args:
+        content: The LaTeX content to normalize
+        max_consecutive: Maximum number of consecutive blank lines to allow (default: 1)
+
+    Returns:
+        Content with normalized blank lines
+
+    Example:
+        >>> normalize_blank_lines("text\\n\\n\\n\\nmore", max_consecutive=1)
+        'text\\n\\nmore'
+    """
+    # Pattern matches 2+ consecutive blank lines (lines with only whitespace)
+    # \s* matches optional whitespace on empty lines
+    # \n matches the newline
+    # (\s*\n)+ matches one or more additional blank lines
+    pattern = r'\n\s*\n(\s*\n)+'
+
+    # Replacement is max_consecutive+1 newlines
+    # (e.g., max_consecutive=1 means "\n\n" which is 1 blank line)
+    replacement = '\n' * (max_consecutive + 1)
+
+    return re.sub(pattern, replacement, content)
 
 
 def process_file(
