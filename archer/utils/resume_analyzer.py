@@ -57,6 +57,28 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
     return fields
 
 
+def extract_sections(content: str) -> List[str]:
+    """
+    Extract all \\section*{VALUE} and \\section{VALUE} patterns from LaTeX content.
+
+    Args:
+        content: LaTeX file content as string
+
+    Returns:
+        List of section names (e.g., ["Core Skills", "Experience", ...])
+    """
+    sections = []
+
+    # Pattern matches both \section*{...} and \section{...}
+    pattern = r'\\section\*?\{([^}]+)\}'
+
+    for match in re.finditer(pattern, content):
+        section_name = match.group(1)
+        sections.append(section_name)
+
+    return sections
+
+
 def enumerate_field_values(resume_dir):
     """
     Enumerate all unique values for each \\renewcommand field across all resumes.
@@ -91,6 +113,39 @@ def enumerate_field_values(resume_dir):
             field_values[field_name][cleaned_value] += 1
 
     return field_values
+
+
+def enumerate_section_values(resume_dir: Path) -> Dict[str, int]:
+    """
+    Enumerate all unique section names and count how many resumes contain each.
+
+    Args:
+        resume_dir: Directory containing .tex resume files
+
+    Returns:
+        Dict mapping section names to resume count
+        Example: {"Core Skills": 57, "Experience": 57, "HPC Highlights": 4, ...}
+    """
+    tex_files = sorted(resume_dir.glob("*.tex"))
+
+    if not tex_files:
+        raise ValueError(f"No .tex files found in {resume_dir}")
+
+    section_counts = {}
+
+    for tex_file in tex_files:
+        content = tex_file.read_text(encoding="utf-8")
+        sections = extract_sections(content)
+
+        # Track unique sections per resume (don't count duplicates within same resume)
+        unique_sections = set(sections)
+
+        for section in unique_sections:
+            if section not in section_counts:
+                section_counts[section] = 0
+            section_counts[section] += 1
+
+    return section_counts
 
 
 def count_pattern_matches(text: str, pattern: str, is_regex: bool = False) -> int:
@@ -322,5 +377,47 @@ def format_field_enumeration_report(
 
         lines.append(f"\nTotal unique values: {len(values)}")
         lines.append("")
+
+    return "\n".join(lines)
+
+
+def format_section_enumeration_report(
+    section_counts: Dict[str, int],
+    num_resumes: int,
+    resume_dir: Path,
+) -> str:
+    """
+    Format section enumeration as a human-readable report.
+
+    Args:
+        section_counts: Dict mapping section names to resume count
+        num_resumes: Total number of resumes analyzed
+        resume_dir: Path to resume directory (for header)
+
+    Returns:
+        Formatted report string
+    """
+    lines = []
+    lines.append("\n" + "=" * 100)
+    lines.append("SECTION USAGE ACROSS RESUMES")
+    lines.append("=" * 100)
+    lines.append(f"Analyzed {num_resumes} resume files from {resume_dir}\n")
+
+    lines.append(f"{'Section Name':<50} {'Count':<10} {'% Resumes':<15}")
+    lines.append("-" * 100)
+
+    # Sort by count (descending)
+    sorted_sections = sorted(section_counts.items(), key=lambda x: x[1], reverse=True)
+
+    for section_name, count in sorted_sections:
+        percent = (count / num_resumes) * 100
+
+        # Truncate long section names for display
+        display_name = section_name if len(section_name) <= 48 else section_name[:45] + "..."
+
+        lines.append(f"{display_name:<50} {count:<10} {percent:>13.1f}%")
+
+    lines.append(f"\nTotal unique sections: {len(section_counts)}")
+    lines.append("")
 
     return "\n".join(lines)

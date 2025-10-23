@@ -25,8 +25,10 @@ from dotenv import load_dotenv
 from archer.utils.resume_analyzer import (
     analyze_keyword_frequencies,
     enumerate_field_values,
+    enumerate_section_values,
     format_analysis_report,
     format_field_enumeration_report,
+    format_section_enumeration_report,
 )
 
 # Load environment variables
@@ -170,8 +172,16 @@ def main(
             RESUME_ARCHIVE_PATH
         )
 
+        # Part 3: Section enumeration
+        section_counts = enumerate_section_values(RESUME_ARCHIVE_PATH)
+        section_report = format_section_enumeration_report(
+            section_counts,
+            num_resumes,
+            RESUME_ARCHIVE_PATH
+        )
+
         # Combine reports
-        report = keyword_report + "\n\n" + field_report
+        report = keyword_report + "\n\n" + field_report + "\n\n" + section_report
 
         if output:
             # If output is not absolute, treat it as relative to LOGS_PATH
