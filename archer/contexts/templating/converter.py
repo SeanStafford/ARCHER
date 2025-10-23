@@ -12,6 +12,16 @@ from typing import Any, Dict, List
 from omegaconf import OmegaConf
 from dotenv import load_dotenv
 
+from archer.contexts.templating.latex_patterns import (
+    DocumentPatterns,
+    PagePatterns,
+    SectionPatterns,
+    EnvironmentPatterns,
+    MetadataPatterns,
+    ColorFields,
+FormattingPatterns,
+)
+
 load_dotenv()
 TYPES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured/types"
 
@@ -42,6 +52,55 @@ class YAMLToLaTeXConverter:
 
     def __init__(self, type_registry: TypeRegistry = None):
         self.registry = type_registry or TypeRegistry()
+
+    def generate_preamble(self, metadata: Dict[str, Any]) -> str:
+        """
+        Generate LaTeX preamble from document metadata.
+
+        Args:
+            metadata: Dictionary with metadata fields (name, date, brand, colors, etc.)
+
+        Returns:
+            LaTeX preamble string (\\renewcommand statements)
+        """
+        lines = []
+
+        # Add pdfkeywords if in fields
+        if 'fields' in metadata and MetadataPatterns.PDFKEYWORDS in metadata['fields']:
+            lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{MetadataPatterns.PDFKEYWORDS}}}{{{metadata['fields'][MetadataPatterns.PDFKEYWORDS]}}}")
+
+        # Add name (with \textbf)
+        name = metadata.get('name', '')
+        lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{MetadataPatterns.MYNAME}}}{{{FormattingPatterns.TEXTBF}{{{name}}}}}")
+
+        # Add date
+        date = metadata.get('date', '')
+        lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{MetadataPatterns.MYDATE}}}{{{date}}}")
+
+        # Add setuphyperandmeta call
+        lines.append(f"{MetadataPatterns.SETUPHYPERANDMETA}{{\\{MetadataPatterns.MYNAME}}}{{\\{MetadataPatterns.MYDATE}}}{{\\{MetadataPatterns.PDFKEYWORDS}}}")
+        lines.append("")
+
+        # Add color commands
+        lines.append(f"{MetadataPatterns.SETHLCOLOR}{{red}}")
+        colors = metadata.get('colors', {})
+        for color_key in ColorFields.all():
+            if color_key in colors:
+                lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{color_key}}}{{{colors[color_key]}}}")
+
+        lines.append("")
+
+        # Add brand
+        brand = metadata.get('brand', '')
+        lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{MetadataPatterns.BRAND}}}{{{brand}}}")
+
+        # Add professional profile if present
+        if metadata.get('professional_profile'):
+            profile = metadata['professional_profile']
+            lines.append(f"{MetadataPatterns.DEF_NLINESPP}{{1}}")
+            lines.append(f"{MetadataPatterns.RENEWCOMMAND}{{\\{MetadataPatterns.PROFESSIONAL_PROFILE}}}{{{FormattingPatterns.CENTERING} {FormattingPatterns.TEXTBF}{{{profile}}}{FormattingPatterns.PAR}}}")
+
+        return "\n".join(lines)
 
     def convert_work_experience(self, subsection: Dict[str, Any]) -> str:
         """
@@ -148,6 +207,83 @@ class YAMLToLaTeXConverter:
 
         return "\n".join(lines)
 
+    def convert_skill_list_pipes(self, section: Dict[str, Any]) -> str:
+        """
+        Convert skill_list_pipes section to LaTeX.
+
+        Args:
+            section: Dict with type and content (list of items)
+
+        Returns:
+            LaTeX string for pipe-separated list with \\texttt{} wrapping
+        """
+        content = section["content"]
+        items = content["list"]
+
+        # Wrap each item in \texttt{} and join with ' | '
+        wrapped_items = [f"\\texttt{{{item}}}" for item in items]
+        latex_line = " | ".join(wrapped_items)
+
+        # Format with indentation
+        return f"    {latex_line}"
+
+    def convert_skill_category(self, subsection: Dict[str, Any]) -> str:
+        """
+        Convert skill_category subsection to LaTeX.
+
+        Args:
+            subsection: Dict with type, metadata, and content
+
+        Returns:
+            LaTeX string for single category with icon and itemizeLL
+        """
+        metadata = subsection["metadata"]
+        content = subsection["content"]
+
+        name = metadata["name"]
+        icon = metadata.get("icon", "")
+        items = content["list"]
+
+        lines = []
+
+        # Add \item[icon] {\scshape name}
+        lines.append(f"\\item[{icon}] {{\\scshape {name}}}")
+
+        # Add itemizeLL environment
+        lines.append("\\begin{itemizeLL}")
+        for item in items:
+            lines.append(f"    \\itemLL {{{item}}}")
+        lines.append("\\end{itemizeLL}")
+
+        return "\n".join(lines)
+
+    def convert_skill_categories(self, section: Dict[str, Any]) -> str:
+        """
+        Convert skill_categories section to LaTeX.
+
+        Args:
+            section: Dict with type and subsections
+
+        Returns:
+            LaTeX string for itemize with multiple categories
+        """
+        subsections = section["subsections"]
+
+        lines = []
+
+        # Begin itemize with parameters
+        lines.append("\\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]")
+        lines.append("")
+
+        # Add each category
+        for subsection in subsections:
+            category_latex = self.convert_skill_category(subsection)
+            lines.append(category_latex)
+            lines.append("")
+
+        lines.append("\\end{itemize}")
+
+        return "\n".join(lines)
 
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
@@ -212,10 +348,10 @@ class LaTeXToYAMLConverter:
         import re
 
         # Find \begin{itemizeAcademic}{...}{...}{...}{...}
-        begin_pattern = r'\\begin\{itemizeAcademic\}'
+        begin_pattern = re.escape(EnvironmentPatterns.BEGIN_ITEMIZE_ACADEMIC)
         begin_match = re.search(begin_pattern, latex_str)
         if not begin_match:
-            raise ValueError("No \\begin{itemizeAcademic} environment found")
+            raise ValueError(f"No {EnvironmentPatterns.BEGIN_ITEMIZE_ACADEMIC} environment found")
 
         # Extract 4 parameters: company, title, location, dates
         params = self._extract_braced_params(latex_str, begin_match.end(), 4)
@@ -232,10 +368,10 @@ class LaTeXToYAMLConverter:
             subtitle = parts[1] if len(parts) > 1 else None
 
         # Find end of environment
-        end_pattern = r'\\end\{itemizeAcademic\}'
+        end_pattern = re.escape(EnvironmentPatterns.END_ITEMIZE_ACADEMIC)
         end_match = re.search(end_pattern, latex_str)
         if not end_match:
-            raise ValueError("No matching \\end{itemizeAcademic} found")
+            raise ValueError(f"No matching {EnvironmentPatterns.END_ITEMIZE_ACADEMIC} found")
 
         content_section = latex_str[begin_match.end():end_match.start()]
 
@@ -425,6 +561,173 @@ class LaTeXToYAMLConverter:
             "content": {
                 "list": items
             }
+        }
+
+    def parse_skill_list_pipes(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse skill_list_pipes section (e.g., Languages, Hardware).
+
+        Format: \texttt{Python} | \texttt{Bash} | \texttt{C++} \\
+                \texttt{MATLAB} | \texttt{Mathematica}
+
+        Args:
+            latex_str: LaTeX source for pipe-separated skill list
+
+        Returns:
+            Dict matching YAML structure
+        """
+        import re
+
+        # Find all \texttt{...} instances
+        items = []
+        pattern = r'\\texttt\{([^}]+)\}'
+
+        for match in re.finditer(pattern, latex_str):
+            item = match.group(1)
+            items.append(item)
+
+        if not items:
+            raise ValueError("No \\texttt{} items found in skill_list_pipes")
+
+        return {
+            "type": "skill_list_pipes",
+            "content": {
+                "list": items
+            }
+        }
+
+    def _parse_skill_category(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse individual skill_category (child element).
+
+        Format: \item[\faIcon] {\scshape Category Name}
+                \begin{itemizeLL}
+                    \itemLL {Item 1}
+                    \itemLL {Item 2}
+                \end{itemizeLL}
+
+        Args:
+            latex_str: LaTeX source for single category
+
+        Returns:
+            Dict matching YAML structure
+        """
+        import re
+
+        # Extract icon and name from \item[icon] {\scshape name}
+        item_pattern = r'\\item\[([^\]]*)\]\s*\{\\scshape\s+([^}]+)\}'
+        item_match = re.search(item_pattern, latex_str)
+
+        if not item_match:
+            raise ValueError("No \\item[icon] {\\scshape name} pattern found")
+
+        icon = item_match.group(1).strip()
+        name = item_match.group(2).strip()
+
+        # Find itemizeLL environment
+        begin_match = re.search(r'\\begin\{itemizeLL\}', latex_str)
+        end_match = re.search(r'\\end\{itemizeLL\}', latex_str)
+
+        if not begin_match or not end_match:
+            raise ValueError("No itemizeLL environment found")
+
+        itemize_content = latex_str[begin_match.end():end_match.start()]
+
+        # Extract \itemLL items
+        items = []
+        itemll_pattern = r'\\itemLL\s*\{([^}]+)\}'
+        for match in re.finditer(itemll_pattern, itemize_content):
+            items.append(match.group(1).strip())
+
+        result = {
+            "type": "skill_category",
+            "metadata": {
+                "name": name,
+            },
+            "content": {
+                "list": items
+            }
+        }
+
+        if icon:
+            result["metadata"]["icon"] = icon
+
+        return result
+
+    def parse_skill_categories(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse skill_categories section (parent with multiple categories).
+
+        Format: \begin{itemize}[params]
+                    \item[icon1] {\scshape Category 1}
+                    \begin{itemizeLL}...
+
+                    \item[icon2] {\scshape Category 2}
+                    \begin{itemizeLL}...
+                \end{itemize}
+
+        Args:
+            latex_str: LaTeX source for skill categories section
+
+        Returns:
+            Dict matching YAML structure
+        """
+        import re
+
+        # Find outermost itemize environment
+        begin_match = re.search(r'\\begin\{itemize\}', latex_str)
+        if not begin_match:
+            raise ValueError("No \\begin{itemize} found")
+
+        # Find matching \end{itemize}
+        # Need to handle nested itemizeLL environments
+        pos = begin_match.end()
+        depth = 1
+        end_pos = pos
+
+        while pos < len(latex_str) and depth > 0:
+            begin_nested = re.search(r'\\begin\{itemize', latex_str[pos:])
+            end_nested = re.search(r'\\end\{itemize', latex_str[pos:])
+
+            if end_nested:
+                if begin_nested and begin_nested.start() < end_nested.start():
+                    depth += 1
+                    pos += begin_nested.end()
+                else:
+                    depth -= 1
+                    if depth == 0:
+                        end_pos = pos + end_nested.start()
+                    pos += end_nested.end()
+            else:
+                break
+
+        if depth != 0:
+            raise ValueError("Unmatched \\begin{itemize}")
+
+        itemize_content = latex_str[begin_match.end():end_pos]
+
+        # Split on \item[ to find individual categories
+        # Each category starts with \item[icon]
+        categories = []
+        item_positions = []
+
+        for match in re.finditer(r'\\item\[', itemize_content):
+            item_positions.append(match.start())
+
+        # Extract each category block
+        for i, start_pos in enumerate(item_positions):
+            if i + 1 < len(item_positions):
+                end_pos = item_positions[i + 1]
+            else:
+                end_pos = len(itemize_content)
+
+            category_block = itemize_content[start_pos:end_pos]
+            category = self._parse_skill_category(category_block)
+            categories.append(category)
+
+        return {
+            "type": "skill_categories",
+            "subsections": categories
         }
 
 
