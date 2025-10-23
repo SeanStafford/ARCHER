@@ -6,6 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from archer.contexts.templating.resume_components_data_structures import (
+    Page,
+    DocumentMetadata,
+)
+
 
 @dataclass
 class ResumeSection:
