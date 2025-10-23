@@ -24,11 +24,13 @@ from dotenv import load_dotenv
 
 from archer.utils.resume_analyzer import (
     analyze_keyword_frequencies,
+    analyze_section_patterns,
     enumerate_field_values,
     enumerate_section_values,
     format_analysis_report,
     format_field_enumeration_report,
     format_section_enumeration_report,
+    format_section_pattern_report,
 )
 
 # Load environment variables
@@ -40,68 +42,81 @@ app = typer.Typer(
     add_completion=False,
 )
 
-# Keyword categories to analyze
-KEYWORDS = {
-    "Section Titles (Left Column Page 1)": [
-        "AI & Machine Learning",
-        "AI \\& Machine Learning",
-        "Software Tools",
-        "ML Infrastructure Tools",
-        "Machine Learning & AI",
-        "SE Toolbox",
+SECTION_CATEGORIES = {
+    "Left Column (Professional)": [
         "Core Skills",
-        "Other ML Capabilities",
+        "AI \& Machine Learning|Machine Learning \& AI",
+        "[^ ]Machine Learning[^ ]",
+        "Hardware",
+        "Languages|Programming Languages",
+        "Software Tools",
+        ".*Tool.*",
+        "HPC Tools",
+        "Infrastructure",
+        "Data",
     ],
 
-    "Personality Section Titles": [
+    "Personality": [
         "Marketable Monikers",
         "Proficiency Pseudonyms",
         "Alias Array",
         "Alliterative Aliases",
-    ],
-
-    "Bottom Bar Elements": [
-        "\\bottombar",
-        "\\leftgrad",
-        "Two Truths and a Lie",
-    ],
-
-    "Name Formatting": [
-        "\\textbf{Sean Stafford}",
-        "\\renewcommand{\\myname}{Sean Stafford}",
-    ],
-
-    "Brand Elements": [
-        "| Physicist",
-        "Machine Learning Engineer",
-        "Software Engineer",
-        "ML Infrastructure Engineer",
-        "Research Infrastructure Engineer",
+        "Certifiable Pseudonyms",
+        "Two Truths and a Lie|2 Truths and a Lie",
+        "Passions",
     ],
 
     "Project Section Titles": [
-        "LLM Research Portfolio",
-        "Other Projects I'm Proud Of",
         "Projects I'm Proud Of",
+        "Timeline of.*",
+        ".*Project.*",
+        "Highlighted.*Projects",
+        ".*Selected.*",
+        ".*Portfolio.*",
+        "LLM Research Portfolio",
+        "LLM Projects",
+        "Other Projects",
+    ],
+}
+
+
+FIELD_CATEGORIES = {
+    "Professional Profile": [
+        "6+ years",
+        "6 years",
+        "since 2017",
+        "since 2019",
     ],
 
-    "Special Sections": [
-        "HPC Highlights",
-        "Passions",
-        "\\phantomsection",
+    "Core Skills": [
+        "Machine Learning",
+        "Physics"
     ],
 
-    "Subsection Formatting": [
-        "\\item[\\faRobot]",
-        "\\item[]",
-        "\\itemLL",
-        "\\item[--]",
-    ],
+    "brand": [
+        "Physicist",
+        "Computational Physicist",
+        "HPC Physicist",
+        "Machine Learning Engineer",
+        "ML Engineer",
+        "AI|Artificial Intelligence",
+        "ML|Machine Learning",
+        "Data",
+        "Software",
+        "Quantum",
+        "System",
+        "Test",
+        "Infrastructure",
+        "Scientist",
+        "Engineer",
+        "Researcher",
+        "Specialist"
+    ]
+}
 
-    "Professional Profile Formatting": [
-        "\\centering \\textbf{",
-        "\\centering {",
-    ],
+# Keyword categories to analyze
+KEYWORDS = {
+
 
     "Environment Usage": [
         "itemizeAcademic",
@@ -112,6 +127,60 @@ KEYWORDS = {
         "itemizeSecond",
         "itemizeLL",
     ],
+
+    "Professional Profile Themes": [
+        "scientific rigor",
+        "rigor",
+        "scalable",
+        "scaling",
+        "prototype to production",
+        "infrastructure",
+        "distributed",
+        "high-performance",
+        "fast",
+        "rapid",
+    ],
+
+    "Technical Domains": [
+        "LLM",
+        "Large Language Model",
+        "HPC",
+        "High Performance",
+        "distributed computing",
+        "distributed systems",
+        "quantum",
+        "ML infrastructure",
+        "data pipeline",
+    ],
+
+    "Job Family Indicators": [
+        "AI Engineer",
+        "ML Engineer",
+        "Machine Learning Engineer",
+        "Data Scientist",
+        "Infrastructure Engineer",
+        "Researcher",
+        "Research Scientist",
+        "Software Engineer",
+    ],
+
+    "Physicist Identity Variations": [
+        "| Physicist",
+        "| Computational Physicist",
+        "| HPC Physicist",
+        "Physicist with",
+        "Physicist building",
+        "Physicist who",
+    ],
+
+    "Company Targeting Patterns": [
+        "BoozGreen",
+        "NorthropGrumanBlue",
+        "AnthropicGeistOrange",
+        "ClaudeOrange",
+        "JHAPLblue",
+    ],
+
 }
 
 
@@ -180,8 +249,31 @@ def main(
             RESUME_ARCHIVE_PATH
         )
 
+        # Part 4: Section pattern matching
+        (
+            section_pattern_num_resumes,
+            section_pattern_occurrences,
+            section_pattern_counts,
+        ) = analyze_section_patterns(RESUME_ARCHIVE_PATH, SECTION_CATEGORIES, is_regex=True)
+
+        section_pattern_report = format_section_pattern_report(
+            section_pattern_num_resumes,
+            SECTION_CATEGORIES,
+            section_pattern_occurrences,
+            section_pattern_counts,
+            RESUME_ARCHIVE_PATH,
+        )
+
         # Combine reports
-        report = keyword_report + "\n\n" + field_report + "\n\n" + section_report
+        report = (
+            keyword_report
+            + "\n\n"
+            + field_report
+            + "\n\n"
+            + section_report
+            + "\n\n"
+            + section_pattern_report
+        )
 
         if output:
             # If output is not absolute, treat it as relative to LOGS_PATH
