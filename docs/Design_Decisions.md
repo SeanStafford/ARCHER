@@ -138,3 +138,29 @@ def test_parse_document_metadata():
 - Tests now have dependency on YAML fixtures (test files must exist and be valid)
 - Slightly more complex test setup (load YAML, navigate structure)
 - Better long-term maintainability outweighs minor complexity increase
+
+---
+
+## Design Decision 6: Project-Specific LaTeX Patterns Over General Parsing
+
+**Date**: Oct 24, 2025
+
+**Decision**: Use pattern matching for project-specific LaTeX conventions rather than implementing a general-purpose LaTeX parser.
+
+**Issue**: The Templating context needs to parse LaTeX resumes into structured data. Two approaches were possible:
+1. Build a general LaTeX parser that handles arbitrary documents
+2. Use regex patterns matching ARCHER's specific LaTeX conventions
+
+**Rationale**:
+- **Speed to functionality** - Pattern matching is significantly faster to implement than general parsing
+- **Controlled environment** - All ~60 historical resumes follow the same template conventions (single paracol, custom environments from `mystyle/*.sty`, consistent section patterns)
+- **Simplicity** - Regex patterns are straightforward to understand, debug, and maintain
+- **Reliability** - Patterns are stable across years of historical resumes; 35 integration tests validate all patterns
+- **User context** - Single user actively job searching needs functional tool immediately, not future-proof general solution
+
+**Trade-offs**:
+- Parser only works with ARCHER's template system, not arbitrary LaTeX resumes
+- Template changes require parser updates (documented in `latex_pattern_assumptions.md`)
+- Future users with different templates would need custom patterns or parser modifications
+
+**Implementation**: All patterns centralized in `latex_patterns.py` with comprehensive documentation in `archer/contexts/templating/latex_pattern_assumptions.md` explaining each assumption and breaking conditions.
