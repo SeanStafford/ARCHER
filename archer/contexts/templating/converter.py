@@ -23,6 +23,7 @@ from archer.contexts.templating.latex_patterns import (
     FormattingPatterns,
 )
 from archer.contexts.templating.template_registry import TemplateRegistry
+from archer.contexts.templating.parse_config_registry import ParseConfigRegistry
 from archer.contexts.templating.exceptions import TemplateParsingError
 
 load_dotenv()
@@ -427,12 +428,36 @@ class YAMLToLaTeXConverter:
         return "\n".join(lines)
 
 
+def set_nested_field(data: Dict, field_path: str, value: Any):
+    """
+    Helper to set nested fields using dot notation (e.g., 'content.list').
+
+    Args:
+        data: Dictionary to update
+        field_path: Dot-separated path (e.g., 'content.list')
+        value: Value to set at the path
+    """
+    keys = field_path.split('.')
+    current = data
+    for key in keys[:-1]:
+        if key not in current:
+            current[key] = {}
+        current = current[key]
+    current[keys[-1]] = value
+
+
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
 
-    def __init__(self, type_registry: TypeRegistry = None, template_registry: TemplateRegistry = None):
+    def __init__(
+        self,
+        type_registry: TypeRegistry = None,
+        template_registry: TemplateRegistry = None,
+        parse_config_registry: ParseConfigRegistry = None
+    ):
         self.registry = type_registry or TypeRegistry()
         self.template_registry = template_registry or TemplateRegistry()
+        self.parse_config_registry = parse_config_registry or ParseConfigRegistry()
 
     def _create_parsing_error(
         self,
@@ -461,6 +486,54 @@ class LaTeXToYAMLConverter:
             template_path=template_path,
             latex_snippet=latex_snippet
         )
+
+    def parse_with_config(self, latex_str: str, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generic parser that uses a parsing config to extract data from LaTeX.
+
+        The config is like an "inverse Jinja template" - it declares what to extract
+        and where to put it, then this function does the actual extraction.
+
+        Args:
+            latex_str: LaTeX source to parse
+            config: Parsing configuration dict with pattern definitions
+
+        Returns:
+            Parsed data structure matching the config's extraction rules
+        """
+        result = {}
+
+        for pattern_name, pattern_config in config.get("patterns", {}).items():
+            # Case 0: Set literal value (no regex, just assign a value)
+            if "extract_literal" in pattern_config:
+                field_name = pattern_config["extract_literal"]
+                value = pattern_config["value"]
+                set_nested_field(result, field_name, value)
+                continue
+
+            regex = pattern_config["regex"]
+
+            # Case 1: Extract single match with multiple capture groups
+            if "extract" in pattern_config:
+                match = re.search(regex, latex_str)
+                if match:
+                    for capture_group, field_name in pattern_config["extract"].items():
+                        value = match.group(capture_group)
+                        # Convert to int if it's a number
+                        if value.isdigit():
+                            value = int(value)
+                        set_nested_field(result, field_name, value)
+
+            # Case 2: Extract list of matches (one capture group, multiple matches)
+            elif "extract_list" in pattern_config:
+                field_name = pattern_config["extract_list"]
+                capture_group = pattern_config["capture_group"]
+
+                matches = re.finditer(regex, latex_str)
+                values = [match.group(capture_group) for match in matches]
+                set_nested_field(result, field_name, values)
+
+        return result
 
     def extract_document_metadata(self, latex_str: str) -> Dict[str, Any]:
         """
@@ -863,25 +936,13 @@ class LaTeXToYAMLConverter:
         Returns:
             Dict matching YAML structure
         """
-        import re
+        config = self.parse_config_registry.get_config("skill_list_pipes")
+        result = self.parse_with_config(latex_str, config)
 
-        # Find all \texttt{...} instances
-        items = []
-        pattern = r'\\texttt\{([^}]+)\}'
-
-        for match in re.finditer(pattern, latex_str):
-            item = match.group(1)
-            items.append(item)
-
-        if not items:
+        if "content" not in result or "list" not in result["content"]:
             raise ValueError("No \\texttt{} items found in skill_list_pipes")
 
-        return {
-            "type": "skill_list_pipes",
-            "content": {
-                "list": items
-            }
-        }
+        return result
 
     def _parse_skill_category(self, latex_str: str) -> Dict[str, Any]:
         """
