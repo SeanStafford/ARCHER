@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
+from omegaconf import OmegaConf
 
 from archer.contexts.templating.converter import (
     YAMLToLaTeXConverter,
@@ -25,7 +26,6 @@ def test_parse_document_metadata():
     yaml_path = STRUCTURED_PATH / "document_metadata_test.yaml"
 
     # Load expected values from YAML fixture
-    from omegaconf import OmegaConf
     expected_yaml = OmegaConf.load(yaml_path)
     expected = OmegaConf.to_container(expected_yaml)["document"]["metadata"]
 
