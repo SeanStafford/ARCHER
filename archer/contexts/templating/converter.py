@@ -25,6 +25,7 @@ from archer.contexts.templating.latex_patterns import (
 from archer.contexts.templating.template_registry import TemplateRegistry
 from archer.contexts.templating.parse_config_registry import ParseConfigRegistry
 from archer.contexts.templating.exceptions import TemplateParsingError
+from archer.utils.text_processing import extract_balanced_delimiters, extract_environment_content
 
 load_dotenv()
 TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
@@ -889,24 +890,8 @@ class LaTeXToYAMLConverter:
 
         content_start = match.end()
 
-        # Find matching closing brace
-        brace_count = 1  # Already inside the opening brace
-        pos = content_start
-
-        while pos < len(latex_str) and brace_count > 0:
-            if latex_str[pos] == '\\':
-                pos += 2
-                continue
-            elif latex_str[pos] == '{':
-                brace_count += 1
-            elif latex_str[pos] == '}':
-                brace_count -= 1
-            pos += 1
-
-        if brace_count != 0:
-            raise ValueError("Unmatched braces in skill_list_caps")
-
-        content = latex_str[content_start:pos-1]
+        # Extract brace-balanced content using helper
+        content, _ = extract_balanced_delimiters(latex_str, content_start)
 
         # Split on blank lines or \par to get individual items
         # Items can contain \\ for line breaks
