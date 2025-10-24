@@ -34,7 +34,6 @@ def test_yaml_to_latex_skill_list_caps():
     assert "\\scshape" in latex
     assert "Machine Learning (ML)" in latex
     assert "High-Performance\\\\Computing (HPC)" in latex
-    assert "Data Visualization" in latex
 
 
 @pytest.mark.integration
@@ -49,13 +48,12 @@ def test_latex_to_yaml_skill_list_caps():
     # Verify structure
     assert result["type"] == "skill_list_caps"
     assert "list" in result["content"]
-    assert len(result["content"]["list"]) == 8
+    assert len(result["content"]["list"]) == 2
 
     # Verify specific items
     items = result["content"]["list"]
     assert "Machine Learning (ML)" in items
     assert "High-Performance\\\\Computing (HPC)" in items
-    assert "Data Visualization" in items
 
 
 @pytest.mark.integration

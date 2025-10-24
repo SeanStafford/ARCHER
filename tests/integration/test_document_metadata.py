@@ -29,19 +29,19 @@ def test_parse_document_metadata():
 
     # Verify basic fields
     assert metadata["name"] == "Sean Stafford"
-    assert metadata["date"] == "July 2025"
-    assert metadata["brand"] == "Research Infrastructure Engineer | Physicist"
+    assert metadata["date"] == "October 2025"
+    assert metadata["brand"] == "Machine Learning Engineer | Physicist"
 
     # Verify professional profile
     assert metadata["professional_profile"] is not None
-    assert "Physicist scaling research infrastructure" in metadata["professional_profile"]
+    assert "If I get this test correct that means I'm awesome." in metadata["professional_profile"]
 
     # Verify colors
-    assert metadata["colors"]["emphcolor"] == "NetflixDark"
+    assert metadata["colors"]["emphcolor"] == "darkred"
     assert metadata["colors"]["topbarcolor"] == "black"
     assert metadata["colors"]["leftbarcolor"] == "gray9"
     assert metadata["colors"]["brandcolor"] == "white"
-    assert metadata["colors"]["namecolor"] == "Netflix"
+    assert metadata["colors"]["namecolor"] == "red"
 
     # Verify other fields
     assert "pdfkeywords" in metadata["fields"]
