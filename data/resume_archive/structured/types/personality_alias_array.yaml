@@ -1,0 +1,21 @@
+type_name: personality_alias_array
+description: "Personality section with icon-labeled items in itemizeMain environment (e.g., Alias Array)"
+
+latex_environment: itemizeMain
+item_format: "\\item[%s] %s"
+
+metadata_fields:
+  required: []
+  optional: []
+
+content_structure:
+  items:
+    required: true
+    description: "List of personality items with icons"
+    fields:
+      icon:
+        required: true
+        description: "LaTeX icon command (e.g., \\blackbelt, \\faUserNinja)"
+      text:
+        required: true
+        description: "Item text"

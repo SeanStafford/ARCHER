@@ -1,0 +1,20 @@
+section:
+  type: education
+  content:
+    institutions:
+    - institution: Florida State University
+      location: Tallahassee, FL
+      degrees:
+      - title: Doctor of Philosophy in Physics
+        date: July 2022
+        details:
+        - '{\color{verygray}Dissertation:} ``Quantum mechanical studies of materials
+          design with applications in artificial photosynthesis and next generation
+          batteries"'
+      - title: Master of Science in Physics
+        date: Apr 2021
+    - institution: St. Mary's College of Maryland
+      location: St. Mary's City, MD
+      degrees:
+      - title: Bachelor of Arts in Physics and Biochemistry; Minor in Neuroscience
+        date: May 2015

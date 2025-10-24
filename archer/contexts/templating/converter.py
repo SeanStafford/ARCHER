@@ -103,6 +103,47 @@ class YAMLToLaTeXConverter:
 
         return "\n".join(lines)
 
+    def generate_document(self, doc: Dict[str, Any]) -> str:
+        """
+        Generate complete LaTeX document from structured format.
+
+        Args:
+            doc: Dict with "document" key containing metadata and pages
+
+        Returns:
+            Complete LaTeX document string
+        """
+        document = doc["document"]
+        metadata = document["metadata"]
+        pages = document["pages"]
+
+        parts = []
+
+        # Generate preamble
+        parts.append(self.generate_preamble(metadata))
+        parts.append("")
+
+        # Begin document
+        parts.append(DocumentPatterns.BEGIN_DOCUMENT)
+        parts.append("")
+
+        # Generate all pages
+        for i, page in enumerate(pages):
+            page_latex = self.generate_page(page["regions"])
+            parts.append(page_latex)
+
+            # Add \clearpage between pages (not after last page)
+            if i < len(pages) - 1:
+                parts.append("")
+                parts.append(DocumentPatterns.CLEARPAGE)
+                parts.append("")
+
+        # End document
+        parts.append("")
+        parts.append(DocumentPatterns.END_DOCUMENT)
+
+        return "\n".join(parts)
+
     def convert_work_experience(self, subsection: Dict[str, Any]) -> str:
         """
         Convert work_experience subsection to LaTeX.
@@ -286,6 +327,108 @@ class YAMLToLaTeXConverter:
 
         return "\n".join(lines)
 
+    def convert_education(self, section: Dict[str, Any]) -> str:
+        """
+        Convert education section to LaTeX.
+
+        Args:
+            section: Dict with type and content (institutions list)
+
+        Returns:
+            LaTeX string for education section with nested itemize structure
+        """
+        content = section["content"]
+        institutions = content["institutions"]
+
+        lines = []
+
+        # Outer itemize
+        lines.append("\\begin{itemize}[leftmargin=0pt, itemsep = 0pt]")
+
+        for institution in institutions:
+            institution_name = institution["institution"]
+            location = institution["location"]
+            degrees = institution["degrees"]
+
+            # Institution header
+            lines.append(f"    \\item[] {{ \\scshape {institution_name}}} \\hfill {location}")
+
+            # Nested itemize for degrees
+            lines.append("    \\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = \\seclistitemsep, topsep=\\seclisttopsepmeta]")
+
+            for degree in degrees:
+                degree_title = degree["title"]
+                degree_date = degree["date"]
+
+                # Degree entry
+                lines.append(f"        \\item[\\faUserGraduate] {degree_title} \\hfill {{\\color{{verygray}}{degree_date}}}")
+
+                # Optional details
+                if "details" in degree and degree["details"]:
+                    lines.append("        \\begin{itemizeSecond}")
+                    for detail in degree["details"]:
+                        lines.append(f"\t\t  \\itemii {detail}")
+                    lines.append("\t\t\\end{itemizeSecond}")
+
+            lines.append("    \\end{itemize}")
+
+            # Add blank line between institutions (if not last)
+            if institution != institutions[-1]:
+                lines.append("\t")
+
+        lines.append("\\end{itemize}")
+
+        return "\n".join(lines)
+
+    def convert_personality_alias_array(self, section: Dict[str, Any]) -> str:
+        """
+        Convert personality_alias_array section to LaTeX.
+
+        Args:
+            section: Dict with type and content (items list)
+
+        Returns:
+            LaTeX string for personality section with itemizeMain environment
+        """
+        content = section["content"]
+        items = content["items"]
+
+        lines = []
+
+        # Begin itemizeMain
+        lines.append("\\begin{itemizeMain}")
+
+        # Add each item
+        for item in items:
+            icon = item["icon"]
+            text = item["text"]
+            lines.append(f"    \\item[{icon}] {text}")
+
+        lines.append("\\end{itemizeMain}")
+
+        return "\n".join(lines)
+
+    def generate_bottom_bar(self, bottom_data: Dict[str, Any]) -> str:
+        """
+        Generate LaTeX for bottom bar (textblock at bottom of page).
+
+        Args:
+            bottom_data: Dict with name and text
+
+        Returns:
+            LaTeX string for textblock bottom bar
+        """
+        name = bottom_data["name"]
+        text = bottom_data["text"]
+
+        lines = []
+        lines.append(f"\\begin{{textblock*}}{{\\textwidth}}(\\leftmargin, \\paperheight- \\bottombarsolidheight)")
+        lines.append(f"{{\\color{{AnthropicDarkerGray}}\\section*{{\\hspace{{3.5pt}}{name}}}")
+        lines.append(f"\\mbox{{\\hspace{{6pt}}}}{text}\\mbox{{\\hspace{{6pt}}}} \\mbox{{\\hspace{{6pt}}}}}}")
+        lines.append("\\end{textblock*}")
+
+        return "\n".join(lines)
+
     def generate_page(self, page_data: Dict[str, Any]) -> str:
         """
         Generate complete page with paracol structure.
@@ -325,6 +468,12 @@ class YAMLToLaTeXConverter:
         # End paracol
         lines.append(PagePatterns.END_PARACOL)
 
+        # Generate bottom bar if present
+        if page_data.get("bottom"):
+            lines.append("")
+            bottom_latex = self.generate_bottom_bar(page_data["bottom"])
+            lines.append(bottom_latex)
+
         return "\n".join(lines)
 
     def _generate_section(self, section_data: Dict[str, Any]) -> str:
@@ -357,6 +506,14 @@ class YAMLToLaTeXConverter:
 
         elif section_type == "skill_categories":
             content_latex = self.convert_skill_categories({"subsections": section_data["subsections"]})
+            lines.append(content_latex)
+
+        elif section_type == "education":
+            content_latex = self.convert_education({"content": section_data["content"]})
+            lines.append(content_latex)
+
+        elif section_type == "personality_alias_array":
+            content_latex = self.convert_personality_alias_array({"content": section_data["content"]})
             lines.append(content_latex)
 
         elif section_type == "work_history":
@@ -470,6 +627,29 @@ class LaTeXToYAMLConverter:
             'professional_profile': professional_profile,
             'colors': colors,
             'fields': renewcommands  # All other fields
+        }
+
+    def parse_document(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse complete LaTeX document to structured format.
+
+        Args:
+            latex_str: Full LaTeX document source
+
+        Returns:
+            Dict with document metadata and pages
+        """
+        # Extract document metadata from preamble
+        metadata = self.extract_document_metadata(latex_str)
+
+        # Extract all pages
+        pages = self.extract_pages(latex_str)
+
+        return {
+            "document": {
+                "metadata": metadata,
+                "pages": pages
+            }
         }
 
     def _extract_braced_params(self, latex_str: str, start_pos: int, num_params: int) -> List[str]:
@@ -911,6 +1091,219 @@ class LaTeXToYAMLConverter:
             "subsections": categories
         }
 
+    def parse_education(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse education section.
+
+        Format: \\begin{itemize}[leftmargin=0pt, itemsep = 0pt]
+                    \\item[] { \\scshape Institution} \\hfill Location
+                    \\begin{itemize}[...]
+                        \\item[\\faUserGraduate] Degree \\hfill {\\color{verygray}Date}
+                        \\begin{itemizeSecond}
+                            \\itemii Detail
+                        \\end{itemizeSecond}
+                    \\end{itemize}
+                \\end{itemize}
+
+        Args:
+            latex_str: LaTeX source for education section
+
+        Returns:
+            Dict matching YAML structure
+        """
+        import re
+
+        # Find outer itemize with leftmargin=0pt
+        begin_pattern = r'\\begin\{itemize\}\[leftmargin=0pt'
+        begin_match = re.search(begin_pattern, latex_str)
+
+        if not begin_match:
+            raise ValueError("No outer itemize with leftmargin=0pt found")
+
+        # Find matching \end{itemize} - need to handle nested itemize
+        pos = begin_match.end()
+        depth = 1
+        end_pos = pos
+
+        while pos < len(latex_str) and depth > 0:
+            begin_nested = re.search(r'\\begin\{itemize', latex_str[pos:])
+            end_nested = re.search(r'\\end\{itemize', latex_str[pos:])
+
+            if end_nested:
+                if begin_nested and begin_nested.start() < end_nested.start():
+                    depth += 1
+                    pos += begin_nested.end()
+                else:
+                    depth -= 1
+                    if depth == 0:
+                        end_pos = pos + end_nested.start()
+                    pos += end_nested.end()
+            else:
+                break
+
+        if depth != 0:
+            raise ValueError("Unmatched \\begin{itemize} in education section")
+
+        outer_content = latex_str[begin_match.end():end_pos]
+
+        # Find all institution blocks (split on \item[])
+        institutions = []
+        item_positions = []
+
+        for match in re.finditer(r'\\item\[\]', outer_content):
+            item_positions.append(match.start())
+
+        # Parse each institution
+        for i, start_pos in enumerate(item_positions):
+            if i + 1 < len(item_positions):
+                end_pos = item_positions[i + 1]
+            else:
+                end_pos = len(outer_content)
+
+            institution_block = outer_content[start_pos:end_pos]
+
+            # Extract institution name and location
+            # Pattern: \item[] { \scshape Name} \hfill Location
+            inst_pattern = r'\\item\[\]\s*\{\s*\\scshape\s+([^}]+)\}\s*\\hfill\s+([^\n\\]+)'
+            inst_match = re.search(inst_pattern, institution_block)
+
+            if not inst_match:
+                continue
+
+            institution_name = inst_match.group(1).strip()
+            location = inst_match.group(2).strip()
+
+            # Find nested itemize for degrees
+            nested_begin = re.search(r'\\begin\{itemize\}', institution_block)
+            if not nested_begin:
+                continue
+
+            # Find matching \end{itemize} for degrees
+            nested_pos = nested_begin.end()
+            nested_depth = 1
+            nested_end_pos = nested_pos
+
+            while nested_pos < len(institution_block) and nested_depth > 0:
+                nested_begin_inner = re.search(r'\\begin\{itemize', institution_block[nested_pos:])
+                nested_end_inner = re.search(r'\\end\{itemize', institution_block[nested_pos:])
+
+                if nested_end_inner:
+                    if nested_begin_inner and nested_begin_inner.start() < nested_end_inner.start():
+                        nested_depth += 1
+                        nested_pos += nested_begin_inner.end()
+                    else:
+                        nested_depth -= 1
+                        if nested_depth == 0:
+                            nested_end_pos = nested_pos + nested_end_inner.start()
+                        nested_pos += nested_end_inner.end()
+                else:
+                    break
+
+            degrees_content = institution_block[nested_begin.end():nested_end_pos]
+
+            # Find all degree entries
+            degrees = []
+            degree_pattern = r'\\item\[\\faUserGraduate\]\s*([^\\]+?)\\hfill\s*\{\\color\{verygray\}([^}]+)\}'
+
+            for degree_match in re.finditer(degree_pattern, degrees_content):
+                degree_title = degree_match.group(1).strip()
+                degree_date = degree_match.group(2).strip()
+
+                degree_dict = {
+                    "title": degree_title,
+                    "date": degree_date
+                }
+
+                # Check for optional details (itemizeSecond)
+                degree_end_pos = degree_match.end()
+
+                # Look for itemizeSecond after this degree and before next degree or end
+                next_degree = re.search(r'\\item\[\\faUserGraduate\]', degrees_content[degree_end_pos:])
+                search_end = degree_end_pos + next_degree.start() if next_degree else len(degrees_content)
+
+                itemize_second_search = degrees_content[degree_end_pos:search_end]
+                second_pattern = r'\\begin\{itemizeSecond\}(.*?)\\end\{itemizeSecond\}'
+                second_match = re.search(second_pattern, itemize_second_search, re.DOTALL)
+
+                if second_match:
+                    details_content = second_match.group(1)
+                    # Extract \itemii items
+                    details = []
+                    itemii_pattern = r'\\itemii\s+([^\n]+)'
+                    for detail_match in re.finditer(itemii_pattern, details_content):
+                        details.append(detail_match.group(1).strip())
+
+                    if details:
+                        degree_dict["details"] = details
+
+                degrees.append(degree_dict)
+
+            institutions.append({
+                "institution": institution_name,
+                "location": location,
+                "degrees": degrees
+            })
+
+        return {
+            "type": "education",
+            "content": {
+                "institutions": institutions
+            }
+        }
+
+    def parse_personality_alias_array(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Parse personality_alias_array section (e.g., Alias Array).
+
+        Format: \\begin{itemizeMain}
+                    \\item[\\blackbelt] Bash Black Belt
+                    \\item[\\meditate] GPU Guru
+                \\end{itemizeMain}
+
+        Args:
+            latex_str: LaTeX source for personality section
+
+        Returns:
+            Dict matching YAML structure
+        """
+        import re
+
+        # Find itemizeMain environment
+        begin_pattern = r'\\begin\{itemizeMain\}'
+        begin_match = re.search(begin_pattern, latex_str)
+
+        if not begin_match:
+            raise ValueError("No \\begin{itemizeMain} found")
+
+        # Find matching \end{itemizeMain}
+        end_pattern = r'\\end\{itemizeMain\}'
+        end_match = re.search(end_pattern, latex_str)
+
+        if not end_match:
+            raise ValueError("No \\end{itemizeMain} found")
+
+        content = latex_str[begin_match.end():end_match.start()]
+
+        # Extract all \item[icon] text entries
+        items = []
+        item_pattern = r'\\item\[([^\]]+)\]\s*([^\n\\]+)'
+
+        for match in re.finditer(item_pattern, content):
+            icon = match.group(1).strip()
+            text = match.group(2).strip()
+
+            items.append({
+                "icon": icon,
+                "text": text
+            })
+
+        return {
+            "type": "personality_alias_array",
+            "content": {
+                "items": items
+            }
+        }
+
     def extract_pages(self, latex_str: str) -> List[Dict[str, Any]]:
         """
         Extract all pages from LaTeX document content (between \\begin{document} and \\end{document}).
@@ -974,6 +1367,81 @@ class LaTeXToYAMLConverter:
 
         return pages
 
+    def extract_bottom_bar(self, latex_str: str) -> Dict[str, Any] | None:
+        """
+        Extract bottom bar from page content.
+
+        Format: \\begin{textblock*}{\\textwidth}(\\leftmargin, \\paperheight- \\bottombarsolidheight)
+                {\\color{...}\\section*{...Name}
+                text content}
+                \\end{textblock*}
+
+        Args:
+            latex_str: Page LaTeX content
+
+        Returns:
+            Dict with name and text, or None if no bottom bar found
+        """
+        import re
+
+        # Find textblock start
+        textblock_start = re.search(r'\\begin\{textblock\*\}', latex_str)
+        if not textblock_start:
+            return None
+
+        # Find section* command
+        section_match = re.search(r'\\section\*\{', latex_str[textblock_start.end():])
+        if not section_match:
+            return None
+
+        # Manually parse balanced braces to get section name
+        section_start = textblock_start.end() + section_match.end()
+        brace_count = 1
+        pos = section_start
+
+        while pos < len(latex_str) and brace_count > 0:
+            if latex_str[pos] == '\\':
+                # Skip escaped character
+                pos += 2
+                continue
+            elif latex_str[pos] == '{':
+                brace_count += 1
+            elif latex_str[pos] == '}':
+                brace_count -= 1
+            pos += 1
+
+        name_raw = latex_str[section_start:pos-1].strip()
+        # Remove \hspace commands to get clean name
+        name = re.sub(r'\\hspace\{[^}]+\}', '', name_raw).strip()
+
+        # Find textblock end
+        textblock_end = re.search(r'\\end\{textblock\*\}', latex_str)
+        if not textblock_end:
+            return None
+
+        # Extract text content (everything after section name and before \end{textblock*})
+        text_content = latex_str[pos:textblock_end.start()].strip()
+
+        # Remove the closing brace from section and any formatting
+        # The text starts after the section header's closing brace
+        if text_content.startswith('}'):
+            text_content = text_content[1:].strip()
+
+        # Remove \mbox, \hspace, and color commands
+        text_content = re.sub(r'\\mbox\{[^}]*\}', '', text_content)
+        text_content = re.sub(r'\\hspace\{[^}]+\}', '', text_content)
+        text_content = re.sub(r'\{\\color\{[^}]+\}', '{', text_content)
+        text_content = text_content.strip()
+
+        # Remove extra braces
+        while text_content.startswith('{') and text_content.endswith('}'):
+            text_content = text_content[1:-1].strip()
+
+        return {
+            "name": name,
+            "text": text_content
+        }
+
     def extract_page_regions(self, latex_str: str, page_number: int = 1) -> Dict[str, Any]:
         """
         Extract page regions from LaTeX content (paracol structure).
@@ -1021,6 +1489,9 @@ class LaTeXToYAMLConverter:
             left_sections = []
             main_sections = self._extract_sections_from_column(paracol_content.strip())
 
+        # Extract bottom bar (if present)
+        bottom_bar = self.extract_bottom_bar(latex_str)
+
         return {
             "top": {
                 "show_professional_profile": (page_number == 1)
@@ -1031,7 +1502,7 @@ class LaTeXToYAMLConverter:
             "main_column": {
                 "sections": main_sections
             } if main_sections else None,
-            "bottom": None  # TODO: Implement bottom bar extraction
+            "bottom": bottom_bar
         }
 
     def _extract_sections_from_column(self, column_content: str) -> List[Dict[str, Any]]:
@@ -1135,6 +1606,24 @@ class LaTeXToYAMLConverter:
                 "content": parsed["content"]
             }
 
+        elif r'\begin{itemize}[leftmargin=0pt' in content and r'\faUserGraduate' in content:
+            # education
+            parsed = self.parse_education(content)
+            return {
+                "name": section_name,
+                "type": "education",
+                "content": parsed["content"]
+            }
+
+        elif r'\begin{itemizeMain}' in content:
+            # personality_alias_array
+            parsed = self.parse_personality_alias_array(content)
+            return {
+                "name": section_name,
+                "type": "personality_alias_array",
+                "content": parsed["content"]
+            }
+
         else:
             # Unknown type - store as raw
             return {
@@ -1161,11 +1650,14 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
     converter = YAMLToLaTeXConverter()
 
     # Handle different YAML structures
-    if "subsection" in yaml_dict:
-        # Minimal test case
+    if "document" in yaml_dict:
+        # Full document
+        latex = converter.generate_document(yaml_dict)
+    elif "subsection" in yaml_dict:
+        # Single subsection (for testing)
         latex = converter.convert_work_experience(yaml_dict["subsection"])
     else:
-        raise NotImplementedError("Full resume conversion not yet implemented")
+        raise ValueError("YAML must contain either 'document' or 'subsection' key")
 
     if output_path:
         output_path.write_text(latex, encoding="utf-8")
@@ -1188,11 +1680,16 @@ def latex_to_yaml(latex_path: Path, output_path: Path = None) -> Dict[str, Any]:
 
     converter = LaTeXToYAMLConverter()
 
-    # Parse work experience subsection
-    result = converter.parse_work_experience(latex_str)
-
-    # Wrap in subsection key for consistency with test YAML
-    yaml_dict = {"subsection": result}
+    # Try to parse as full document first
+    if r'\begin{document}' in latex_str and r'\end{document}' in latex_str:
+        # Full document
+        yaml_dict = converter.parse_document(latex_str)
+    elif r'\begin{itemizeAcademic}' in latex_str:
+        # Single work experience subsection (for testing)
+        result = converter.parse_work_experience(latex_str)
+        yaml_dict = {"subsection": result}
+    else:
+        raise ValueError("LaTeX must be either a full document or a single itemizeAcademic subsection")
 
     if output_path:
         conf = OmegaConf.create(yaml_dict)

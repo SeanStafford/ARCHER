@@ -1,0 +1,14 @@
+section:
+  type: personality_alias_array
+  content:
+    items:
+    - icon: \blackbelt
+      text: Bash Black Belt
+    - icon: \meditate
+      text: GPU Guru
+    - icon: \faUserNinja
+      text: NumPy Ninja
+    - icon: \faUserTie
+      text: PyTorch Pro
+    - icon: \faMagic
+      text: Scaling Sorcerer
