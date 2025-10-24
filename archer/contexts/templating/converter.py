@@ -2,7 +2,7 @@
 LaTeX <-> YAML Converter
 
 Handles bidirectional conversion between structured YAML and LaTeX resume format.
-Uses type definitions from data/resume_archive/structured/types/ to guide conversion.
+Uses type definitions from archer/contexts/templating/types/ to guide conversion.
 """
 
 import re
@@ -25,7 +25,7 @@ from archer.contexts.templating.latex_patterns import (
 from archer.contexts.templating.template_registry import TemplateRegistry
 
 load_dotenv()
-TYPES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured/types"
+TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
 
 
 class TypeRegistry:
@@ -40,7 +40,7 @@ class TypeRegistry:
         if type_name in self._types:
             return self._types[type_name]
 
-        type_file = self.types_dir / f"{type_name}.yaml"
+        type_file = self.types_dir / type_name / "type.yaml"
         if not type_file.exists():
             raise ValueError(f"Type definition not found: {type_name} at {type_file}")
 
