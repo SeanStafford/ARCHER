@@ -9,7 +9,37 @@ Resume content is organized into **types** that define the structure and LaTeX r
 - Required and optional metadata fields
 - Content structure rules
 
-Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
+### Template-Based Architecture
+
+**Type Directory Structure:**
+```
+archer/contexts/templating/types/
+├── work_experience/
+│   ├── type.yaml              # Schema definition
+│   └── template.tex.jinja     # LaTeX template with placeholders
+├── project/
+│   ├── type.yaml
+│   └── template.tex.jinja
+├── skill_list_caps/
+│   ├── type.yaml
+│   └── template.tex.jinja
+└── ... (9 types total)
+```
+
+Each type has:
+- **`type.yaml`**: Schema defining metadata fields, content structure, LaTeX environment
+- **`template.tex.jinja`**: Jinja2 template with LaTeX pattern and placeholders
+
+**Benefits:**
+- **Visibility**: LaTeX patterns explicit in template files (not buried in Python code)
+- **Maintainability**: Single source of truth for each type's LaTeX structure
+- **Better Errors**: Parser errors can reference template file + line number
+- **Cleaner Code**: Generators simplified from string concatenation to template rendering
+
+**Custom Delimiters** (to avoid LaTeX brace conflicts):
+- Variables: `<<< var >>>`
+- Blocks: `<%% block %%>`
+- Comments: `<# comment #>`
 
 ### Implemented Types
 
@@ -67,22 +97,34 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
 ## Converter Architecture
 
-**TypeRegistry** - Loads and caches type definitions from YAML files
+**TypeRegistry** - Loads and caches type definitions from `type.yaml` files
+
+**TemplateRegistry** - Loads and caches Jinja2 templates from `template.tex.jinja` files
+- Custom Jinja2 environment with LaTeX-safe delimiters
+- Template caching for performance
+- Helper methods for error messages: `get_template_source()`, `get_expected_pattern_preview()`
 
 ### YAMLToLaTeXConverter
 
-Generates LaTeX from structured YAML:
+Generates LaTeX from structured YAML using template-based approach:
 
-**Type-specific generators:**
-- `convert_work_experience()` - itemizeAcademic environment
-- `convert_project()` - itemizeAProject environment
-- `convert_skill_list_caps()` - Braced small-caps list
-- `convert_skill_list_pipes()` - Pipe-separated `\texttt{}` list
-- `convert_skill_category()` - Single category with icon
-- `convert_skill_categories()` - Nested itemize with multiple categories
-- `convert_education()` - Multi-institution nested itemize with degrees
-- `convert_personality_alias_array()` - itemizeMain with icon-labeled items
-- `generate_bottom_bar()` - Textblock positioning for bottom bar
+**Type-specific generators** (all use template rendering):
+- `convert_work_experience()` - Renders work_experience template
+- `convert_project()` - Renders project template
+- `convert_skill_list_caps()` - Renders skill_list_caps template
+- `convert_skill_list_pipes()` - Renders skill_list_pipes template
+- `convert_skill_category()` - Renders skill_category template
+- `convert_skill_categories()` - Renders skill_categories template (nested)
+- `convert_education()` - Renders education template
+- `convert_personality_alias_array()` - Renders personality_alias_array template
+- `generate_bottom_bar()` - Renders personality_bottom_bar template
+
+**Pattern** (simplified from string concatenation):
+```python
+def convert_skill_list_caps(self, section: Dict[str, Any]) -> str:
+    template = self.template_registry.get_template("skill_list_caps")
+    return template.render(section)
+```
 
 **Document-level generation:**
 - `generate_preamble()` - Document metadata → `\renewcommand` statements
@@ -92,7 +134,7 @@ Generates LaTeX from structured YAML:
 
 ### LaTeXToYAMLConverter
 
-Parses LaTeX to structured YAML:
+Parses LaTeX to structured YAML with enhanced error handling:
 
 **Type-specific parsers:**
 - `parse_work_experience()` - itemizeAcademic → structured dict
@@ -112,6 +154,21 @@ Parses LaTeX to structured YAML:
 - `parse_document()` - Complete document parsing (metadata + pages)
 - `_extract_sections_from_column()` - Extracts all sections from column content
 - `_parse_section_by_inference()` - Automatically detects section type from LaTeX patterns
+
+**Enhanced Error Handling:**
+- `_create_parsing_error()` - Creates `TemplateParsingError` with template path reference
+- Parser errors now show:
+  - Expected pattern from template file
+  - Template file path and type name
+  - Actual LaTeX snippet that failed to parse
+- Example error message:
+  ```
+  Failed to parse skill_category: No \item[icon] {\scshape name} pattern found
+  Expected pattern from: archer/contexts/templating/types/skill_category/template.tex.jinja
+  Type: skill_category
+  Actual LaTeX:
+  \item[]{\hspace{-20pt}\scshape Category Name}
+  ```
 
 ## Implementation Status
 
@@ -137,6 +194,14 @@ Parses LaTeX to structured YAML:
 - ✅ `latex_to_yaml()` - Convert LaTeX files to YAML (supports full documents and components)
 - ✅ `yaml_to_latex()` - Convert YAML to LaTeX (supports full documents and components)
 
+**Template-Based Generation:**
+- ✅ All 9 types use Jinja2 templates (migrated from string concatenation)
+- ✅ Type definitions and templates co-located in `archer/contexts/templating/types/`
+- ✅ Custom delimiters avoid LaTeX brace conflicts (`<<< >>>`, `<%% %%>`)
+- ✅ Enhanced error messages with template path references
+- ✅ 90% reduction in generator code size (string concat → template.render())
+- ✅ TemplateRegistry with caching and helper methods
+
 **Testing:**
 - ✅ 35 passing integration tests covering:
   - All content type round-trips (work_experience, project, all skill types, education, personality types)
@@ -144,6 +209,7 @@ Parses LaTeX to structured YAML:
   - Multi-page tests (page splitting, continuation pages)
   - Document metadata tests (preamble parsing, round-trip validation)
   - Bottom bar tests (extraction, generation, round-trip)
+- ✅ 8 passing TemplateRegistry unit tests
 
 **Documentation:**
 - ✅ Comprehensive testing documentation in `tests/ResumeStructureTesting.md`

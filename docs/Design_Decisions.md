@@ -194,3 +194,6 @@ LaTeX patterns were embedded in Python string concatenation, making variations i
 - What it DOES do: Makes pattern mismatches visible and provides clear path forward
 
 **Implementation**: See `archer/contexts/templating/NEW_TYPE_APPROACH.md` for full specification. Migration plan: (1) POC with `skill_list_caps`, (2) incremental migration of remaining 8 types, (3) enhanced error messages referencing templates, (4) documentation updates.
+
+**Update - Completed Oct 24, 2025:**
+All 4 stages complete. 9 types migrated to template-based generation. 35 integration tests + 8 unit tests passing. Major reduction in generator code size.
