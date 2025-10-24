@@ -26,39 +26,42 @@ def test_yaml_to_latex_skill_list_pipes():
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
+    # Extract expected items from YAML fixture
+    expected_items = yaml_dict["section"]["content"]["list"]
+
     converter = YAMLToLaTeXConverter()
     latex = converter.convert_skill_list_pipes(yaml_dict["section"])
 
-    # Verify structure
-    assert "\\texttt{Python}" in latex
-    assert "\\texttt{Bash}" in latex
-    assert "\\texttt{C++}" in latex
-    assert "\\texttt{MATLAB}" in latex
-    assert "\\texttt{Mathematica}" in latex
-    assert " | " in latex  # Pipe separators
+    # Verify all expected items present in generated LaTeX
+    for item in expected_items:
+        assert f"\\texttt{{{item}}}" in latex
+
+    # Verify pipe separators present
+    assert " | " in latex
 
 
 @pytest.mark.integration
 def test_latex_to_yaml_skill_list_pipes():
     """Test parsing LaTeX pipe-separated skill list to YAML structure."""
     latex_path = STRUCTURED_PATH / "languages_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "languages_test.yaml"
 
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected = OmegaConf.to_container(yaml_data)["section"]
+
+    # Parse LaTeX
+    latex_str = latex_path.read_text(encoding="utf-8")
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_list_pipes(latex_str)
 
-    # Verify structure
-    assert result["type"] == "skill_list_pipes"
+    # Validate against expected YAML structure (dynamic, not hardcoded)
+    assert result["type"] == expected["type"]
     assert "list" in result["content"]
-    assert len(result["content"]["list"]) == 5
+    assert len(result["content"]["list"]) == len(expected["content"]["list"])
 
-    # Verify specific items (order matters!)
-    items = result["content"]["list"]
-    assert items[0] == "Python"
-    assert items[1] == "Bash"
-    assert items[2] == "C++"
-    assert items[3] == "MATLAB"
-    assert items[4] == "Mathematica"
+    # Verify all expected items are parsed in correct order
+    assert result["content"]["list"] == expected["content"]["list"]
 
 
 @pytest.mark.integration
@@ -86,12 +89,13 @@ def test_skill_list_pipes_roundtrip():
 @pytest.mark.integration
 def test_skill_list_pipes_special_characters():
     """Test handling of special characters like ++ in C++."""
-    latex_snippet = "\\texttt{C++} | \\texttt{C\\#} | \\texttt{F\\#}"
+    # Test data with special characters
+    expected_items = ["C++", "C\\#", "F\\#"]
+    latex_snippet = " | ".join(f"\\texttt{{{item}}}" for item in expected_items)
 
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_list_pipes(latex_snippet)
 
     items = result["content"]["list"]
-    assert "C++" in items
-    assert "C\\#" in items  # Escaped # preserved
-    assert "F\\#" in items
+    for item in expected_items:
+        assert item in items

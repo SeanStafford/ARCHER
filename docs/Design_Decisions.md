@@ -87,3 +87,54 @@ The question was whether to create a shared data model or assign structure conve
 - Learning curve for OmegaConf's specific conventions (e.g., single backslashes, line wrapping)
 
 **Implementation**: All resume YAML files follow OmegaConf formatting conventions (documented in CLAUDE.md). Type definitions stored in `data/resume_archive/structured/types/` guide conversion between YAML and LaTeX.
+
+---
+
+## Design Decision 5: Dynamic Validation for Integration Tests
+
+**Date**: Oct 23, 2025
+
+**Decision**: Integration tests validate parser/generator output against YAML test fixtures dynamically, rather than hardcoding expected values in test code.
+
+**Issue**: Integration tests were failing when test fixtures were updated during commits. Tests contained hardcoded assertions like:
+```python
+assert metadata["date"] == "July 2025"
+assert len(result["content"]["list"]) == 8
+```
+
+These hardcoded values became stale when fixtures were simplified (e.g., list shortened to 2 items). This created test fragility.
+
+**Considered Alternatives**:
+1. **Strategy 1 (Chosen)**: Load YAML fixtures dynamically and validate parsed values match them
+2. **Strategy 2**: Validate only structure/types, not specific values
+3. **Strategy 3**: Remove individual parse/generate tests, keep only round-trip tests
+
+**Rationale for Strategy 1**:
+- **Eliminates hardcoding fragility** - test file changes automatically update expected values
+- **Maintains content validation** - still catches content corruption (e.g., parser swapping fields)
+- **Explicit test intent** - "LaTeX parsing should match the YAML specification"
+- **Granular failure messages** - easier to debug which conversion direction failed
+- **Complements round-trip tests** - validates individual directions, not just full round-trips
+
+**Implementation**:
+```python
+def test_parse_document_metadata():
+    latex_path = STRUCTURED_PATH / "document_metadata_test.tex"
+    yaml_path = STRUCTURED_PATH / "document_metadata_test.yaml"
+
+    # Load expected values from YAML fixture
+    expected = OmegaConf.to_container(OmegaConf.load(yaml_path))["document"]["metadata"]
+
+    # Parse LaTeX
+    parser = LaTeXToYAMLConverter()
+    metadata = parser.extract_document_metadata(latex_path.read_text())
+
+    # Validate against expected values (dynamic, not hardcoded)
+    assert metadata["name"] == expected["name"]
+    assert metadata["date"] == expected["date"]
+```
+
+**Trade-offs**:
+- Tests now have dependency on YAML fixtures (test files must exist and be valid)
+- Slightly more complex test setup (load YAML, navigate structure)
+- Better long-term maintainability outweighs minor complexity increase

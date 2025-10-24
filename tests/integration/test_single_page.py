@@ -23,29 +23,37 @@ STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
 def test_parse_single_page_structure():
     """Test parsing LaTeX page with paracol into structured format."""
     latex_path = STRUCTURED_PATH / "single_page_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "single_page_test.yaml"
 
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected_regions = OmegaConf.to_container(yaml_data)["page"]["regions"]
+
+    # Parse LaTeX
+    latex_str = latex_path.read_text(encoding="utf-8")
     converter = LaTeXToYAMLConverter()
     page_regions = converter.extract_page_regions(latex_str, page_number=1)
 
-    # Verify structure
-    assert page_regions["top"]["show_professional_profile"] == True
+    # Verify structure matches expected
+    assert page_regions["top"]["show_professional_profile"] == expected_regions["top"]["show_professional_profile"]
     assert page_regions["left_column"] is not None
     assert page_regions["main_column"] is not None
 
-    # Verify left column sections
+    # Verify left column sections match expected
     left_sections = page_regions["left_column"]["sections"]
-    assert len(left_sections) == 2
-    assert left_sections[0]["name"] == "Core Skills"
-    assert left_sections[0]["type"] == "skill_list_caps"
-    assert left_sections[1]["name"] == "Languages"
-    assert left_sections[1]["type"] == "skill_list_pipes"
+    expected_left = expected_regions["left_column"]["sections"]
+    assert len(left_sections) == len(expected_left)
+    for i, expected_section in enumerate(expected_left):
+        assert left_sections[i]["name"] == expected_section["name"]
+        assert left_sections[i]["type"] == expected_section["type"]
 
-    # Verify main column sections
+    # Verify main column sections match expected
     main_sections = page_regions["main_column"]["sections"]
-    assert len(main_sections) == 1
-    assert main_sections[0]["name"] == "Experience"
-    assert main_sections[0]["type"] == "work_history"
+    expected_main = expected_regions["main_column"]["sections"]
+    assert len(main_sections) == len(expected_main)
+    for i, expected_section in enumerate(expected_main):
+        assert main_sections[i]["name"] == expected_section["name"]
+        assert main_sections[i]["type"] == expected_section["type"]
 
 
 @pytest.mark.integration
@@ -55,23 +63,23 @@ def test_generate_single_page_structure():
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
-    converter = YAMLToLaTeXConverter()
-    latex = converter.generate_page(yaml_dict["page"]["regions"])
+    # Extract expected section names and types from YAML fixture
+    expected_regions = yaml_dict["page"]["regions"]
 
-    # Verify structure
+    converter = YAMLToLaTeXConverter()
+    latex = converter.generate_page(expected_regions)
+
+    # Verify paracol structure
     assert "\\begin{paracol}{2}" in latex
     assert "\\switchcolumn" in latex
     assert "\\end{paracol}" in latex
 
-    # Verify sections present
-    assert "\\section*{Core Skills}" in latex
-    assert "\\section*{Languages}" in latex
-    assert "\\section*{Experience}" in latex
+    # Verify all expected sections present in generated LaTeX
+    for section in expected_regions["left_column"]["sections"]:
+        assert f"\\section*{{{section['name']}}}" in latex
 
-    # Verify content types
-    assert "\\setlength{\\baselineskip}" in latex  # skill_list_caps
-    assert "\\texttt{Python}" in latex  # skill_list_pipes
-    assert "\\begin{itemizeAcademic}" in latex  # work_experience
+    for section in expected_regions["main_column"]["sections"]:
+        assert f"\\section*{{{section['name']}}}" in latex
 
 
 @pytest.mark.integration
@@ -139,25 +147,36 @@ def test_paracol_column_separation():
 def test_section_content_preserved():
     """Test that section content is correctly preserved in round-trip."""
     latex_path = STRUCTURED_PATH / "single_page_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "single_page_test.yaml"
 
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected_regions = OmegaConf.to_container(yaml_data)["page"]["regions"]
+
+    # Parse LaTeX
+    latex_str = latex_path.read_text(encoding="utf-8")
     parser = LaTeXToYAMLConverter()
     page_regions = parser.extract_page_regions(latex_str, page_number=1)
 
-    # Check Core Skills content
-    core_skills = page_regions["left_column"]["sections"][0]
-    assert "Machine Learning" in core_skills["content"]["list"]
-    assert "High-Performance\\\\Computing (HPC)" in core_skills["content"]["list"]
+    # Verify left column section content matches expected
+    for i, expected_section in enumerate(expected_regions["left_column"]["sections"]):
+        parsed_section = page_regions["left_column"]["sections"][i]
+        if "list" in expected_section.get("content", {}):
+            expected_items = expected_section["content"]["list"]
+            parsed_items = parsed_section["content"]["list"]
+            for item in expected_items:
+                assert item in parsed_items, f"Expected item '{item}' not found in parsed content"
 
-    # Check Languages content
-    languages = page_regions["left_column"]["sections"][1]
-    assert "Python" in languages["content"]["list"]
-    assert "Bash" in languages["content"]["list"]
-    assert "C++" in languages["content"]["list"]
-
-    # Check Experience content
-    experience = page_regions["main_column"]["sections"][0]
-    assert len(experience["subsections"]) == 1
-    work_exp = experience["subsections"][0]
-    assert work_exp["metadata"]["company"] == "Test Company"
-    assert len(work_exp["content"]["bullets"]) == 2
+    # Verify main column section content matches expected
+    for i, expected_section in enumerate(expected_regions["main_column"]["sections"]):
+        parsed_section = page_regions["main_column"]["sections"][i]
+        if "subsections" in expected_section:
+            assert len(parsed_section["subsections"]) == len(expected_section["subsections"])
+            for j, expected_subsection in enumerate(expected_section["subsections"]):
+                parsed_subsection = parsed_section["subsections"][j]
+                # Verify metadata matches
+                for key in expected_subsection.get("metadata", {}):
+                    assert parsed_subsection["metadata"][key] == expected_subsection["metadata"][key]
+                # Verify bullet count matches
+                if "bullets" in expected_subsection.get("content", {}):
+                    assert len(parsed_subsection["content"]["bullets"]) == len(expected_subsection["content"]["bullets"])

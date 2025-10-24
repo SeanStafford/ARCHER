@@ -26,67 +26,57 @@ def test_yaml_to_latex_skill_categories():
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
+    # Extract expected categories from YAML fixture
+    expected_subsections = yaml_dict["section"]["subsections"]
+
     converter = YAMLToLaTeXConverter()
     latex = converter.convert_skill_categories(yaml_dict["section"])
 
     # Verify structure
     assert "\\begin{itemize}" in latex
     assert "\\end{itemize}" in latex
-
-    # Verify all categories present
-    assert "\\item[\\faRobot]" in latex
-    assert "\\item[\\faChartLine]" in latex
-    assert "\\item[\\faCode]" in latex
-
-    # Verify category names with small caps
-    assert "{\\scshape LLM Architectures}" in latex
-    assert "{\\scshape ML Frameworks}" in latex
-    assert "{\\scshape Development}" in latex
-
-    # Verify itemizeLL environments
     assert "\\begin{itemizeLL}" in latex
     assert "\\end{itemizeLL}" in latex
 
-    # Verify specific items
-    assert "\\itemLL {Mixture of Experts (MoE)}" in latex
-    assert "\\itemLL {PyTorch}" in latex
-    assert "\\itemLL {Git}" in latex
+    # Verify all expected categories and items present
+    for subsection in expected_subsections:
+        icon = subsection["metadata"]["icon"]
+        name = subsection["metadata"]["name"]
+        assert f"\\item[{icon}]" in latex
+        assert f"{{\\scshape {name}}}" in latex
+        for item in subsection["content"]["list"]:
+            assert f"\\itemLL {{{item}}}" in latex
 
 
 @pytest.mark.integration
 def test_latex_to_yaml_skill_categories():
     """Test parsing LaTeX nested categories to YAML structure."""
     latex_path = STRUCTURED_PATH / "software_tools_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "software_tools_test.yaml"
 
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected = OmegaConf.to_container(yaml_data)["section"]
+
+    # Parse LaTeX
+    latex_str = latex_path.read_text(encoding="utf-8")
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_categories(latex_str)
 
-    # Verify structure
-    assert result["type"] == "skill_categories"
+    # Validate against expected YAML structure (dynamic, not hardcoded)
+    assert result["type"] == expected["type"]
     assert "subsections" in result
-    assert len(result["subsections"]) == 3
+    assert len(result["subsections"]) == len(expected["subsections"])
 
-    # Verify first category
-    cat1 = result["subsections"][0]
-    assert cat1["type"] == "skill_category"
-    assert cat1["metadata"]["name"] == "LLM Architectures"
-    assert cat1["metadata"]["icon"] == "\\faRobot"
-    assert len(cat1["content"]["list"]) == 3
-    assert "Mixture of Experts (MoE)" in cat1["content"]["list"]
-
-    # Verify second category
-    cat2 = result["subsections"][1]
-    assert cat2["metadata"]["name"] == "ML Frameworks"
-    assert cat2["metadata"]["icon"] == "\\faChartLine"
-    assert "PyTorch" in cat2["content"]["list"]
-    assert "JAX/Equinox" in cat2["content"]["list"]
-
-    # Verify third category
-    cat3 = result["subsections"][2]
-    assert cat3["metadata"]["name"] == "Development"
-    assert cat3["metadata"]["icon"] == "\\faCode"
-    assert "Git" in cat3["content"]["list"]
+    # Verify each category matches expected
+    for i, expected_cat in enumerate(expected["subsections"]):
+        parsed_cat = result["subsections"][i]
+        assert parsed_cat["type"] == expected_cat["type"]
+        assert parsed_cat["metadata"]["name"] == expected_cat["metadata"]["name"]
+        assert parsed_cat["metadata"]["icon"] == expected_cat["metadata"]["icon"]
+        assert len(parsed_cat["content"]["list"]) == len(expected_cat["content"]["list"])
+        for item in expected_cat["content"]["list"]:
+            assert item in parsed_cat["content"]["list"]
 
 
 @pytest.mark.integration
@@ -124,16 +114,21 @@ def test_skill_categories_roundtrip():
 @pytest.mark.integration
 def test_skill_categories_icon_preservation():
     """Test that FontAwesome icons are preserved correctly."""
-    latex_snippet = """
-\\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]
+    # Test data
+    expected_icon = "\\faDatabase"
+    expected_name = "Databases"
+    expected_items = ["PostgreSQL", "Redis"]
 
-\\item[\\faDatabase] {\\scshape Databases}
-\\begin{itemizeLL}
-    \\itemLL {PostgreSQL}
-    \\itemLL {Redis}
-\\end{itemizeLL}
+    latex_snippet = f"""
+\\begin{{itemize}}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]
 
-\\end{itemize}
+\\item[{expected_icon}] {{\\scshape {expected_name}}}
+\\begin{{itemizeLL}}
+    \\itemLL {{{expected_items[0]}}}
+    \\itemLL {{{expected_items[1]}}}
+\\end{{itemizeLL}}
+
+\\end{{itemize}}
 """
 
     converter = LaTeXToYAMLConverter()
@@ -141,32 +136,36 @@ def test_skill_categories_icon_preservation():
 
     assert len(result["subsections"]) == 1
     category = result["subsections"][0]
-    assert category["metadata"]["icon"] == "\\faDatabase"
-    assert category["metadata"]["name"] == "Databases"
-    assert "PostgreSQL" in category["content"]["list"]
-    assert "Redis" in category["content"]["list"]
+    assert category["metadata"]["icon"] == expected_icon
+    assert category["metadata"]["name"] == expected_name
+    for item in expected_items:
+        assert item in category["content"]["list"]
 
 
 @pytest.mark.integration
 def test_skill_categories_special_characters():
     """Test handling of special characters in category items."""
-    latex_snippet = """
-\\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]
+    # Test data with special characters
+    expected_icon = "\\faCode"
+    expected_name = "Languages"
+    expected_items = ["C++", "C\\#", "Python 3.9+"]
 
-\\item[\\faCode] {\\scshape Languages}
-\\begin{itemizeLL}
-    \\itemLL {C++}
-    \\itemLL {C\\#}
-    \\itemLL {Python 3.9+}
-\\end{itemizeLL}
+    latex_snippet = f"""
+\\begin{{itemize}}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]
 
-\\end{itemize}
+\\item[{expected_icon}] {{\\scshape {expected_name}}}
+\\begin{{itemizeLL}}
+    \\itemLL {{{expected_items[0]}}}
+    \\itemLL {{{expected_items[1]}}}
+    \\itemLL {{{expected_items[2]}}}
+\\end{{itemizeLL}}
+
+\\end{{itemize}}
 """
 
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_categories(latex_snippet)
 
     items = result["subsections"][0]["content"]["list"]
-    assert "C++" in items
-    assert "C\\#" in items  # Escaped # preserved
-    assert "Python 3.9+" in items
+    for item in expected_items:
+        assert item in items

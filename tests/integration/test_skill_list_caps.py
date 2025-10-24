@@ -26,34 +26,44 @@ def test_yaml_to_latex_skill_list_caps():
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
+    # Extract expected items from YAML fixture
+    expected_items = yaml_dict["section"]["content"]["list"]
+
     converter = YAMLToLaTeXConverter()
     latex = converter.convert_skill_list_caps(yaml_dict["section"])
 
-    # Verify structure
+    # Verify structure (always present for this type)
     assert "\\setlength{\\baselineskip}" in latex
     assert "\\scshape" in latex
-    assert "Machine Learning (ML)" in latex
-    assert "High-Performance\\\\Computing (HPC)" in latex
+
+    # Verify all expected items present in generated LaTeX
+    for item in expected_items:
+        assert item in latex
 
 
 @pytest.mark.integration
 def test_latex_to_yaml_skill_list_caps():
     """Test parsing LaTeX skill list to YAML structure."""
     latex_path = STRUCTURED_PATH / "core_skills_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "core_skills_test.yaml"
 
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected = OmegaConf.to_container(yaml_data)["section"]
+
+    # Parse LaTeX
+    latex_str = latex_path.read_text(encoding="utf-8")
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_list_caps(latex_str)
 
-    # Verify structure
-    assert result["type"] == "skill_list_caps"
+    # Validate against expected YAML structure (dynamic, not hardcoded)
+    assert result["type"] == expected["type"]
     assert "list" in result["content"]
-    assert len(result["content"]["list"]) == 2
+    assert len(result["content"]["list"]) == len(expected["content"]["list"])
 
-    # Verify specific items
-    items = result["content"]["list"]
-    assert "Machine Learning (ML)" in items
-    assert "High-Performance\\\\Computing (HPC)" in items
+    # Verify all expected items are parsed
+    for item in expected["content"]["list"]:
+        assert item in result["content"]["list"]
 
 
 @pytest.mark.integration

@@ -23,6 +23,12 @@ STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
 def test_extract_two_pages():
     """Test extracting two pages from LaTeX document."""
     latex_path = STRUCTURED_PATH / "two_page_test.tex"
+    yaml_path = STRUCTURED_PATH / "two_page_test.yaml"
+
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected_pages = OmegaConf.to_container(yaml_data)["document"]["pages"]
+
     # Need to wrap in full document for extract_pages()
     paracol_content = latex_path.read_text(encoding="utf-8")
     latex_str = "\\begin{document}\n" + paracol_content + "\n\\end{document}"
@@ -30,60 +36,68 @@ def test_extract_two_pages():
     parser = LaTeXToYAMLConverter()
     pages = parser.extract_pages(latex_str)
 
-    # Verify two pages extracted
-    assert len(pages) == 2
+    # Verify page count matches expected
+    assert len(pages) == len(expected_pages)
 
-    # Verify page 1 structure
-    page1 = pages[0]
-    assert page1["page_number"] == 1
-    assert page1["regions"]["top"]["show_professional_profile"] == True
-    assert page1["regions"]["left_column"] is not None
-    assert page1["regions"]["main_column"] is not None
+    # Verify each page structure matches expected
+    for i, expected_page in enumerate(expected_pages):
+        parsed_page = pages[i]
+        assert parsed_page["page_number"] == expected_page["page_number"]
+        assert parsed_page["regions"]["top"]["show_professional_profile"] == expected_page["regions"]["top"]["show_professional_profile"]
 
-    # Verify page 1 sections
-    left_sections = page1["regions"]["left_column"]["sections"]
-    assert len(left_sections) == 1
-    assert left_sections[0]["name"] == "Core Skills"
+        # Verify left column (may be None for continuation pages)
+        expected_left = expected_page["regions"]["left_column"]
+        if expected_left is None:
+            assert parsed_page["regions"]["left_column"] is None
+        else:
+            assert parsed_page["regions"]["left_column"] is not None
+            parsed_left_sections = parsed_page["regions"]["left_column"]["sections"]
+            expected_left_sections = expected_left["sections"]
+            assert len(parsed_left_sections) == len(expected_left_sections)
+            for j, expected_section in enumerate(expected_left_sections):
+                assert parsed_left_sections[j]["name"] == expected_section["name"]
 
-    main_sections = page1["regions"]["main_column"]["sections"]
-    assert len(main_sections) == 1
-    assert main_sections[0]["name"] == "Experience"
-
-    # Verify page 2 structure
-    page2 = pages[1]
-    assert page2["page_number"] == 2
-    assert page2["regions"]["top"]["show_professional_profile"] == False
-
-    # Page 2 should have no left column (continuation of main column only)
-    assert page2["regions"]["left_column"] is None
-    assert page2["regions"]["main_column"] is not None
-
-    # Verify page 2 sections
-    page2_sections = page2["regions"]["main_column"]["sections"]
-    assert len(page2_sections) == 1
-    assert page2_sections[0]["name"] == "More Experience"
+        # Verify main column
+        parsed_main_sections = parsed_page["regions"]["main_column"]["sections"]
+        expected_main_sections = expected_page["regions"]["main_column"]["sections"]
+        assert len(parsed_main_sections) == len(expected_main_sections)
+        for j, expected_section in enumerate(expected_main_sections):
+            assert parsed_main_sections[j]["name"] == expected_section["name"]
 
 
 @pytest.mark.integration
 def test_two_page_content_preservation():
     """Test that content is preserved across pages."""
     latex_path = STRUCTURED_PATH / "two_page_test.tex"
+    yaml_path = STRUCTURED_PATH / "two_page_test.yaml"
+
+    # Load expected structure from YAML fixture
+    yaml_data = OmegaConf.load(yaml_path)
+    expected_pages = OmegaConf.to_container(yaml_data)["document"]["pages"]
+
+    # Parse LaTeX
     paracol_content = latex_path.read_text(encoding="utf-8")
     latex_str = "\\begin{document}\n" + paracol_content + "\n\\end{document}"
-
     parser = LaTeXToYAMLConverter()
     pages = parser.extract_pages(latex_str)
 
-    # Page 1 content
-    page1_exp = pages[0]["regions"]["main_column"]["sections"][0]
-    assert page1_exp["subsections"][0]["metadata"]["company"] == "Test Company"
-    assert len(page1_exp["subsections"][0]["content"]["bullets"]) == 2
+    # Verify content on all pages matches expected
+    for i, expected_page in enumerate(expected_pages):
+        parsed_page = pages[i]
+        expected_main_sections = expected_page["regions"]["main_column"]["sections"]
+        parsed_main_sections = parsed_page["regions"]["main_column"]["sections"]
 
-    # Page 2 content
-    page2_exp = pages[1]["regions"]["main_column"]["sections"][0]
-    assert page2_exp["subsections"][0]["metadata"]["company"] == "Another Company"
-    assert page2_exp["subsections"][0]["metadata"]["title"] == "Senior Engineer"
-    assert len(page2_exp["subsections"][0]["content"]["bullets"]) == 2
+        for j, expected_section in enumerate(expected_main_sections):
+            parsed_section = parsed_main_sections[j]
+            if "subsections" in expected_section:
+                for k, expected_subsection in enumerate(expected_section["subsections"]):
+                    parsed_subsection = parsed_section["subsections"][k]
+                    # Verify metadata matches
+                    for key in expected_subsection.get("metadata", {}):
+                        assert parsed_subsection["metadata"][key] == expected_subsection["metadata"][key]
+                    # Verify bullet count matches
+                    if "bullets" in expected_subsection.get("content", {}):
+                        assert len(parsed_subsection["content"]["bullets"]) == len(expected_subsection["content"]["bullets"])
 
 
 @pytest.mark.integration

@@ -22,30 +22,34 @@ STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
 def test_parse_document_metadata():
     """Test parsing document metadata from LaTeX preamble."""
     latex_path = STRUCTURED_PATH / "document_metadata_test.tex"
-    latex_str = latex_path.read_text(encoding="utf-8")
+    yaml_path = STRUCTURED_PATH / "document_metadata_test.yaml"
 
+    # Load expected values from YAML fixture
+    from omegaconf import OmegaConf
+    expected_yaml = OmegaConf.load(yaml_path)
+    expected = OmegaConf.to_container(expected_yaml)["document"]["metadata"]
+
+    # Parse LaTeX
     parser = LaTeXToYAMLConverter()
+    latex_str = latex_path.read_text(encoding="utf-8")
     metadata = parser.extract_document_metadata(latex_str)
 
-    # Verify basic fields
-    assert metadata["name"] == "Sean Stafford"
-    assert metadata["date"] == "October 2025"
-    assert metadata["brand"] == "Machine Learning Engineer | Physicist"
+    # Validate against expected YAML values (dynamic, not hardcoded)
+    assert metadata["name"] == expected["name"]
+    assert metadata["date"] == expected["date"]
+    assert metadata["brand"] == expected["brand"]
 
     # Verify professional profile
-    assert metadata["professional_profile"] is not None
-    assert "If I get this test correct that means I'm awesome." in metadata["professional_profile"]
+    assert metadata["professional_profile"] == expected["professional_profile"]
 
     # Verify colors
-    assert metadata["colors"]["emphcolor"] == "darkred"
-    assert metadata["colors"]["topbarcolor"] == "black"
-    assert metadata["colors"]["leftbarcolor"] == "gray9"
-    assert metadata["colors"]["brandcolor"] == "white"
-    assert metadata["colors"]["namecolor"] == "red"
+    for color_key in expected["colors"]:
+        assert metadata["colors"][color_key] == expected["colors"][color_key]
 
     # Verify other fields
-    assert "pdfkeywords" in metadata["fields"]
-    assert metadata["fields"]["pdfkeywords"] == "Sean, Stafford, Resume"
+    for field_key in expected["fields"]:
+        assert field_key in metadata["fields"]
+        assert metadata["fields"][field_key] == expected["fields"][field_key]
 
 
 @pytest.mark.integration

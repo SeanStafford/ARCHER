@@ -15,6 +15,44 @@ This ensures that:
 2. Generated resumes maintain exact formatting control
 3. No information is lost during conversion
 
+### Dynamic Validation Strategy
+
+Integration tests use **dynamic validation** against YAML test fixtures rather than hardcoded expected values. This eliminates test fragility when fixtures are updated.
+
+**Pattern:**
+```python
+# Load expected values from YAML fixture
+expected = OmegaConf.to_container(OmegaConf.load(yaml_path))["section"]
+
+# Parse LaTeX
+result = parser.parse_skill_list_caps(latex_str)
+
+# Validate against expected values (dynamic, not hardcoded)
+assert result["type"] == expected["type"]
+assert len(result["content"]["list"]) == len(expected["content"]["list"])
+```
+
+**Benefits:**
+- Test fixture changes automatically update expected values
+- Still validates content correctness (catches field swapping, corruption)
+- Complements round-trip tests (validates individual conversion directions)
+- Easier to maintain long-term
+
+**When to Use:**
+- ✅ **All tests using external fixture files** (`*_test.yaml`, `*_test.tex` in `data/resume_archive/structured/`)
+- ❌ **Tests with inline snippets** (e.g., `test_skill_categories_icon_preservation()`) can use hardcoded assertions since input and assertions are co-located
+
+**Scope:**
+This pattern is applied to all fixture-based integration tests:
+- `test_document_metadata.py` - All tests loading `document_metadata_test.yaml`
+- `test_skill_list_caps.py` - All tests loading `core_skills_test.yaml`
+- `test_skill_list_pipes.py` - All tests loading `languages_test.yaml`
+- `test_skill_categories.py` - Tests loading `software_tools_test.yaml` (not inline snippet tests)
+- `test_single_page.py` - All tests loading `single_page_test.yaml`
+- `test_two_page.py` - All tests loading `two_page_test.yaml`
+
+**See:** `docs/Design_Decisions.md` (Design Decision 5) for full rationale
+
 ---
 
 ## Type Coverage Matrix
@@ -180,19 +218,25 @@ content:
 
 **What It Tests:**
 ```python
+# Load expected items from YAML fixture
+expected_items = yaml_dict["section"]["content"]["list"]
+
 converter = YAMLToLaTeXConverter()
 latex = converter.convert_skill_list_caps(yaml_dict["section"])
 
+# Verify structure (always present for this type)
 assert "\\setlength{\\baselineskip}" in latex
 assert "\\scshape" in latex
-assert "Machine Learning (ML)" in latex
-assert "High-Performance\\\\Computing (HPC)" in latex
+
+# Verify all expected items present in generated LaTeX
+for item in expected_items:
+    assert item in latex
 ```
 
 **Why This Matters:**
 - Confirms spacing commands are correctly inserted (critical for visual consistency)
 - Validates `\scshape` formatting is applied (small-caps are distinguishing feature)
-- Tests content preservation including special characters (`&`, parentheses)
+- Tests all items from YAML fixture appear in generated LaTeX (dynamic validation)
 - Verifies line breaks (`\\`) are properly escaped (double backslash in Python strings)
 
 #### Test 2: `test_latex_to_yaml_skill_list_caps()`
@@ -201,17 +245,25 @@ assert "High-Performance\\\\Computing (HPC)" in latex
 
 **What It Tests:**
 ```python
+# Load expected structure from YAML fixture
+expected = OmegaConf.to_container(OmegaConf.load(yaml_path))["section"]
+
+# Parse LaTeX
 converter = LaTeXToYAMLConverter()
 result = converter.parse_skill_list_caps(latex_str)
 
-assert result["type"] == "skill_list_caps"
-assert len(result["content"]["list"]) == 8
-assert "High-Performance\\\\Computing (HPC)" in items
+# Validate against expected YAML structure (dynamic, not hardcoded)
+assert result["type"] == expected["type"]
+assert len(result["content"]["list"]) == len(expected["content"]["list"])
+
+# Verify all expected items are parsed
+for item in expected["content"]["list"]:
+    assert item in result["content"]["list"]
 ```
 
 **Why This Matters:**
 - Confirms parser correctly identifies the braced block pattern
-- Validates blank line splitting (8 items from 8 skill lines)
+- Validates item count matches YAML fixture (dynamic validation)
 - Tests line break preservation within items (`\\` retained)
 - Ensures type identification is correct (important for dispatcher logic)
 
@@ -803,18 +855,27 @@ Document metadata extraction and generation tests validate parsing of the LaTeX 
 
 **What It Tests:**
 ```python
+# Load expected values from YAML fixture
+expected = OmegaConf.to_container(OmegaConf.load(yaml_path))["document"]["metadata"]
+
+# Parse LaTeX
 metadata = parser.extract_document_metadata(latex_str)
 
-assert metadata["name"] == "Sean Stafford"
-assert metadata["brand"] == "Research Infrastructure Engineer | Physicist"
-assert metadata["colors"]["emphcolor"] == "NetflixDark"
-assert metadata["fields"]["pdfkeywords"] == "Sean, Stafford, Resume"
+# Validate against expected YAML values (dynamic, not hardcoded)
+assert metadata["name"] == expected["name"]
+assert metadata["date"] == expected["date"]
+assert metadata["brand"] == expected["brand"]
+assert metadata["professional_profile"] == expected["professional_profile"]
+
+# Verify colors
+for color_key in expected["colors"]:
+    assert metadata["colors"][color_key] == expected["colors"][color_key]
 ```
 
 **Why This Matters:**
 - **Preamble parsing is foundational** - metadata applies to entire document
 - Tests `\renewcommand` extraction with nested braces (e.g., `\textbf{...}`)
-- Validates color field separation from general fields
+- Validates all fields match YAML specification (dynamic validation)
 - Confirms known fields (name, brand, profile) vs. custom fields handled correctly
 - Proves parser handles LaTeX formatting commands (`\textbf`, `\centering`, `\par`)
 
