@@ -164,3 +164,33 @@ def test_parse_document_metadata():
 - Future users with different templates would need custom patterns or parser modifications
 
 **Implementation**: All patterns centralized in `latex_patterns.py` with comprehensive documentation in `archer/contexts/templating/latex_pattern_assumptions.md` explaining each assumption and breaking conditions.
+
+---
+
+## Design Decision 7: Template-Based Type System
+
+**Date**: Oct 24, 2025
+
+**Decision**: Replace code-based LaTeX generation with Jinja2 templates, co-locating template files with type definitions in `archer/contexts/templating/types/`.
+
+**Issue**: Round-trip conversion failed on real historical resumes due to unexpected pattern variations:
+- Expected `\itemLL {PyTorch}`, encountered `\itemLL \texttt{PyTorch}`
+- Expected `\item[\faIcon] {\scshape Name}`, encountered `\item[]{\hspace{-20pt}\scshape Name}`
+- Expected `\itemLL {item}`, encountered `\item[--] {item}`
+
+LaTeX patterns were embedded in Python string concatenation, making variations invisible until parse failures occurred.
+
+**Rationale**:
+- **Visibility** - Templates make expected LaTeX patterns explicit and inspectable; deviations become immediately obvious
+- **Maintainability** - Single source of truth: template defines both generation output and parsing expectations
+- **Better diagnostics** - Parser errors can reference specific template files and line numbers
+- **Cleaner code** - Eliminates string concatenation in generators; separation of formatting (LaTeX) from logic (Python)
+- **Foundation for variation support** - Externalizing patterns enables future support for multiple template variants per type
+
+**Trade-offs**:
+- Does not immediately fix pattern variations (still requires parser updates to handle new patterns)
+- Adds Jinja2 dependency and requires migration effort (9 types × ~1 hour each)
+- Template syntax errors become runtime errors instead of Python syntax errors
+- What it DOES do: Makes pattern mismatches visible and provides clear path forward
+
+**Implementation**: See `archer/contexts/templating/NEW_TYPE_APPROACH.md` for full specification. Migration plan: (1) POC with `skill_list_caps`, (2) incremental migration of remaining 8 types, (3) enhanced error messages referencing templates, (4) documentation updates.
