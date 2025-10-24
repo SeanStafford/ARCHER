@@ -197,3 +197,26 @@ LaTeX patterns were embedded in Python string concatenation, making variations i
 
 **Update - Completed Oct 24, 2025:**
 All 4 stages complete. 9 types migrated to template-based generation. 35 integration tests + 8 unit tests passing. Major reduction in generator code size.
+
+---
+
+## Design Decision 8: Symmetric Template-Based Bidirectional Conversion
+
+**Date**: Oct 24, 2025
+
+**Decision**: Use declarative YAML configs to drive LaTeX parsing, mirroring the template-based approach already used for generation.
+
+**Issue**: After migrating generation to Jinja2 templates (Decision 7), an asymmetry remained:
+- **Generation (YAML → LaTeX)**: Template-based, declarative, patterns visible in `.tex.jinja` files
+- **Parsing (LaTeX → YAML)**: Code-based, hardcoded regex in Python methods, patterns buried in code
+
+This asymmetry made parsing patterns invisible and difficult to maintain. Changes to LaTeX structure required finding and updating regex in Python code.
+
+**Rationale**:
+- **Symmetry** - Both conversion directions now use declarative templates (Jinja2 for generation, YAML configs for parsing)
+- **Visibility** - Regex patterns externalized to YAML files, easily inspectable alongside generation templates
+- **Maintainability** - Pattern changes require editing config files, not Python code
+- **Generic implementation** - Single `parse_with_config()` function works for all 9 types by loading their parsing configs
+- **Foundation for variants** - Easy to add alternative parsing configs for historical resume pattern variations
+
+**Implementation**: Each type directory contains `parse_config.yaml` alongside `template.tex.jinja`. Parsing configs declare regex patterns, capture groups, and field mappings using dot notation for nested structures (e.g., `content.list`). Generic parser function in `converter.py` loads configs and extracts data. See `notebooks/template_bidirectional_demo.ipynb` for pedagogical demonstration.
