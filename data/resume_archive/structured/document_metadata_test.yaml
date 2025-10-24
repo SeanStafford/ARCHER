@@ -1,0 +1,17 @@
+# Test case: Document metadata parsing
+# Testing preamble extraction: \renewcommand fields and colors
+
+document:
+  metadata:
+    name: Sean Stafford
+    date: October 2025
+    brand: Machine Learning Engineer | Physicist
+    professional_profile: If I get this test correct that means I'm awesome.
+    colors:
+      emphcolor: darkred
+      topbarcolor: black
+      leftbarcolor: gray9
+      brandcolor: white
+      namecolor: red
+    fields:
+      pdfkeywords: Sean, Stafford, Resume

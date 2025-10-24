@@ -588,6 +588,367 @@ Successful nested type parsing proves the architecture can handle complex docume
 
 ---
 
+## Page Structure: Single-Page Resume
+
+### Purpose
+Validates complete page-level parsing including paracol two-column structure, section organization, and column separation. This is the first test of **document structure** beyond individual content types.
+
+### LaTeX Structure
+Two-column layout with `paracol` environment and `\switchcolumn`:
+```latex
+\begin{paracol}{2}
+
+\section*{Core Skills}
+   { ... skill list ... }
+
+\section*{Languages}
+    \texttt{Python} | \texttt{Bash} | \texttt{C++}
+
+\switchcolumn
+
+\section*{Experience}
+    \begin{itemizeAcademic}{...}{...}{...}{...}
+        \itemi Achievement bullet...
+    \end{itemizeAcademic}
+
+\end{paracol}
+```
+
+**Key Characteristics:**
+- `\begin{paracol}{2}` starts two-column mode
+- Left column contains multiple sections before `\switchcolumn`
+- `\switchcolumn` marks column transition
+- Main/right column contains remaining sections
+- `\end{paracol}` closes structure
+
+### Structured Format
+```yaml
+page:
+  page_number: 1
+  regions:
+    top:
+      show_professional_profile: true
+    left_column:
+      sections:
+      - name: Core Skills
+        type: skill_list_caps
+        content: {...}
+      - name: Languages
+        type: skill_list_pipes
+        content: {...}
+    main_column:
+      sections:
+      - name: Experience
+        type: work_history
+        subsections: [...]
+    bottom: null
+```
+
+### Test Coverage
+
+**File:** `tests/integration/test_single_page.py`
+
+#### Test 1: `test_parse_single_page_structure()`
+
+**Purpose:** Validate parsing of paracol structure into regions
+
+**What It Tests:**
+```python
+converter = LaTeXToYAMLConverter()
+page_regions = converter.extract_page_regions(latex_str, page_number=1)
+
+assert page_regions["left_column"] is not None
+assert len(left_sections) == 2
+assert left_sections[0]["name"] == "Core Skills"
+```
+
+**Why This Matters:**
+- **First document-level parsing** - beyond individual content types
+- Validates `\begin{paracol}{2}` and `\end{paracol}` detection
+- Tests `\switchcolumn` marker correctly splits columns
+- Confirms section names extracted from each column
+- Ensures section type inference works (skill_list_caps, skill_list_pipes, work_history)
+
+#### Test 2: `test_generate_single_page_structure()`
+
+**Purpose:** Validate generation of paracol structure from regions
+
+**What It Tests:**
+```python
+converter = YAMLToLaTeXConverter()
+latex = converter.generate_page(yaml_dict["page"]["regions"])
+
+assert "\\begin{paracol}{2}" in latex
+assert "\\switchcolumn" in latex
+assert "\\section*{Core Skills}" in latex
+```
+
+**Why This Matters:**
+- Validates complete page assembly with correct structure
+- Tests paracol environment wrapper generated
+- Confirms `\switchcolumn` inserted at correct position
+- Ensures all sections regenerated with correct types
+- Verifies section order preserved within each column
+
+#### Test 3: `test_single_page_roundtrip()`
+
+**Purpose:** Validate full page-level round-trip fidelity
+
+**What It Tests:**
+```python
+# LaTeX → structure → LaTeX
+page_regions = parser.extract_page_regions(original_latex)
+generated_latex = generator.generate_page(page_regions)
+roundtrip_regions = parser.extract_page_regions(generated_latex)
+
+assert len(roundtrip_regions["left_column"]["sections"]) == len(page_regions["left_column"]["sections"])
+```
+
+**Why This Matters:**
+- **Critical page structure test** - proves page-level fidelity
+- Validates column count preserved (2 columns in, 2 columns out)
+- Tests section count preserved in each column
+- Confirms section names and types survive round-trip
+- Ensures no content moves between columns during conversion
+
+#### Test 4: `test_paracol_column_separation()`
+
+**Purpose:** Validate left and main columns correctly separated
+
+**What It Tests:**
+```python
+left_names = [s["name"] for s in page_regions["left_column"]["sections"]]
+main_names = [s["name"] for s in page_regions["main_column"]["sections"]]
+
+assert "Core Skills" in left_names
+assert "Experience" in main_names
+assert "Experience" not in left_names  # No cross-contamination
+```
+
+**Why This Matters:**
+- **Column separation is critical** - sections must stay in correct column
+- Tests `\switchcolumn` correctly divides content
+- Validates no sections appear in both columns (no duplication)
+- Confirms no sections missing (no loss during split)
+- Ensures layout structure preserved (skills left, experience right)
+
+#### Test 5: `test_section_content_preserved()`
+
+**Purpose:** Validate section content survives page-level parsing
+
+**What It Tests:**
+```python
+core_skills = page_regions["left_column"]["sections"][0]
+assert "Machine Learning" in core_skills["content"]["list"]
+
+experience = page_regions["main_column"]["sections"][0]
+assert work_exp["metadata"]["company"] == "Test Company"
+```
+
+**Why This Matters:**
+- Page-level parsing must **not corrupt section content**
+- Tests content from different types (skill lists, work experience) all preserved
+- Validates metadata fields survive (company, title, etc.)
+- Confirms nested content (bullets, projects) maintained
+- Proves page parsing composes correctly with section parsing
+
+**Test Data:** `data/resume_archive/structured/single_page_test.tex` + `single_page_test.yaml`
+
+**Edge Cases Covered:**
+- ✅ Multiple sections per column (2 in left, 1 in main)
+- ✅ Different section types in same column (skill_list_caps + skill_list_pipes)
+- ✅ Paracol environment boundaries
+- ✅ Column transition (`\switchcolumn`)
+- ✅ Section content preservation through page parsing
+
+**Why Page Structure Testing Matters:**
+
+This is ARCHER's **first hierarchical document structure** test - validating that:
+- **Composition works** - section parsers combine correctly into page parser
+- **Structure preserved** - paracol layout maintained through round-trip
+- **No cross-contamination** - columns stay separate
+- **Content fidelity** - all section content survives page-level parsing
+
+Success here proves the architecture scales from individual types → sections → columns → complete pages.
+
+---
+
+## Step 5: Document Metadata Tests
+
+**File:** `tests/integration/test_document_metadata.py`
+
+Document metadata extraction and generation tests validate parsing of the LaTeX preamble (everything before `\begin{document}`). This is **ARCHER's first document-level parsing** - extracting metadata that applies to the entire resume.
+
+**Purpose:** Parse `\renewcommand` fields and color definitions from preamble
+
+**Type Definition:** `resume_components_data_structures.py:DocumentMetadata` data class
+
+**Test Fixtures:**
+- `data/resume_archive/structured/document_metadata_test.tex` - Minimal preamble with metadata
+- `data/resume_archive/structured/document_metadata_test.yaml` - Corresponding structured metadata
+
+**What Document Metadata Contains:**
+- `name`: Full name (from `\renewcommand{\myname}{\textbf{...}}`)
+- `date`: Date (from `\renewcommand{\mydate}{...}`)
+- `brand`: Professional title/brand (from `\renewcommand{\brand}{...}`)
+- `professional_profile`: Optional profile text (from `\renewcommand{\ProfessionalProfile}{...}`)
+- `colors`: Color scheme (emphcolor, topbarcolor, leftbarcolor, brandcolor, namecolor)
+- `fields`: All other `\renewcommand` fields (pdfkeywords, custom fields)
+
+### Tests
+
+#### Test 1: `test_parse_document_metadata()`
+
+**Purpose:** Parse all metadata fields from LaTeX preamble
+
+**What It Tests:**
+```python
+metadata = parser.extract_document_metadata(latex_str)
+
+assert metadata["name"] == "Sean Stafford"
+assert metadata["brand"] == "Research Infrastructure Engineer | Physicist"
+assert metadata["colors"]["emphcolor"] == "NetflixDark"
+assert metadata["fields"]["pdfkeywords"] == "Sean, Stafford, Resume"
+```
+
+**Why This Matters:**
+- **Preamble parsing is foundational** - metadata applies to entire document
+- Tests `\renewcommand` extraction with nested braces (e.g., `\textbf{...}`)
+- Validates color field separation from general fields
+- Confirms known fields (name, brand, profile) vs. custom fields handled correctly
+- Proves parser handles LaTeX formatting commands (`\textbf`, `\centering`, `\par`)
+
+#### Test 2: `test_generate_preamble()`
+
+**Purpose:** Generate LaTeX preamble from metadata dict
+
+**What It Tests:**
+```python
+preamble = generator.generate_preamble(metadata)
+
+assert "\\renewcommand{\\myname}{\\textbf{Sean Stafford}}" in preamble
+assert "\\renewcommand{\\emphcolor}{NetflixDark}" in preamble
+assert "\\renewcommand{\\ProfessionalProfile}" in preamble
+```
+
+**Why This Matters:**
+- **Generation must produce valid LaTeX** - preamble structure matters
+- Tests correct `\renewcommand` syntax with nested braces
+- Validates color commands generated correctly
+- Confirms professional profile wrapped with `\centering \textbf{...}\par`
+- Proves pdfkeywords and setuphyperandmeta included
+
+#### Test 3: `test_metadata_roundtrip()`
+
+**Purpose:** Validate LaTeX → metadata → LaTeX preserves all fields
+
+**What It Tests:**
+```python
+metadata = parser.extract_document_metadata(original_latex)
+generated_preamble = generator.generate_preamble(metadata)
+roundtrip_metadata = parser.extract_document_metadata(generated_preamble + "\\begin{document}...")
+
+assert roundtrip_metadata["name"] == metadata["name"]
+assert roundtrip_metadata["colors"] == metadata["colors"]
+```
+
+**Why This Matters:**
+- **Round-trip fidelity is critical** - metadata must survive conversion
+- Tests parser and generator are inverses
+- Validates no fields lost or corrupted
+- Confirms color dict preserved completely
+- Proves metadata extraction robust enough for real resumes
+
+#### Test 4: `test_metadata_without_profile()`
+
+**Purpose:** Handle optional professional profile field
+
+**What It Tests:**
+```python
+# LaTeX has no \ProfessionalProfile command
+metadata = parser.extract_document_metadata(latex)
+
+assert metadata["name"] == "Test Name"
+assert metadata["professional_profile"] is None
+```
+
+**Why This Matters:**
+- **Optional fields must be handled** - not all resumes have profiles
+- Tests parser doesn't fail when profile absent
+- Validates `professional_profile` set to `None` (not empty string)
+- Confirms other fields still extracted correctly
+- Proves parser gracefully handles minimal preambles
+
+#### Test 5: `test_metadata_field_preservation()`
+
+**Purpose:** Preserve all `\renewcommand` fields, even unknown ones
+
+**What It Tests:**
+```python
+# LaTeX has custom \renewcommand{\customfield}{Custom Value}
+metadata = parser.extract_document_metadata(latex)
+
+assert "customfield" in metadata["fields"]
+assert metadata["fields"]["customfield"] == "Custom Value"
+```
+
+**Why This Matters:**
+- **Unknown fields must not be lost** - resumes may have custom metadata
+- Tests parser doesn't drop unrecognized `\renewcommand` fields
+- Validates custom fields stored in `fields` dict
+- Confirms known fields (name, brand, colors) separated from custom fields
+- Proves parser extensible to new metadata fields without code changes
+
+**Edge Cases Covered:**
+- ✅ Nested braces in field values (`\textbf{...}`)
+- ✅ Multi-line field values (professional profile)
+- ✅ Optional fields (professional_profile can be None)
+- ✅ Unknown custom fields preserved
+- ✅ Color fields separated from general fields
+
+**Why Document Metadata Testing Matters:**
+
+This is ARCHER's **first document-level parsing** - validating that:
+- **Preamble extraction works** - everything before `\begin{document}` parsed correctly
+- **Nested brace handling robust** - LaTeX commands within field values handled
+- **Field categorization correct** - colors, known fields, custom fields separated appropriately
+- **Optional fields supported** - parser doesn't fail on missing fields
+- **Round-trip fidelity** - metadata survives conversion without corruption
+
+Success here proves ARCHER can extract document-wide configuration (name, brand, colors) that will later be used to generate customized resumes from templates.
+
+---
+## Testing Strategy
+
+### Unit Tests
+- **Fast, isolated** - Test individual parser/generator functions
+- **Mock dependencies** - No file I/O, no LaTeX compilation
+- **Edge case focused** - Empty strings, malformed input, missing fields
+
+### Integration Tests
+- **Full round-trip** - Real file fixtures, complete conversion pipeline
+- **Fixture-based** - Each type has dedicated `.tex` and `.yaml` test files
+- **Regression detection** - Any change breaking round-trip is caught immediately
+
+### Test Data Management
+All test fixtures stored in: `data/resume_archive/structured/`
+- `{type}_test.yaml` - Source YAML structure
+- `{type}_test.tex` - Corresponding LaTeX
+- `{type}_roundtrip.tex` - Generated output (for manual inspection)
+
+---
+
+## Success Criteria
+
+For each type, tests must validate:
+1. ✅ **Structure Preservation** - All required fields extracted/generated
+2. ✅ **Content Fidelity** - Text content byte-identical (ignoring whitespace)
+3. ✅ **Formatting Preservation** - LaTeX commands (`\textbf{}`, `\coloremph{}`, etc.) maintained
+4. ✅ **Round-trip Identity** - Original → Convert → Convert → Original produces identical result
+5. ✅ **Edge Case Handling** - Special characters, line breaks, empty fields work correctly
+
+---
+
 ## Next Steps
 
 As each new type is added:

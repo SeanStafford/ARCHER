@@ -20,7 +20,7 @@ from archer.contexts.templating.latex_patterns import (
     EnvironmentPatterns,
     MetadataPatterns,
     ColorFields,
-FormattingPatterns,
+    FormattingPatterns,
 )
 
 load_dotenv()
@@ -366,6 +366,99 @@ class LaTeXToYAMLConverter:
 
     def __init__(self, type_registry: TypeRegistry = None):
         self.registry = type_registry or TypeRegistry()
+
+    def extract_document_metadata(self, latex_str: str) -> Dict[str, Any]:
+        """
+        Extract document metadata from preamble (before \\begin{document}).
+
+        Parses \\renewcommand fields and color definitions.
+
+        Args:
+            latex_str: Full LaTeX document source
+
+        Returns:
+            Dictionary with metadata fields:
+            - name: Full name (from \\myname)
+            - date: Date (from \\mydate)
+            - brand: Professional brand/title (from \\brand)
+            - professional_profile: Profile text (from \\ProfessionalProfile, optional)
+            - colors: Dict of color definitions
+            - fields: Dict of all other \\renewcommand fields
+        """
+        import re
+
+        # Find preamble (everything before \begin{document})
+        doc_match = re.search(re.escape(DocumentPatterns.BEGIN_DOCUMENT), latex_str)
+        if not doc_match:
+            raise ValueError(f"No {DocumentPatterns.BEGIN_DOCUMENT} found")
+
+        preamble = latex_str[:doc_match.start()]
+
+        # Extract all \renewcommand fields (handle nested braces)
+        renewcommands = {}
+        renewcommand_pattern = re.escape(MetadataPatterns.RENEWCOMMAND) + r'\{\\'
+        renewcommand_starts = [m.start() for m in re.finditer(renewcommand_pattern, preamble)]
+
+        for start_pos in renewcommand_starts:
+            # Extract field name (first {...})
+            field_name_pattern = re.escape(MetadataPatterns.RENEWCOMMAND) + r'\{\\([^}]+)\}'
+            field_name_match = re.match(field_name_pattern, preamble[start_pos:])
+            if not field_name_match:
+                continue
+            field_name = field_name_match.group(1)
+
+            # Find start of value (second {...})
+            value_start = start_pos + field_name_match.end()
+            if value_start >= len(preamble) or preamble[value_start] != '{':
+                continue
+
+            # Extract value with proper brace counting
+            brace_count = 0
+            pos = value_start
+            while pos < len(preamble):
+                if preamble[pos] == '\\':
+                    pos += 2  # Skip escaped character
+                    continue
+                elif preamble[pos] == '{':
+                    brace_count += 1
+                elif preamble[pos] == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        field_value = preamble[value_start + 1:pos]
+                        renewcommands[field_name] = field_value
+                        break
+                pos += 1
+
+        # Color fields
+        colors = {k: renewcommands.pop(k) for k in ColorFields.all() if k in renewcommands}
+
+        # Known metadata fields
+        name = renewcommands.pop(MetadataPatterns.MYNAME, '')
+        date = renewcommands.pop(MetadataPatterns.MYDATE, '')
+        brand = renewcommands.pop(MetadataPatterns.BRAND, '')
+        professional_profile = renewcommands.pop(MetadataPatterns.PROFESSIONAL_PROFILE, None)
+
+        # Clean up name (remove \textbf{...})
+        textbf_pattern = re.escape(FormattingPatterns.TEXTBF) + r'\{([^}]+)\}'
+        name_match = re.search(textbf_pattern, name)
+        if name_match:
+            name = name_match.group(1)
+
+        # Clean up professional profile (remove \centering, \textbf, \par)
+        if professional_profile:
+            professional_profile = re.sub(re.escape(FormattingPatterns.CENTERING) + r'\s*', '', professional_profile)
+            professional_profile = re.sub(textbf_pattern, r'\1', professional_profile)
+            professional_profile = re.sub(re.escape(FormattingPatterns.PAR) + r'\s*$', '', professional_profile)
+            professional_profile = professional_profile.strip()
+
+        return {
+            'name': name,
+            'date': date,
+            'brand': brand,
+            'professional_profile': professional_profile,
+            'colors': colors,
+            'fields': renewcommands  # All other fields
+        }
 
     def _extract_braced_params(self, latex_str: str, start_pos: int, num_params: int) -> List[str]:
         """
