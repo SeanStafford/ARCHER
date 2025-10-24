@@ -209,7 +209,7 @@ def clean_latex_content(
         Cleaned LaTeX content
     """
     # Check if preamble-aware cleaning is requested
-    match = re.search(r'\\begin\{document\}', content)
+    match = re.search(r"\\begin\{document\}", content)
 
     if match and preamble_comment_types is not None:
         # Split at \begin{document}
@@ -389,7 +389,12 @@ def process_directory(
     for tex_file in tex_files:
         # Process in-place (overwrite)
         success, message = process_file(
-            tex_file, tex_file, comment_types, remove_suggest_blocks, dry_run, preamble_comment_types
+            tex_file,
+            tex_file,
+            comment_types,
+            remove_suggest_blocks,
+            dry_run,
+            preamble_comment_types,
         )
         results.append((success, message))
 

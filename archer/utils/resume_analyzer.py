@@ -25,7 +25,7 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
     fields = {}
 
     # Pattern matches \renewcommand{\fieldname}{
-    pattern = r'\\renewcommand\{\\([^}]+)\}\{'
+    pattern = r"\\renewcommand\{\\([^}]+)\}\{"
 
     for match in re.finditer(pattern, content):
         # find the match to get field name and starting position
@@ -36,21 +36,19 @@ def extract_latex_fields(content: str) -> Dict[str, str]:
         brace_count = 1
         pos = start_pos
 
-
         while pos < len(content) and brace_count > 0:
-            
             # Handle escaped backslashes
-            if content[pos] == '\\':
+            if content[pos] == "\\":
                 pos += 2
                 continue
-            elif content[pos] == '{':
+            elif content[pos] == "{":
                 brace_count += 1
-            elif content[pos] == '}':
+            elif content[pos] == "}":
                 brace_count -= 1
             pos += 1
 
         if brace_count == 0:
-            field_value = content[start_pos:pos-1]
+            field_value = content[start_pos : pos - 1]
             fields[field_name] = field_value
         else:
             # Unmatched braces, skip this field
