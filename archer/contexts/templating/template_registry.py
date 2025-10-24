@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 
 load_dotenv()
-PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
+TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
 
 
 class TemplateRegistry:
@@ -25,10 +25,10 @@ class TemplateRegistry:
 
         Args:
             types_base_path: Base path for type directories. Defaults to
-                           archer/contexts/templating/types/
+                           RESUME_COMPONENT_TYPES_PATH from environment
         """
         if types_base_path is None:
-            types_base_path = PROJECT_ROOT / "archer" / "contexts" / "templating" / "types"
+            types_base_path = TYPES_PATH
 
         self.types_base_path = types_base_path
         self._cache: Dict[str, Template] = {}
