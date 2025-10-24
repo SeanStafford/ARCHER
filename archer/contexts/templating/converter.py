@@ -23,6 +23,7 @@ from archer.contexts.templating.latex_patterns import (
     FormattingPatterns,
 )
 from archer.contexts.templating.template_registry import TemplateRegistry
+from archer.contexts.templating.exceptions import TemplateParsingError
 
 load_dotenv()
 TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
@@ -429,8 +430,37 @@ class YAMLToLaTeXConverter:
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
 
-    def __init__(self, type_registry: TypeRegistry = None):
+    def __init__(self, type_registry: TypeRegistry = None, template_registry: TemplateRegistry = None):
         self.registry = type_registry or TypeRegistry()
+        self.template_registry = template_registry or TemplateRegistry()
+
+    def _create_parsing_error(
+        self,
+        message: str,
+        type_name: str,
+        latex_snippet: str,
+        show_template: bool = True
+    ) -> TemplateParsingError:
+        """
+        Create an enhanced parsing error with template reference.
+
+        Args:
+            message: Error description
+            type_name: Name of the type being parsed
+            latex_snippet: The LaTeX that failed to parse
+            show_template: Whether to include template path
+
+        Returns:
+            TemplateParsingError with enhanced context
+        """
+        template_path = self.template_registry.get_template_path(type_name) if show_template else None
+
+        return TemplateParsingError(
+            message=message,
+            type_name=type_name,
+            template_path=template_path,
+            latex_snippet=latex_snippet
+        )
 
     def extract_document_metadata(self, latex_str: str) -> Dict[str, Any]:
         """
@@ -876,7 +906,12 @@ class LaTeXToYAMLConverter:
         item_match = re.search(item_pattern, latex_str)
 
         if not item_match:
-            raise ValueError("No \\item[icon] {\\scshape name} pattern found")
+            # Enhanced error with template reference
+            raise self._create_parsing_error(
+                message="Failed to parse skill_category: No \\item[icon] {\\scshape name} pattern found",
+                type_name="skill_category",
+                latex_snippet=latex_str[:300]
+            )
 
         icon = item_match.group(1).strip()
         name = item_match.group(2).strip()

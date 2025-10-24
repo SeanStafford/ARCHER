@@ -108,3 +108,43 @@ class TemplateRegistry:
             True if cached, False otherwise
         """
         return type_name in self._cache
+
+    def get_template_source(self, type_name: str) -> str:
+        """
+        Get the raw template source code for a type.
+
+        Useful for showing expected patterns in error messages.
+
+        Args:
+            type_name: Name of the type
+
+        Returns:
+            Raw template source as string
+        """
+        template_path = self.get_template_path(type_name)
+
+        if not template_path.exists():
+            return f"Template not found: {template_path}"
+
+        return template_path.read_text()
+
+    def get_expected_pattern_preview(self, type_name: str, max_lines: int = 5) -> str:
+        """
+        Get a preview of the expected LaTeX pattern from template.
+
+        Args:
+            type_name: Name of the type
+            max_lines: Maximum number of lines to show
+
+        Returns:
+            Preview of template showing expected pattern
+        """
+        source = self.get_template_source(type_name)
+        lines = source.split("\n")
+
+        if len(lines) <= max_lines:
+            return source
+
+        # Show first few lines with ellipsis
+        preview_lines = lines[:max_lines]
+        return "\n".join(preview_lines) + "\n..."
