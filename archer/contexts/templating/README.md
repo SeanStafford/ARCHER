@@ -19,7 +19,7 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
 **skill_list_caps** - All-caps unbulleted skill list with small-caps formatting (e.g., Core Skills sections)
 
-**skill_list_pipes** - Pipe-separated inline list with monospace formatting (e.g., Languages: `Python | Bash | C++`)
+**skill_list_pipes** - Pipe-separated inline skill list with monospace formatting (e.g., Languages: `Python | Bash | C++`)
 
 **skill_categories** - Hierarchical skill section with FontAwesome icons and nested categories
 
@@ -63,8 +63,11 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 
 **TypeRegistry** - Loads and caches type definitions from YAML files
 
-**YAMLToLaTeXConverter** - Generates LaTeX from structured YAML:
-- `generate_preamble()` - Document metadata → `\renewcommand` statements
+### YAMLToLaTeXConverter
+
+Generates LaTeX from structured YAML:
+
+**Type-specific generators:**
 - `convert_work_experience()` - itemizeAcademic environment
 - `convert_project()` - itemizeAProject environment
 - `convert_skill_list_caps()` - Braced small-caps list
@@ -72,7 +75,16 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 - `convert_skill_category()` - Single category with icon
 - `convert_skill_categories()` - Nested itemize with multiple categories
 
-**LaTeXToYAMLConverter** - Parses LaTeX to structured YAML:
+**Document-level generation:**
+- `generate_preamble()` - Document metadata → `\renewcommand` statements
+- `generate_page()` - Assembles complete page with paracol structure, left/main columns, sections
+- `_generate_section()` - Generates LaTeX for individual section (handles type dispatch)
+
+### LaTeXToYAMLConverter
+
+Parses LaTeX to structured YAML:
+
+**Type-specific parsers:**
 - `parse_work_experience()` - itemizeAcademic → structured dict
 - `_parse_project()` - itemizeAProject → structured dict
 - `parse_skill_list_caps()` - Braced list → structured dict
@@ -80,13 +92,59 @@ Type definitions are stored in `data/resume_archive/structured/types/*.yaml`.
 - `_parse_skill_category()` - Single category → structured dict
 - `parse_skill_categories()` - Nested itemize → structured dict
 
+**Document-level parsing:**
+- `extract_document_metadata()` - Parses preamble for `\renewcommand` fields and colors
+- `extract_pages()` - Splits document on `\clearpage` markers, parses each page separately
+- `extract_page_regions()` - Parses paracol environment, splits on `\switchcolumn`
+- `_extract_sections_from_column()` - Extracts all sections from column content
+- `_parse_section_by_inference()` - Automatically detects section type from LaTeX patterns
+
+## Implementation Status
+
+### Completed Features
+
+**Content Type Parsing & Generation:**
+- ✅ All 6 content types (work_experience, project, skill_list_caps, skill_list_pipes, skill_categories, skill_category)
+- ✅ Round-trip validation for all types (LaTeX → YAML → LaTeX produces identical output)
+
+**Document Structure:**
+- ✅ Single-page parsing and generation (paracol two-column structure)
+- ✅ Multi-page support with `\clearpage` handling
+- ✅ Automatic section type inference from LaTeX patterns
+- ✅ Document metadata extraction from preamble
+
+**Testing:**
+- ✅ Integration tests for all content types
+- ✅ Page structure tests (column separation, section ordering)
+- ✅ Multi-page tests (page splitting, continuation pages)
+- ✅ Document metadata tests (preamble parsing, round-trip validation)
+
+**Documentation:**
+- ✅ Comprehensive testing documentation in `tests/ResumeStructureTesting.md`
+- ✅ Demo notebooks for page structure (step 4), metadata (step 5), and multi-page (step 6)
+
+### Not Yet Implemented
+
+- Complete document assembly (`parse_document`, `generate_document`)
+- Education section type
+- Personality section types (unbulleted, inline)
+- Bottom bar extraction and generation
+
 ## Testing
 
-All types have comprehensive round-trip validation tests ensuring LaTeX → YAML → LaTeX produces identical output (ignoring cosmetic whitespace). See `tests/ResumeStructureTesting.md` for detailed testing philosophy and coverage matrix.
+All implemented types have comprehensive round-trip validation tests ensuring LaTeX → YAML → LaTeX produces identical output (ignoring cosmetic whitespace).
 
-## Roadmap
+**Test Coverage:**
+- Individual type round-trips (work_experience, project, all skill types)
+- Page structure parsing and generation (paracol, column separation, section ordering)
+- Complete single-page resumes with multiple section types
+- Multi-page resumes with `\clearpage` markers and continuation pages
+- Document metadata extraction and preamble generation
 
-- Implement page-level parsing and generation (`extract_page_regions`, `generate_page`)
-- Add multi-page support with `\clearpage` handling
-- Add education and personality section types
-- Implement complete document assembly (`parse_document`, `generate_document`)
+See `tests/ResumeStructureTesting.md` for detailed testing philosophy, edge cases, and coverage matrix.
+
+## Demo Notebooks
+
+- `step4_page_structure_demo.ipynb` - Single-page paracol structure parsing and generation
+- `step5_document_metadata_demo.ipynb` - Document metadata extraction from preamble
+- `step6_two_page_demo.ipynb` - Multi-page document parsing with `\clearpage` handling

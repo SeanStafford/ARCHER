@@ -289,6 +289,12 @@ class YAMLToLaTeXConverter:
     def generate_page(self, page_data: Dict[str, Any]) -> str:
         """
         Generate complete page with paracol structure.
+
+        Args:
+            page_data: Dict with regions (top, left_column, main_column, bottom)
+
+        Returns:
+            LaTeX string for complete page
         """
         lines = []
 
@@ -324,6 +330,12 @@ class YAMLToLaTeXConverter:
     def _generate_section(self, section_data: Dict[str, Any]) -> str:
         """
         Generate LaTeX for a single section.
+
+        Args:
+            section_data: Dict with name, type, and content/subsections
+
+        Returns:
+            LaTeX string for section
         """
         lines = []
 
@@ -898,9 +910,85 @@ class LaTeXToYAMLConverter:
             "type": "skill_categories",
             "subsections": categories
         }
-        
+
+    def extract_pages(self, latex_str: str) -> List[Dict[str, Any]]:
+        """
+        Extract all pages from LaTeX document content (between \\begin{document} and \\end{document}).
+
+        Splits on \\clearpage markers to get individual pages.
+        Handles paracol environments that span multiple pages.
+
+        Args:
+            latex_str: Full LaTeX document source
+
+        Returns:
+            List of page dicts, each with page_number and regions
+        """
+        import re
+
+        # Find document content (between \begin{document} and \end{document})
+        doc_start_pattern = re.escape(DocumentPatterns.BEGIN_DOCUMENT)
+        doc_end_pattern = re.escape(DocumentPatterns.END_DOCUMENT)
+        doc_start = re.search(doc_start_pattern, latex_str)
+        doc_end = re.search(doc_end_pattern, latex_str)
+
+        if not doc_start or not doc_end:
+            raise ValueError("Document markers not found")
+
+        document_content = latex_str[doc_start.end():doc_end.start()]
+
+        # Find paracol environment boundaries
+        paracol_start_pattern = re.escape(PagePatterns.BEGIN_PARACOL)
+        paracol_end_pattern = re.escape(PagePatterns.END_PARACOL)
+        paracol_start_match = re.search(paracol_start_pattern, document_content)
+        paracol_end_match = re.search(paracol_end_pattern, document_content)
+
+        if not paracol_start_match or not paracol_end_match:
+            raise ValueError("No paracol environment found")
+
+        # Extract content within paracol (this is what we'll split on \clearpage)
+        paracol_content = document_content[paracol_start_match.end():paracol_end_match.start()]
+
+        # Split on \clearpage to get pages
+        clearpage_pattern = re.escape(DocumentPatterns.CLEARPAGE) + r'\s*'
+        page_segments = re.split(clearpage_pattern, paracol_content)
+
+        pages = []
+        for page_num, page_content in enumerate(page_segments, start=1):
+            if not page_content.strip():
+                continue
+
+            # Wrap segment in paracol for extract_page_regions() to work
+            wrapped_content = f"{PagePatterns.BEGIN_PARACOL}\n{page_content}\n{PagePatterns.END_PARACOL}"
+
+            try:
+                # Extract regions for this page
+                page_regions = self.extract_page_regions(wrapped_content, page_number=page_num)
+                pages.append({
+                    "page_number": page_num,
+                    "regions": page_regions
+                })
+            except ValueError as e:
+                # Page doesn't have valid structure
+                continue
+
+        return pages
 
     def extract_page_regions(self, latex_str: str, page_number: int = 1) -> Dict[str, Any]:
+        """
+        Extract page regions from LaTeX content (paracol structure).
+
+        Finds \begin{paracol}{2}...\end{paracol} and splits on \switchcolumn.
+
+        Args:
+            latex_str: LaTeX source for single page
+            page_number: Page number (1-indexed)
+
+        Returns:
+            Dict with top, left_column, main_column, bottom regions
+        """
+        import re
+
         # Find paracol environment
         paracol_pattern = re.escape(PagePatterns.BEGIN_PARACOL)
         paracol_match = re.search(paracol_pattern, latex_str)
@@ -949,6 +1037,12 @@ class LaTeXToYAMLConverter:
     def _extract_sections_from_column(self, column_content: str) -> List[Dict[str, Any]]:
         """
         Extract all sections from column content.
+
+        Args:
+            column_content: LaTeX content for a single column
+
+        Returns:
+            List of section dicts
         """
         import re
 
@@ -982,6 +1076,13 @@ class LaTeXToYAMLConverter:
     def _parse_section_by_inference(self, section_name: str, content: str) -> Dict[str, Any]:
         """
         Infer section type from content and parse accordingly.
+
+        Args:
+            section_name: Section name (e.g., "Core Skills")
+            content: Section content LaTeX
+
+        Returns:
+            Section dict with type, name, and parsed content
         """
         import re
 

@@ -1,0 +1,56 @@
+# Test case: Two-page resume structure
+# Testing multi-page parsing with \clearpage markers
+
+document:
+  pages:
+  - page_number: 1
+    regions:
+      top:
+        show_professional_profile: true
+      left_column:
+        sections:
+        - name: Core Skills
+          type: skill_list_caps
+          content:
+            list:
+            - Machine Learning
+            - High-Performance\\Computing (HPC)
+            - MLOps
+      main_column:
+        sections:
+        - name: Experience
+          type: work_history
+          subsections:
+          - type: work_experience
+            metadata:
+              company: Test Company
+              title: Software Engineer
+              location: City, ST
+              dates: 2023 -- Present
+            content:
+              bullets:
+              - text: Built scalable ML infrastructure
+              - text: Reduced latency by 50\%
+      bottom: null
+
+  - page_number: 2
+    regions:
+      top:
+        show_professional_profile: false
+      left_column: null
+      main_column:
+        sections:
+        - name: More Experience
+          type: work_history
+          subsections:
+          - type: work_experience
+            metadata:
+              company: Another Company
+              title: Senior Engineer
+              location: Remote
+              dates: 2020 -- 2023
+            content:
+              bullets:
+              - text: Led team of 5 engineers
+              - text: Deployed to production
+      bottom: null

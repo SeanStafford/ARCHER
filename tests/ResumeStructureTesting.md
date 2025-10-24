@@ -918,6 +918,142 @@ This is ARCHER's **first document-level parsing** - validating that:
 Success here proves ARCHER can extract document-wide configuration (name, brand, colors) that will later be used to generate customized resumes from templates.
 
 ---
+
+## Step 6: Two-Page Support Tests
+
+**File:** `tests/integration/test_two_page.py`
+
+Two-page parsing tests validate handling of multi-page resumes with `\clearpage` markers. This is **ARCHER's first multi-page document parsing** - handling resumes that span multiple pages with paracol environments continuing across page boundaries.
+
+**Purpose:** Split LaTeX documents on `\clearpage` markers and parse each page separately
+
+**Test Fixtures:**
+- `data/resume_archive/structured/two_page_test.tex` - Two-page resume with clearpage
+- `data/resume_archive/structured/two_page_test.yaml` - Corresponding structured pages
+
+**What Two-Page Documents Contain:**
+- Multiple pages separated by `\clearpage` markers
+- Paracol environment spanning across pages
+- Page 1: both left and main columns with `\switchcolumn`
+- Page 2: continuation of main column only (no `\switchcolumn`)
+
+### Tests
+
+#### Test 1: `test_extract_two_pages()`
+
+**Purpose:** Extract two pages from LaTeX document with `\clearpage`
+
+**What It Tests:**
+```python
+pages = parser.extract_pages(latex_str)
+
+assert len(pages) == 2
+assert pages[0]["page_number"] == 1
+assert pages[1]["page_number"] == 2
+
+# Page 1 has both columns
+assert pages[0]["regions"]["left_column"] is not None
+assert pages[0]["regions"]["main_column"] is not None
+
+# Page 2 has only main column (continuation)
+assert pages[1]["regions"]["left_column"] is None
+assert pages[1]["regions"]["main_column"] is not None
+```
+
+**Why This Matters:**
+- **Multi-page parsing is essential** - most resumes are 2 pages
+- Tests `\clearpage` correctly splits document into pages
+- Validates paracol environment handling across page boundaries
+- Confirms page 1 shows professional profile, page 2 doesn't
+- Proves continuation pages work (main column only, no switchcolumn)
+
+#### Test 2: `test_two_page_content_preservation()`
+
+**Purpose:** Validate content preserved across page boundaries
+
+**What It Tests:**
+```python
+page1_exp = pages[0]["regions"]["main_column"]["sections"][0]
+assert page1_exp["subsections"][0]["metadata"]["company"] == "Test Company"
+
+page2_exp = pages[1]["regions"]["main_column"]["sections"][0]
+assert page2_exp["subsections"][0]["metadata"]["company"] == "Another Company"
+```
+
+**Why This Matters:**
+- **Content must not be lost at page boundaries** - clearpage is just formatting
+- Tests sections on both pages parsed correctly
+- Validates metadata preserved (company, title, dates)
+- Confirms bullets preserved on both pages
+- Proves multi-page parsing composes correctly with section parsing
+
+#### Test 3: `test_two_page_yaml_match()`
+
+**Purpose:** Verify parsed structure matches expected YAML
+
+**What It Tests:**
+```python
+expected_pages = OmegaConf.to_container(yaml_data["document"]["pages"])
+
+assert len(pages) == len(expected_pages)
+for parsed, expected in zip(pages, expected_pages):
+    assert parsed["page_number"] == expected["page_number"]
+```
+
+**Why This Matters:**
+- **Structured output must match specification** - validates against known-good YAML
+- Tests page count correct
+- Validates page numbers sequential
+- Confirms section counts match on each page
+- Proves parser produces spec-compliant output
+
+#### Test 4: `test_clearpage_split()`
+
+**Purpose:** Verify `\clearpage` correctly splits pages
+
+**What It Tests:**
+```python
+# Test LaTeX with explicit clearpage
+test_latex = \"\"\"\\begin{paracol}{2}
+\\section*{Section 1}
+\\switchcolumn
+\\section*{Section 2}
+\\clearpage
+\\section*{Section 3}
+\\end{paracol}\"\"\"
+
+pages = parser.extract_pages(test_latex)
+assert "Section 3" in page2_sections
+assert "Section 3" not in page1_sections
+```
+
+**Why This Matters:**
+- **Page splits must be accurate** - content must appear on correct page
+- Tests `\clearpage` boundary detection
+- Validates sections don't appear on wrong pages
+- Confirms no content duplication across pages
+- Proves page splitting logic robust
+
+**Edge Cases Covered:**
+- ✅ Paracol spanning multiple pages
+- ✅ Continuation pages without `\switchcolumn`
+- ✅ Page 1 with professional profile, page 2 without
+- ✅ Multiple `\clearpage` markers
+- ✅ Sections split across pages
+
+**Why Two-Page Support Matters:**
+
+This is ARCHER's **first multi-page document handling** - validating that:
+- **Page splitting works** - `\clearpage` markers correctly divide document
+- **Paracol environments span pages** - single paracol can contain multiple pages
+- **Continuation pages handled** - pages without `\switchcolumn` work (main column only)
+- **Content preserved** - sections on all pages parsed correctly
+- **Structure maintained** - each page has correct regions (top, left, main, bottom)
+
+Success here proves ARCHER can parse real 2-page resumes where the paracol environment continues across page boundaries, which is the standard pattern in the resume archive.
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests

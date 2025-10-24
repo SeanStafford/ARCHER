@@ -11,3 +11,6 @@ content_structure:
     description: "List of skill items (blank lines or \par between items)"
     allows_line_breaks: true  # Items can contain \\ for multiline
 
+metadata_fields:
+  required: []
+  optional: []
