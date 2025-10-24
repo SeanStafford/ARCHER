@@ -22,6 +22,7 @@ from archer.contexts.templating.latex_patterns import (
     ColorFields,
     FormattingPatterns,
 )
+from archer.contexts.templating.template_registry import TemplateRegistry
 
 load_dotenv()
 TYPES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured/types"
@@ -51,8 +52,9 @@ class TypeRegistry:
 class YAMLToLaTeXConverter:
     """Converts structured YAML to LaTeX format."""
 
-    def __init__(self, type_registry: TypeRegistry = None):
+    def __init__(self, type_registry: TypeRegistry = None, template_registry: TemplateRegistry = None):
         self.registry = type_registry or TypeRegistry()
+        self.template_registry = template_registry or TemplateRegistry()
 
     def generate_preamble(self, metadata: Dict[str, Any]) -> str:
         """
@@ -233,21 +235,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for skill list in braced format with small caps
         """
-        content = section["content"]
-        items = content["list"]
-
-        lines = []
-        lines.append("   { \\setlength{\\baselineskip}{10pt} \\setlength{\\parskip}{7.5pt} \\scshape")
-        lines.append("")
-
-        # Add each item with blank line separator
-        for item in items:
-            lines.append(f"    {item}")
-            lines.append("")
-
-        lines.append("   }")
-
-        return "\n".join(lines)
+        template = self.template_registry.get_template("skill_list_caps")
+        return template.render(section)
 
     def convert_skill_list_pipes(self, section: Dict[str, Any]) -> str:
         """
