@@ -1,0 +1,23 @@
+type_name: project
+description: "Project subsection nested within work experience, with name and bullet points"
+
+latex_environment: itemizeAProject
+latex_params:
+- bullet_symbol  # e.g., {{\large $\bullet$}}
+- name
+- dates
+
+default_bullet_type: itemii
+
+metadata_fields:
+  required:
+  - name
+  optional:
+  - dates
+  - url
+
+content_structure:
+  bullets:
+    latex_command: \itemii
+    required: true
+    description: "Project-specific achievement bullets"

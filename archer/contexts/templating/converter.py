@@ -160,37 +160,35 @@ class YAMLToLaTeXConverter:
         metadata = subsection["metadata"]
         content = subsection["content"]
 
-        # Build opening line
-        company = metadata["company"]
+        # Build title with optional subtitle
         title = metadata["title"]
         if "subtitle" in metadata and metadata["subtitle"]:
-            # Append subtitle to title
             title = f"{title}\\\\{metadata['subtitle']}"
-        location = metadata["location"]
-        dates = metadata["dates"]
 
-        lines = []
-        lines.append(
-            f"    \\begin{{{type_def['latex_environment']}}}{{{company}}}{{{title}}}{{{location}}}{{{dates}}}"
-        )
-        lines.append("")
-
-        # Add bullets
+        # Prepare bullets with types
+        bullets_with_types = []
         for bullet in content.get("bullets", []):
             bullet_type = bullet.get("type", type_def["default_bullet_type"])
-            text = bullet["text"]
-            lines.append(f"        \\{bullet_type} {text}")
-            lines.append("")
+            bullets_with_types.append({
+                "bullet_type": bullet_type,
+                "text": bullet["text"]
+            })
 
-        # Add projects
-        for project in content.get("projects", []):
-            project_latex = self.convert_project(project, indent="        ")
-            lines.append(project_latex)
-            lines.append("")
+        # Render projects
+        rendered_projects = [
+            self.convert_project(project, indent="        ")
+            for project in content.get("projects", [])
+        ]
 
-        lines.append(f"    \\end{{{type_def['latex_environment']}}}")
-
-        return "\n".join(lines)
+        # Render template
+        template = self.template_registry.get_template("work_experience")
+        return template.render(
+            latex_environment=type_def['latex_environment'],
+            metadata=metadata,
+            title=title,
+            bullets=bullets_with_types,
+            rendered_projects=rendered_projects
+        )
 
     def convert_project(self, project: Dict[str, Any], indent: str = "") -> str:
         """
@@ -204,26 +202,31 @@ class YAMLToLaTeXConverter:
             LaTeX string for itemizeAProject environment
         """
         type_def = self.registry.load_type(project["type"])
-        metadata = project["metadata"]
 
-        bullet_symbol = metadata.get("bullet_symbol", "{{\\large $\\bullet$}}")
-        name = metadata["name"]
-        dates = metadata.get("dates", "")
-
-        lines = []
-        lines.append(
-            f"{indent}\\begin{{{type_def['latex_environment']}}}{{{bullet_symbol}}}{{{name}}}{{{dates}}}"
-        )
-
-        # Add project bullets
+        # Prepare bullet data with types
+        bullets_with_types = []
         for bullet in project["bullets"]:
             bullet_type = bullet.get("type", type_def["default_bullet_type"])
-            text = bullet["text"]
-            lines.append(f"{indent}    \\{bullet_type} {text}")
+            bullets_with_types.append({
+                "bullet_type": bullet_type,
+                "text": bullet["text"]
+            })
 
-        lines.append(f"{indent}\\end{{{type_def['latex_environment']}}}")
+        # Prepare metadata with defaults
+        metadata = project["metadata"].copy()
+        if "bullet_symbol" not in metadata:
+            metadata["bullet_symbol"] = "{{\\large $\\bullet$}}"
+        if "dates" not in metadata:
+            metadata["dates"] = ""
 
-        return "\n".join(lines)
+        # Render template
+        template = self.template_registry.get_template("project")
+        return template.render(
+            latex_environment=type_def['latex_environment'],
+            metadata=metadata,
+            bullets=bullets_with_types,
+            indent=indent
+        )
 
     def convert_skill_list_caps(self, section: Dict[str, Any]) -> str:
         """
@@ -248,15 +251,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for pipe-separated list with \\texttt{} wrapping
         """
-        content = section["content"]
-        items = content["list"]
-
-        # Wrap each item in \texttt{} and join with ' | '
-        wrapped_items = [f"\\texttt{{{item}}}" for item in items]
-        latex_line = " | ".join(wrapped_items)
-
-        # Format with indentation
-        return f"    {latex_line}"
+        template = self.template_registry.get_template("skill_list_pipes")
+        return template.render(section)
 
     def convert_skill_category(self, subsection: Dict[str, Any]) -> str:
         """
@@ -268,25 +264,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for single category with icon and itemizeLL
         """
-        metadata = subsection["metadata"]
-        content = subsection["content"]
-
-        name = metadata["name"]
-        icon = metadata.get("icon", "")
-        items = content["list"]
-
-        lines = []
-
-        # Add \item[icon] {\scshape name}
-        lines.append(f"\\item[{icon}] {{\\scshape {name}}}")
-
-        # Add itemizeLL environment
-        lines.append("\\begin{itemizeLL}")
-        for item in items:
-            lines.append(f"    \\itemLL {{{item}}}")
-        lines.append("\\end{itemizeLL}")
-
-        return "\n".join(lines)
+        template = self.template_registry.get_template("skill_category")
+        return template.render(subsection)
 
     def convert_skill_categories(self, section: Dict[str, Any]) -> str:
         """
@@ -300,21 +279,12 @@ class YAMLToLaTeXConverter:
         """
         subsections = section["subsections"]
 
-        lines = []
+        # Render each category subsection
+        rendered_categories = [self.convert_skill_category(subsection) for subsection in subsections]
 
-        # Begin itemize with parameters
-        lines.append("\\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = 8pt]")
-        lines.append("")
-
-        # Add each category
-        for subsection in subsections:
-            category_latex = self.convert_skill_category(subsection)
-            lines.append(category_latex)
-            lines.append("")
-
-        lines.append("\\end{itemize}")
-
-        return "\n".join(lines)
+        # Render the main template with categories
+        template = self.template_registry.get_template("skill_categories")
+        return template.render(rendered_categories=rendered_categories)
 
     def convert_education(self, section: Dict[str, Any]) -> str:
         """
@@ -326,48 +296,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for education section with nested itemize structure
         """
-        content = section["content"]
-        institutions = content["institutions"]
-
-        lines = []
-
-        # Outer itemize
-        lines.append("\\begin{itemize}[leftmargin=0pt, itemsep = 0pt]")
-
-        for institution in institutions:
-            institution_name = institution["institution"]
-            location = institution["location"]
-            degrees = institution["degrees"]
-
-            # Institution header
-            lines.append(f"    \\item[] {{ \\scshape {institution_name}}} \\hfill {location}")
-
-            # Nested itemize for degrees
-            lines.append("    \\begin{itemize}[leftmargin=\\firstlistindent, labelsep = 0pt, align=center, labelwidth=\\firstlistlabelsep, itemsep = \\seclistitemsep, topsep=\\seclisttopsepmeta]")
-
-            for degree in degrees:
-                degree_title = degree["title"]
-                degree_date = degree["date"]
-
-                # Degree entry
-                lines.append(f"        \\item[\\faUserGraduate] {degree_title} \\hfill {{\\color{{verygray}}{degree_date}}}")
-
-                # Optional details
-                if "details" in degree and degree["details"]:
-                    lines.append("        \\begin{itemizeSecond}")
-                    for detail in degree["details"]:
-                        lines.append(f"\t\t  \\itemii {detail}")
-                    lines.append("\t\t\\end{itemizeSecond}")
-
-            lines.append("    \\end{itemize}")
-
-            # Add blank line between institutions (if not last)
-            if institution != institutions[-1]:
-                lines.append("\t")
-
-        lines.append("\\end{itemize}")
-
-        return "\n".join(lines)
+        template = self.template_registry.get_template("education")
+        return template.render(section)
 
     def convert_personality_alias_array(self, section: Dict[str, Any]) -> str:
         """
@@ -379,23 +309,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for personality section with itemizeMain environment
         """
-        content = section["content"]
-        items = content["items"]
-
-        lines = []
-
-        # Begin itemizeMain
-        lines.append("\\begin{itemizeMain}")
-
-        # Add each item
-        for item in items:
-            icon = item["icon"]
-            text = item["text"]
-            lines.append(f"    \\item[{icon}] {text}")
-
-        lines.append("\\end{itemizeMain}")
-
-        return "\n".join(lines)
+        template = self.template_registry.get_template("personality_alias_array")
+        return template.render(section)
 
     def generate_bottom_bar(self, bottom_data: Dict[str, Any]) -> str:
         """
@@ -407,16 +322,8 @@ class YAMLToLaTeXConverter:
         Returns:
             LaTeX string for textblock bottom bar
         """
-        name = bottom_data["name"]
-        text = bottom_data["text"]
-
-        lines = []
-        lines.append(f"\\begin{{textblock*}}{{\\textwidth}}(\\leftmargin, \\paperheight- \\bottombarsolidheight)")
-        lines.append(f"{{\\color{{AnthropicDarkerGray}}\\section*{{\\hspace{{3.5pt}}{name}}}")
-        lines.append(f"\\mbox{{\\hspace{{6pt}}}}{text}\\mbox{{\\hspace{{6pt}}}} \\mbox{{\\hspace{{6pt}}}}}}")
-        lines.append("\\end{textblock*}")
-
-        return "\n".join(lines)
+        template = self.template_registry.get_template("personality_bottom_bar")
+        return template.render(bottom_data)
 
     def generate_page(self, page_data: Dict[str, Any]) -> str:
         """

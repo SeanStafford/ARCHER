@@ -1,0 +1,20 @@
+\begin{itemize}[leftmargin=0pt, itemsep = 0pt]
+<%% for institution in content.institutions %%>
+    \item[] { \scshape <<< institution.institution >>>} \hfill <<< institution.location >>>
+    \begin{itemize}[leftmargin=\firstlistindent, labelsep = 0pt, align=center, labelwidth=\firstlistlabelsep, itemsep = \seclistitemsep, topsep=\seclisttopsepmeta]
+<%% for degree in institution.degrees %%>
+        \item[\faUserGraduate] <<< degree.title >>> \hfill {\color{verygray}<<< degree.date >>>}
+<%% if degree.details %%>
+        \begin{itemizeSecond}
+<%% for detail in degree.details %%>
+		  \itemii <<< detail >>>
+<%% endfor %%>
+		\end{itemizeSecond}
+<%% endif %%>
+<%% endfor %%>
+    \end{itemize}
+<%% if not loop.last %%>
+
+<%% endif %%>
+<%% endfor %%>
+\end{itemize}

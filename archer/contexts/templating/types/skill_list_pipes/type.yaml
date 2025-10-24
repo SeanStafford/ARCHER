@@ -1,0 +1,16 @@
+type_name: skill_list_pipes
+description: "Pipe-separated inline skill list with monospace formatting"
+
+latex_structure: inline_text
+item_wrapper: '\texttt{%s}'
+separator: ' | '
+allows_line_breaks: true  # Can use \\ to wrap long lists
+
+content_structure:
+  list:
+    required: true
+    description: "List of tool/language names (pipes and \\texttt{} added during generation)"
+
+metadata_fields:
+  required: []
+  optional: []

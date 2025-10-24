@@ -1,0 +1,15 @@
+type_name: personality_bottom_bar
+description: "Personality section displayed in bottom bar using textblock positioning (e.g., Two Truths and a Lie)"
+
+latex_environment: textblock*
+positioning: "\\leftmargin, \\paperheight- \\bottombarsolidheight"
+
+metadata_fields:
+  required:
+  - name
+  optional: []
+
+content_structure:
+  text:
+    required: true
+    description: "Text content (may contain pipe separators)"
