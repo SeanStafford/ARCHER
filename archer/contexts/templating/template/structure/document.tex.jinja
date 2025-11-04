@@ -1,0 +1,45 @@
+<<< preamble >>>
+
+\begin{document}
+\togglefalse{viewsuggestions}
+\toggletrue{useleftbar}
+\toggletrue{usePP}
+\pagestyle{resume}
+
+\columnsep=\doublecolsep
+\setcolumnwidth{\sidecolwidth}
+\begin{paracol}{2}
+<%% for page in pages %%>
+<%% if loop.index > 1 %%>
+
+\toggletrue{useleftbar}
+<%% if page.regions.top.show_professional_profile %%>\toggletrue{usePP}<%% else %%>\togglefalse{usePP}<%% endif %%>
+\pagestyle{resume}
+
+<%% endif %%>
+<%% if page.regions.decorations %%>
+
+<%% for decoration in page.regions.decorations %%>
+<<< decoration >>>
+<%% endfor %%>
+
+<%% endif %%>
+<%% for section in page.regions.left_column.sections %%>
+<<< section >>>
+<%% if section.spacing_after %%><<< section.spacing_after >>><%% endif %%>
+
+<%% endfor %%>
+\switchcolumn
+
+<%% for section in page.regions.main_column.sections %%>
+<<< section >>>
+<%% if section.spacing_after %%><<< section.spacing_after >>><%% endif %%>
+
+<%% endfor %%>
+<%% if not loop.last %%>\switchcolumn
+<%% endif %%>
+<%% if page.has_clearpage_after %%>
+\clearpage<%% endif %%>
+<%% endfor %%>\end{paracol}
+
+\end{document}

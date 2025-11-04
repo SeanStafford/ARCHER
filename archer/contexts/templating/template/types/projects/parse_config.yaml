@@ -1,0 +1,27 @@
+# Parsing configuration for projects (parent type with nested project children)
+# Structure: \begin{itemizeProjMain}
+#              \begin{itemizeProjSecond}{bullet}{name}{dates} ... \end{itemizeProjSecond}
+#              \begin{itemizeProjSecond}{bullet}{name}{dates} ... \end{itemizeProjSecond}
+#            \end{itemizeProjMain}
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: projects
+
+  # Extract itemizeProjMain environment content
+  environment:
+    operation: extract_environment
+    env_name: itemizeProjMain
+    num_params: 0
+    output_context: itemizeProjMain_content
+
+  # Recursively parse each itemizeProjSecond as a project
+  subsections:
+    operation: recursive_parse
+    source: itemizeProjMain_content
+    recursive_pattern: ITEMIZE_PROJ_SECOND_ENV
+    config_name: project
+    output_path: subsections

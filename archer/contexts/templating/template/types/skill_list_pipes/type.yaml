@@ -1,0 +1,19 @@
+type_name: skill_list_pipes
+description: "Pipe-separated inline skill list (items typically use \\texttt{} formatting)"
+
+latex_structure: inline_text
+separator: ' | '
+allows_line_breaks: true  # Can use \\ to wrap long lists
+
+content_structure:
+  list:
+    required: true
+    description: "List of items with LaTeX formatting preserved (e.g., '\\texttt{Python}', '\\texttt{C++}')"
+
+metadata_fields:
+  required: []
+  optional: []
+
+notes: |
+  Parser extracts items as-is (preserves \\texttt{} and other formatting).
+  Generator passes items through unchanged - formatting already present in data.

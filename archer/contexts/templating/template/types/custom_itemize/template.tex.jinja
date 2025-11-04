@@ -1,0 +1,6 @@
+\begin{itemize}<%% if metadata.optional_params %%>[<<< metadata.optional_params >>>]<%% endif %%>
+
+<%% for bullet in content.bullets %%>
+<<< bullet.marker >>> <<< bullet.latex_raw >>>
+
+<%% endfor %%>\end{itemize}

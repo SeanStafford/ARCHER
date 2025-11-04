@@ -1,0 +1,10 @@
+    \begin{<<< latex_environment >>>}{<<< metadata.company >>>}{<<< title >>>}{<<< metadata.location >>>}{<<< metadata.dates >>>}
+
+<%% for bullet in bullets %%>
+        \<<< bullet.marker >>> <<< bullet.latex_raw >>>
+
+<%% endfor %%>
+<%% for project in rendered_projects %%>
+<<< project >>>
+<%% endfor %%>
+    \end{<<< latex_environment >>>}

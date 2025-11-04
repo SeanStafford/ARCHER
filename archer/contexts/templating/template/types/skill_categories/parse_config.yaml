@@ -1,0 +1,37 @@
+# Parsing configuration for skill_categories (parent type with nested skill_category children)
+# Structure: \begin{itemize}[options]
+#              \item[icon]{Category Name}  <-- SKILL_CATEGORY_HEADER pattern
+#              \addcontentsline...
+#              \begin{itemizeLL}
+#                items...
+#              \end{itemizeLL}
+#            \end{itemize}
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: skill_categories
+
+  # Extract itemize environment content (removes optional [leftmargin=..., itemsep=...] parameter)
+  environment:
+    operation: extract_environment
+    env_name: itemize
+    num_params: 0
+    num_optional_params: 1
+    output_context: itemize_content
+
+  # Split by category headers to create chunks (one per category)
+  split_by_category:
+    operation: split
+    source: itemize_content
+    delimiter_pattern: SKILL_CATEGORY_HEADER
+    output_context: category_chunks
+
+  # Recursively parse each chunk as a skill_category
+  subsections:
+    operation: recursive_parse
+    source: category_chunks
+    config_name: skill_category
+    output_path: subsections

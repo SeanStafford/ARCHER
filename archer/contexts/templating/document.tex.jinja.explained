@@ -1,0 +1,331 @@
+# =============================================================================
+# JINJA2 TEMPLATE EXPLAINED WITH PYTHON EQUIVALENTS
+# =============================================================================
+#
+# This is a heavily commented version of document.tex.jinja that explains
+# Jinja syntax in terms of Python equivalents.
+#
+# CUSTOM DELIMITERS (to avoid conflicts with LaTeX braces):
+# - Variables:   <<< var >>>        (instead of default {{ var }})
+# - Blocks:      <%% block %%>      (instead of default {% block %})
+# - Comments:    <# comment #>      (instead of default {# comment #})
+#
+# KEY CONCEPTS:
+# 1. Jinja templates are like Python f-strings on steroids
+# 2. They mix literal text (copied as-is) with dynamic content (variables/logic)
+# 3. Everything outside delimiters is literal LaTeX
+# 4. Everything inside delimiters is Jinja logic
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# VARIABLES: <<< var >>>
+# Python equivalent: f"{var}" or str(var)
+# -----------------------------------------------------------------------------
+
+<<< preamble >>>
+# ^ This outputs the value of the 'preamble' variable
+# Python equivalent:
+#   output += preamble
+
+
+# -----------------------------------------------------------------------------
+# LITERAL TEXT (no delimiters)
+# Python equivalent: literal strings
+# -----------------------------------------------------------------------------
+
+\begin{document}
+
+\togglefalse{viewsuggestions}
+\toggletrue{useleftbar}
+\toggletrue{usePP}
+\pagestyle{resume}
+
+\columnsep=\doublecolsep
+\setcolumnwidth{\sidecolwidth}
+\begin{paracol}{2}
+
+# ^ All the above is literal LaTeX text that gets copied exactly as-is
+# Python equivalent:
+#   output += "\\begin{document}\n\n"
+#   output += "\\togglefalse{viewsuggestions}\n"
+#   ... etc
+
+
+# -----------------------------------------------------------------------------
+# FOR LOOPS: <%% for item in list %%> ... <%% endfor %%>
+# Python equivalent: for item in list:
+# -----------------------------------------------------------------------------
+
+<%% for page in pages %%>
+# ^ Start a loop over the 'pages' list (passed from Python)
+# Python equivalent:
+#   for page in pages:
+
+    # Inside this loop, 'page' is the current item (like Python)
+    # We can access page.regions, page.has_clearpage_after, etc.
+
+    # SPECIAL VARIABLE: loop.index (1-indexed counter)
+    # Jinja provides 'loop' object with metadata about the current loop
+    # loop.index = 1, 2, 3, ... (1-indexed)
+    # loop.index0 = 0, 1, 2, ... (0-indexed)
+    # loop.first = True on first iteration
+    # loop.last = True on last iteration
+
+
+    # -------------------------------------------------------------------------
+    # IF STATEMENTS: <%% if condition %%> ... <%% endif %%>
+    # Python equivalent: if condition:
+    # -------------------------------------------------------------------------
+
+    <%% if loop.index > 1 %%>
+    # ^ Only execute this block for pages 2, 3, 4, ...
+    # Python equivalent:
+    #   for i, page in enumerate(pages, start=1):
+    #       if i > 1:
+
+        # Literal LaTeX for page 2+ setup:
+
+
+
+        \switchcolumn
+
+        \toggletrue{useleftbar}
+
+        # INLINE IF: <%% if cond %%>A<%% else %%>B<%% endif %%>
+        # Python equivalent: "A" if cond else "B"
+        <%% if page.regions.top.show_professional_profile %%>\toggletrue{usePP}<%% else %%>\togglefalse{usePP}<%% endif %%>
+        # Python equivalent:
+        #   if page.regions.top.show_professional_profile:
+        #       output += "\\toggletrue{usePP}"
+        #   else:
+        #       output += "\\togglefalse{usePP}"
+
+        \pagestyle{resume}
+
+
+        # -------------------------------------------------------------------------
+        # NESTED IF: Checking if decorations exist
+        # -------------------------------------------------------------------------
+        <%% if page.regions.decorations %%>
+        # ^ Only output decorations section if decorations list is not None/empty
+        # Python equivalent:
+        #   if page.regions.decorations:
+
+            # Blank line in output
+
+            # -------------------------------------------------------------------------
+            # NESTED FOR LOOP: Loop over decorations
+            # -------------------------------------------------------------------------
+            <%% for decoration in page.regions.decorations %%>
+            # ^ Loop over each decoration in this page's decorations
+            # Python equivalent:
+            #   for decoration in page.regions.decorations:
+
+            <<< decoration >>>
+            # ^ Output the pre-rendered decoration LaTeX string
+            # Python equivalent:
+            #   output += decoration
+
+            <%% endfor %%>
+            # ^ End the decorations loop
+            # Python equivalent: (end of for loop - dedent back)
+
+            # Blank line after decorations
+
+        <%% endif %%>
+        # ^ End the decorations check
+        # Python equivalent: (end of if block - dedent back)
+
+    <%% endif %%>
+    # ^ End the "if page > 1" block
+    # Python equivalent: (end of if block - dedent back)
+
+
+    # -------------------------------------------------------------------------
+    # LEFT COLUMN SECTIONS
+    # -------------------------------------------------------------------------
+    <%% for section in page.regions.left_column.sections %%>
+    # ^ Loop over left column sections
+    # Python equivalent:
+    #   for section in page.regions.left_column.sections:
+
+    <<< section >>>
+    # ^ Output the pre-rendered section LaTeX
+    # Python equivalent:
+    #   output += section
+
+    # Blank line after each section (literal newline in template)
+
+    <%% endfor %%>
+    # ^ End left column sections loop
+
+
+    # -------------------------------------------------------------------------
+    # LITERAL TEXT: Column switch
+    # -------------------------------------------------------------------------
+    \switchcolumn
+    # ^ Literal LaTeX to switch from left to right column
+
+    # Blank line
+
+
+    # -------------------------------------------------------------------------
+    # RIGHT/MAIN COLUMN SECTIONS
+    # -------------------------------------------------------------------------
+    <%% for section in page.regions.main_column.sections %%>
+    # ^ Loop over main/right column sections
+    # Python equivalent:
+    #   for section in page.regions.main_column.sections:
+
+    <<< section >>>
+    # ^ Output the pre-rendered section LaTeX
+
+    # Blank line after section
+
+    <%% endfor %%>
+    # ^ End main column sections loop
+
+
+    # -------------------------------------------------------------------------
+    # CONDITIONAL CLEARPAGE (page metadata)
+    # -------------------------------------------------------------------------
+    <%% if page.has_clearpage_after %%>
+    # ^ Check if this page should have \clearpage after it
+    # Python equivalent:
+    #   if page.has_clearpage_after:
+
+    # Blank line before clearpage
+    \clearpage
+    # ^ Literal LaTeX clearpage command
+
+    <%% endif %%>
+    # ^ End clearpage conditional
+
+
+<%% endfor %%>
+# ^ End the main pages loop
+# Python equivalent: (end of for loop over pages)
+
+# Blank line
+
+# -----------------------------------------------------------------------------
+# FINAL LITERAL TEXT
+# -----------------------------------------------------------------------------
+\end{paracol}
+
+\end{document}
+
+
+# =============================================================================
+# PYTHON EQUIVALENT (APPROXIMATE)
+# =============================================================================
+#
+# Here's roughly what this template does in pure Python:
+#
+# def generate_document(preamble, pages):
+#     output = []
+#
+#     # Preamble
+#     output.append(preamble)
+#     output.append("\n")
+#
+#     # Document setup
+#     output.append("\\begin{document}\n\n")
+#     output.append("\\togglefalse{viewsuggestions}\n")
+#     output.append("\\toggletrue{useleftbar}\n")
+#     output.append("\\toggletrue{usePP}\n")
+#     output.append("\\pagestyle{resume}\n\n")
+#     output.append("\\columnsep=\\doublecolsep\n")
+#     output.append("\\setcolumnwidth{\\sidecolwidth}\n")
+#     output.append("\\begin{paracol}{2}\n")
+#
+#     # Loop over pages
+#     for i, page in enumerate(pages, start=1):
+#
+#         # Page 2+ setup
+#         if i > 1:
+#             output.append("\n\n\n\\switchcolumn\n\n")
+#             output.append("\\toggletrue{useleftbar}\n")
+#
+#             if page.regions.top.show_professional_profile:
+#                 output.append("\\toggletrue{usePP}")
+#             else:
+#                 output.append("\\togglefalse{usePP}")
+#
+#             output.append("\\pagestyle{resume}\n\n")
+#
+#             # Decorations
+#             if page.regions.decorations:
+#                 output.append("\n")
+#                 for decoration in page.regions.decorations:
+#                     output.append(decoration)
+#                 output.append("\n")
+#
+#         # Left column sections
+#         for section in page.regions.left_column.sections:
+#             output.append(section)
+#             output.append("\n\n")
+#
+#         # Switch to main column
+#         output.append("\\switchcolumn\n\n")
+#
+#         # Main column sections
+#         for section in page.regions.main_column.sections:
+#             output.append(section)
+#             output.append("\n\n")
+#
+#         # Conditional clearpage
+#         if page.has_clearpage_after:
+#             output.append("\n\\clearpage\n")
+#
+#     # End document
+#     output.append("\n\\end{paracol}\n\n")
+#     output.append("\\end{document}\n")
+#
+#     return ''.join(output)
+#
+# =============================================================================
+
+
+# =============================================================================
+# KEY TAKEAWAYS
+# =============================================================================
+#
+# 1. Jinja is just a fancy string builder with Python-like syntax
+#
+# 2. Three types of delimiters:
+#    - <<< var >>>           → Insert variable value
+#    - <%% for/if/etc %%>    → Control flow (loops, conditionals)
+#    - <# comment #>         → Comments (not used in this file)
+#
+# 3. Everything outside delimiters is literal text (copied as-is)
+#
+# 4. Whitespace matters! Blank lines in the template become blank lines in output
+#
+# 5. The 'loop' object is magical:
+#    - loop.index = 1, 2, 3, ... (current iteration, 1-indexed)
+#    - loop.index0 = 0, 1, 2, ... (0-indexed)
+#    - loop.first = True/False
+#    - loop.last = True/False
+#
+# 6. Template is called from Python like this:
+#    template.render(preamble=preamble_str, pages=pages_list)
+#
+#    Where:
+#    - preamble_str is a string (the LaTeX preamble)
+#    - pages_list is a list of page dicts with structure:
+#      [
+#        {
+#          "regions": {
+#            "top": {"show_professional_profile": True},
+#            "left_column": {"sections": [...]},
+#            "main_column": {"sections": [...]},
+#            "decorations": [...]
+#          },
+#          "has_clearpage_after": True/False
+#        },
+#        ... more pages ...
+#      ]
+#
+# =============================================================================

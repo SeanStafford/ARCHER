@@ -1,0 +1,9 @@
+\begin{itemizeMain}
+<%% for item in content['items'] %%>
+    \<<< item['marker'] >>> <<< item['latex_raw'] >>>
+<%% endfor %%>
+\end{itemizeMain}
+<%% if metadata.get('trailing_text') %%>
+
+<<< metadata.trailing_text >>>
+<%% endif %%>

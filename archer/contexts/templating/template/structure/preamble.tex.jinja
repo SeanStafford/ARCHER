@@ -1,0 +1,49 @@
+\documentclass[11pt,letterpaper,english,usenames,dvipsnames]{article}
+
+\input{mystyle/packages.sty}
+\input{mystyle/colors.sty}
+\input{mystyle/gencommands.sty}
+\input{mystyle/pagestyles.sty}
+\input{mystyle/tables.sty}
+\input{mystyle/symbols.sty}
+\input{mystyle/panels.sty}
+\input{mystyle/defaultspacing.sty}
+\graphicspath{{./}{Figs/}}
+
+<%% for param, value in metadata.setlengths.items() -%%>
+\setlength{\<<< param >>>}{<<< value >>>}
+<%% endfor -%%>
+
+<%% for param, value in metadata.deflens.items() -%%>
+\deflen{<<< param >>>}{<<< value >>>}
+<%% endfor -%%>
+
+\usepackage[left=\leftmargin, right=\rightmargin, top=\aboveheader, bottom=\bottommargin, headheight=\headheight, includehead]{geometry}
+
+<%% if metadata.custom_packages -%%>
+<%% for package_line in metadata.custom_packages %%>
+<<< package_line >>>
+<%% endfor %%>
+
+<%% endif -%%>
+<%% if 'fields' in metadata and 'pdfkeywords' in metadata.fields -%%>
+\renewcommand{\pdfkeywords}{<<< metadata.fields.pdfkeywords >>>}
+<%% endif -%%>
+\renewcommand{\myname}{<<< metadata.name >>>}
+\renewcommand{\mydate}{<<< metadata.date >>>}
+\setuphyperandmeta{\myname}{\mydate}{\pdfkeywords}
+
+<%% if metadata.hlcolor -%%>\sethlcolor{<<< metadata.hlcolor >>>}
+<%% endif -%%>
+<%% for color_key, color_value in metadata.colors.items() -%%>
+\renewcommand{\<<< color_key >>>}{<<< color_value >>>}
+<%% endfor -%%>
+
+\renewcommand{\brand}{<<< metadata.brand >>>}
+<%% if metadata.professional_profile -%%>
+\def\nlinesPP{<<< metadata.nlines_pp or 1 >>>}
+\renewcommand{\ProfessionalProfile}{<<< metadata.professional_profile >>>}
+<%% endif %%>
+
+<%% if metadata.get('list_title_after_name', True) %%>\toggletrue{list_title_after_name}<%% else %%>\togglefalse{list_title_after_name}<%% endif %%>
+\setpersonaltitlestr{list_title_after_name}

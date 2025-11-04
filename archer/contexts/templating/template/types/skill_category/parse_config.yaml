@@ -1,0 +1,46 @@
+# Parsing configuration for skill_category
+# Defines how to extract data from LaTeX format: \item[\faIcon] {\scshape Name} \begin{itemizeLL} ...
+# Handles two hspace variants: \item[]{\hspace{...}...} and \item[]\hspace{...}{...}
+
+patterns:
+  # Set type field to literal value
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: skill_category
+
+  # Extract itemizeLL environment content
+  environment:
+    operation: extract_environment
+    env_name: itemizeLL
+    num_params: 0
+    output_context: itemizeLL_content
+
+  # Extract items from itemizeLL environment content
+  items:
+    operation: parse_itemize_content
+    source: itemizeLL_content
+    marker_pattern: ITEM_ANY
+    output_path: content.list
+
+  # Extract all metadata with single regex (marker, name_raw, nolinebreak)
+  metadata:
+    operation: extract_regex
+    regex: '(?P<marker>\\item\[.*?\])\s*(?P<name_raw>[^\n]+?)(?:\s+(?P<nolinebreak>\\nolinebreak))?(?=\n|$)'
+    output_paths:
+      marker: metadata.marker
+      name_raw: metadata.name_raw
+      nolinebreak: metadata.nolinebreak
+
+  # Extract optional TOC title from \addcontentsline (may be on next line)
+  toc_title:
+    operation: extract_regex
+    regex: '\\addcontentsline\{toc\}\{section\}\{(?P<toc_title>[^}]+)\}'
+    output_paths:
+      toc_title: metadata.toc_title
+
+  # Convert name_raw to plaintext for name field
+  name:
+    operation: to_plaintext
+    source_path: metadata.name_raw
+    output_path: metadata.name

@@ -1,0 +1,26 @@
+# Parsing configuration for skill_list_caps
+# Format: { \setlength{\baselineskip}{10pt} \setlength{\parskip}{7.5pt} \scshape
+#           Item 1
+#
+#           Item 2
+#         }
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: skill_list_caps
+
+  # Extract braced content after formatting commands
+  braced_content:
+    operation: extract_braced_after_pattern
+    pattern: '\{\s*\\setlength\{\\baselineskip\}.*?\\scshape\s*'
+    output_context: braced_content
+
+  # Split extracted content into items
+  items:
+    operation: split
+    source: braced_content
+    delimiter: '\n\s*\n|\\par\s*'
+    output_path: content.list

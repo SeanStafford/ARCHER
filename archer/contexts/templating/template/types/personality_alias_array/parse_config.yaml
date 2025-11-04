@@ -1,0 +1,24 @@
+# Parsing configuration for personality_alias_array
+# Defines how to extract data from LaTeX format: \begin{itemizeMain} \item[icon] text \end{itemizeMain}
+
+patterns:
+  # Set type field to literal value
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: personality_alias_array
+
+  # Extract itemizeMain environment content
+  environment:
+    operation: extract_environment
+    env_name: itemizeMain
+    num_params: 0
+    output_context: itemizeMain_content
+    capture_trailing_text: true
+
+  # Parse itemize entries with icons
+  items:
+    operation: parse_itemize_content
+    source: itemizeMain_content
+    marker_pattern: '\\(?P<marker>item\[[^\]]*\])'
+    output_path: content.items

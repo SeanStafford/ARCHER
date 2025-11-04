@@ -1,0 +1,17 @@
+type_name: simple_list
+description: "Generic fallback for any itemize environment not matching a known semantic type"
+
+# This type acts as a catch-all for unrecognized itemize variants.
+# It preserves the structure (environment name, item command, items) for roundtrip conversion,
+# even when we don't know the semantic meaning.
+
+metadata_fields:
+  required:
+  - itemize_env   # e.g., "itemizeLL", "itemizeMain", "itemizeCustom"
+  - item_command  # e.g., "\itemLL", "\itemMain", "\item[]"
+  optional: []
+
+content_structure:
+  items:
+    required: true
+    description: "List of item text (one string per item)"

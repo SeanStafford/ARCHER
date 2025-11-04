@@ -1,0 +1,17 @@
+\begin{itemize}[leftmargin=0pt, itemsep = 0pt]
+    \item[] { \scshape Florida State University} \hfill Tallahassee, FL
+    \begin{itemize}[leftmargin=\firstlistindent, labelsep = 0pt, align=center, labelwidth=\firstlistlabelsep, itemsep = \seclistitemsep, topsep=\seclisttopsepmeta]
+        <%% if metadata.get('use_icon_bullets', True) %%>\item[\faUserGraduate]<%% else %%>\itemi<%% endif %%> Doctor of Philosophy in Physics \hfill {\color{verygray}July 2022}
+<%% if metadata.get('include_dissertation', False) %%>
+        \begin{itemizeSecond}
+          \itemii {\color{verygray}Dissertation:} ``Quantum mechanical studies of materials design with applications in artificial photosynthesis and next generation batteries"
+        \end{itemizeSecond}
+<%% endif %%>
+        <%% if metadata.get('use_icon_bullets', True) %%>\item[\faUserGraduate]<%% else %%>\itemi<%% endif %%> Master of Science in Physics \hfill {\color{verygray}Apr 2021}
+    \end{itemize}
+
+    \item[] { \scshape St. Mary's College of Maryland} \hfill St. Mary's City, MD
+    \begin{itemize}[leftmargin=\firstlistindent, labelsep = 0pt, align=center, labelwidth=\firstlistlabelsep, itemsep = \seclistitemsep, topsep=\seclisttopsepmeta]
+        <%% if metadata.get('use_icon_bullets', True) %%>\item[\faUserGraduate]<%% else %%>\itemi<%% endif %%> Bachelor of Arts in Physics and Biochemistry<%% if metadata.get('include_minor', False) %%>; Minor in Neuroscience<%% endif %%>\hfill {\color{verygray}May 2015}
+    \end{itemize}
+\end{itemize}

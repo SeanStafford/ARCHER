@@ -134,6 +134,27 @@ Parser logic:
 
 **Why This Pattern:** Unnumbered sections (`\section*`) are standard for resumes since numbering ("1. Experience", "2. Education") looks unprofessional. The starred variant is universal across resume LaTeX.
 
+### Type Inference Order
+
+**Critical Principle:** When inferring section type from patterns, always check **most specific patterns first**.
+
+**Why:** Some types share patterns (subset relationships). Education is a subset of skill_categories:
+- Both have: `\begin{itemize}` + `\item[]` + `\scshape`
+- Education additionally has: `"Florida State University"` or `"St. Mary's College"`
+
+**Correct Order (most → least specific):**
+1. `itemizeAcademic` - Unique environment (most specific)
+2. Education - 4 checks: itemize + item[] + scshape + institution name
+3. skill_categories - 3 checks: itemize + item[] + scshape
+4. skill_list_caps - 3 checks: setlength + baselineskip + scshape
+5. skill_list_pipes - 2 checks: texttt + pipe
+6. `itemizeMain` - Unique environment
+7. unknown - Fallback
+
+**Wrong:** If skill_categories checked before education, education sections would be misidentified as skill_categories since they match the less-specific pattern.
+
+**Implementation:** See `_parse_section_by_inference()` in `converter.py`
+
 ---
 
 ## EnvironmentPatterns

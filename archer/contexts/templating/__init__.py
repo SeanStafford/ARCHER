@@ -11,3 +11,13 @@ Responsibilities:
 Owns: Resume structure representation, tex ↔ structured data conversion, LaTeX template system
 Never: Makes content prioritization decisions
 """
+
+from archer.contexts.templating.converter import (
+    yaml_to_latex,
+    latex_to_yaml,
+)
+
+__all__ = [
+    "yaml_to_latex",
+    "latex_to_yaml",
+]

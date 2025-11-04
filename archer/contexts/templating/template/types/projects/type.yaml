@@ -1,0 +1,21 @@
+type_name: projects
+description: "Standalone projects section containing multiple project subsections"
+
+latex_environment: itemizeProjMain
+latex_params: []  # No parameters, just wrapper environment
+
+content_structure:
+  subsections:
+    type_reference: project
+    required: true
+    min_count: 1
+    description: "List of project subsections (itemizeProjSecond environments)"
+
+metadata_fields:
+  required: []
+  optional: []
+
+notes: |
+  This is a container type that wraps multiple project subsections.
+  Generator builds this manually (no template) by wrapping rendered projects
+  in itemizeProjMain environment.

@@ -1,0 +1,9 @@
+<<< metadata.marker >>><<< metadata.name_raw >>><%% if metadata.get('nolinebreak') %%> <<< metadata.nolinebreak >>><%% endif -%%>
+<%% if metadata.get('toc_title') %%>
+\addcontentsline{toc}{section}{<<< metadata.toc_title >>>}
+<%% endif %%>
+\begin{itemizeLL}
+<%% for item in content.list %%>
+    \<<< item.marker >>> <<< item.latex_raw >>>
+<%% endfor %%>
+\end{itemizeLL}

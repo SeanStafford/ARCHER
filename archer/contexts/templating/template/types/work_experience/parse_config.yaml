@@ -1,0 +1,48 @@
+# Parsing configuration for work_experience
+# Structure: \begin{itemizeAcademic}{company}{title}{location}{dates}
+#              \itemi bullets...
+#              \begin{itemizeXXXProject}{...}{...}{...} nested projects \end{...}
+#            \end{itemizeAcademic}
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: work_experience
+
+  # Extract itemizeAcademic environment and its 4 parameters
+  environment:
+    operation: extract_environment
+    env_name: itemizeAcademic
+    num_params: 4
+    param_names:
+      - metadata.company
+      - metadata.title
+      - metadata.location
+      - metadata.dates
+    output_context: environment_content
+
+  # Split title on \\ to separate title and subtitle
+  split_title:
+    operation: split
+    source_path: metadata.title
+    delimiter: '\\\\'
+    output_paths:
+      - metadata.title
+      - metadata.subtitle
+
+  # Extract nested project environments (must come before bullets to clean content)
+  projects:
+    operation: recursive_parse
+    recursive_pattern: ITEMIZE_PROJECT_ENV
+    config_name: project
+    source: environment_content
+    output_path: content.projects
+
+  # Parse bullets from environment content (after projects removed)
+  bullets:
+    operation: parse_itemize_content
+    marker_pattern: ITEM_ANY
+    source: environment_content
+    output_path: content.bullets

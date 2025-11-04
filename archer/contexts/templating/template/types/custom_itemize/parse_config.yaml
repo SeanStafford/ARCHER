@@ -1,0 +1,38 @@
+# Parsing configuration for custom_itemize
+# Handles vanilla \begin{itemize}[...] with optional parameters and custom item markers
+#
+# Example LaTeX:
+#   \begin{itemize}[leftmargin=\highlightindent, labelsep = 0pt, align=left, labelwidth=\highlightindent - 1pt, itemsep = \seclistitemsep]
+#       \item[\raisebox{-1pt}{>} 6 years] of leading ML research projects
+#       \item[\raisebox{-0.5pt}{>} 20,000] GPU-hours of training
+#   \end{itemize}
+#
+# NOTE: Uses custom split_by_item_markers operation instead of parse_itemize_content
+# because ITEM_ANY pattern can't handle nested braces in \item[...] brackets.
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: custom_itemize
+
+  # Extract environment with optional params
+  # num_optional_params: 1 means extract the [...] after \begin{itemize}
+  # param_names: stores the optional param value in metadata.optional_params
+  environment:
+    operation: extract_environment
+    env_name: itemize
+    num_params: 0
+    num_optional_params: 1
+    param_names: [metadata.optional_params]
+    output_context: environment_content
+
+  # Split content by \item markers to create raw item strings
+  # Each chunk starts with \item and goes until next \item
+  # We'll process these in Python code to extract markers properly
+  items:
+    operation: split
+    source: environment_content
+    delimiter_pattern: '\\item'
+    output_context: item_chunks

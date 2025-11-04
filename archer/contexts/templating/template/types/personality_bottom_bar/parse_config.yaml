@@ -1,0 +1,25 @@
+# Parsing configuration for personality_bottom_bar
+# Format: \begin{textblock*}{...}
+#           {\color{...}\section*{Name}
+#           text content}
+#         \end{textblock*}
+
+patterns:
+  # Set type field
+  type_field:
+    extract_literal: type
+    value: personality_bottom_bar
+
+# Section pattern to find \section*{ opening (not for parse_with_config)
+section_opening:
+  regex: '\\section\*\{'
+  # After finding this, use extract_balanced_delimiters to get section name
+
+# Cleanup patterns for section name and text content
+cleanup:
+  # Remove \hspace commands from section name
+  hspace_pattern: '\\hspace\{[^}]+\}'
+  # Remove \mbox from text content
+  mbox_pattern: '\\mbox\{[^}]*\}'
+  # Remove partial color commands from text content
+  color_pattern: '\{\\color\{[^}]+\}'

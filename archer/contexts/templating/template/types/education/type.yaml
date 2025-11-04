@@ -1,0 +1,16 @@
+type_name: education
+description: "Education section with static content and optional dissertation/minor toggles"
+
+# Education content is static across all resumes:
+# - Florida State University: PhD (July 2022) and MS (Apr 2021)
+# - St. Mary's College of Maryland: BA (May 2015)
+# Only variations are optional dissertation details and minor
+
+metadata_fields:
+  required: []
+  optional:
+  - include_dissertation  # boolean: whether to include dissertation details
+  - include_minor        # boolean: whether to include "Minor in Neuroscience"
+
+# No content structure - everything is in the template
+# Parser just detects presence of optional elements

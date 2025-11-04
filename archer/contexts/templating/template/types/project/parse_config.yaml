@@ -1,0 +1,29 @@
+# Parsing configuration for project
+# Defines patterns for extracting project data from itemizeAProject/itemizeKeyProject environment
+# Note: env_name will be dynamically set to the actual environment name found
+
+patterns:
+  # Set type field
+  type_field:
+    operation: set_literal
+    output_path: type
+    value: project
+
+  # Extract project environment and its 3 parameters
+  # Note: env_name gets set dynamically by parent parser (work_experience)
+  environment:
+    operation: extract_environment
+    env_name: '{{{PROJECT_ENVIRONMENT_NAME}}}'
+    num_params: 3
+    param_names:
+      - metadata.bullet_symbol
+      - metadata.name
+      - metadata.dates
+    output_context: environment_content
+
+  # Parse bullet items from environment content
+  bullets:
+    operation: parse_itemize_content
+    marker_pattern: ITEM_ANY
+    output_path: bullets
+    source: environment_content

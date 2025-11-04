@@ -1,0 +1,21 @@
+name: custom_itemize
+description: Vanilla itemize environment with optional parameters and per-item custom markers
+category: list
+
+# This type handles standard \begin{itemize}[optional params] environments where:
+# - Optional parameters are specified in the document (not in .sty files)
+# - Each item can have a different custom marker/label
+# - Used for sections like "HPC Highlights" that don't warrant a custom environment
+
+fields:
+  metadata:
+    optional_params:
+      type: string
+      description: Optional itemize parameters like "leftmargin=\highlightindent, itemsep=8pt"
+      required: false
+
+  content:
+    bullets:
+      type: list
+      description: List of bullet dicts with {marker, latex_raw, plaintext}
+      required: true
