@@ -239,8 +239,7 @@ class LaTeXToYAMLConverter:
 
                 # Find environment
                 env_params, env_content, _, end_start_pos = extract_environment(
-                    content_source, env_name, num_params, num_optional_params,
-                    begin_pattern=patterns.get("begin"), end_pattern=patterns.get("end")
+                    content_source, env_name, num_params, num_optional_params
                 )
 
                 # Store params in result if param_names specified
