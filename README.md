@@ -131,6 +131,29 @@ Intake → Targeting → Templating → Rendering → (PDF)
 - LaTeX distribution (TeX Live, MiKTeX, or MacTeX)
 - Make (for using Makefile commands)
 
+#### Installing LaTeX
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra
+```
+
+**macOS (using Homebrew):**
+```bash
+brew install --cask mactex-no-gui
+# or for minimal install:
+brew install basictex
+```
+
+**Windows:**
+Download and install MiKTeX from https://miktex.org/download
+
+**Verify installation:**
+```bash
+pdflatex --version
+```
+
 ### Setup
 
 ```bash
