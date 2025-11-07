@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 from omegaconf import OmegaConf
 
 from archer.contexts.templating import latex_to_yaml
-from archer.utils.markdown import format_list_markdown
+from archer.utils.markdown import format_list_markdown, latex_to_markdown
 from archer.contexts.templating.markdown_formatter import (
     format_education_markdown,
     format_skills_markdown,
@@ -103,8 +103,14 @@ class ResumeSection:
         elif self.section_type in ("personality_alias_array", "personality_bottom_bar"):
             return format_list_markdown(self.data.get("items", []), self.name)
         else:
-            # Generic fallback
-            return str(self.data)
+            # Generic fallback for unknown types
+            # Try to format as a list if it has items
+            items = self.data.get("items", [])
+            if items:
+                return format_list_markdown(items, self.name)
+            else:
+                # Empty or unrecognized - just show header
+                return f"## {self.name}\n\n(No content)"
 
 
 
@@ -114,28 +120,40 @@ class ResumeDocument:
 
     This is the primary data model shared between Templating and Targeting contexts.
     Simplified from full YAML structure to contain only content relevant for targeting.
+
+    Supports two modes:
+    - markdown: Convert LaTeX formatting to markdown (preserves **bold**, *italic*, etc.)
+    - plaintext: Strip all formatting (for statistical analysis, search, embeddings)
+
+    Note: Structural markdown (headers, bullets) from formatters is always present.
     """
 
-    def __init__(self, yaml_path: Path):
+    def __init__(self, yaml_path: Path, mode: str = "markdown"):
         """
         Load resume from YAML file and simplify to Targeting-focused structure.
 
         Args:
             yaml_path: Path to YAML file (structured resume format)
+            mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
 
         Returns:
             ResumeDocument instance
 
         Raises:
             FileNotFoundError: If yaml_path does not exist
-            ValueError: If YAML structure is invalid
+            ValueError: If YAML structure is invalid or mode is invalid
 
         Note:
-            Strips formatting/layout metadata, extracts only content.
+            Structural markdown (##, -, etc.) is always present regardless of mode.
+            Mode only controls inline content formatting.
         """
+        if mode not in ("markdown", "plaintext"):
+            raise ValueError(f"Invalid mode: {mode}. Must be 'markdown' or 'plaintext'")
+
         if not yaml_path.exists():
             raise FileNotFoundError(f"YAML file not found: {yaml_path}")
 
+        self.mode = mode
         yaml_data = OmegaConf.load(yaml_path)
         yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
@@ -189,7 +207,7 @@ class ResumeDocument:
                     self.sections.append(section)
 
     @classmethod
-    def from_tex(cls, tex_path: Path) -> "ResumeDocument":
+    def from_tex(cls, tex_path: Path, mode: str = "markdown") -> "ResumeDocument":
         """
         Parse a .tex file into a structured ResumeDocument.
 
@@ -197,6 +215,7 @@ class ResumeDocument:
 
         Args:
             tex_path: Path to LaTeX resume file
+            mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
 
         Returns:
             ResumeDocument instance
@@ -221,8 +240,8 @@ class ResumeDocument:
             # Convert LaTeX to YAML
             latex_to_yaml(tex_path, tmp_path)
 
-            # Load from YAML
-            doc = cls(tmp_path)
+            # Load from YAML with specified mode
+            doc = cls(tmp_path, mode=mode)
 
             # Clean up temp file
             tmp_path.unlink()
@@ -242,13 +261,22 @@ class ResumeDocument:
             raise ValueError(f"Failed to parse {tex_path}: {str(e)}") from e
 
     def _get_plaintext_items_from_yaml_list(self, content):
-        """Extract latex_raw from standardized list items for markdown conversion.
+        """Extract items from standardized list, respecting mode.
 
         After YAML standardization, all items are dicts with 'latex_raw' and 'plaintext' fields.
-        We use latex_raw so latex_to_markdown() can convert LaTeX formatting to markdown.
+
+        Mode determines formatting:
+        - markdown: Convert latex_raw → markdown formatting
+        - plaintext: Use plaintext field directly
+
+        Note: Some sections use 'items' key, others use 'bullets' key.
         """
-        items = content.get("items", [])
-        return [item["latex_raw"] for item in items]
+        # Try 'items' first (skill lists), then 'bullets' (personality, skill_category)
+        items = content.get("items", content.get("bullets", []))
+        if self.mode == "markdown":
+            return [latex_to_markdown(item["latex_raw"]) for item in items]
+        else:  # plaintext
+            return [item["plaintext"] for item in items]
 
     def _get_section_data(self, section_data: Dict[str, Any], section_name: str = "") -> Dict[str, Any]:
         """Parse a section from YAML structure into ResumeSection.
@@ -258,7 +286,15 @@ class ResumeDocument:
             section_name: Optional parent section name (e.g., "Experience", "Education")
         """
         section_type = section_data.get("type")
-        name = section_data.get("name", "") or section_name
+
+        # Get name from section, falling back to section_name parameter
+        # For skill_category, also check metadata.name
+        name = section_data.get("name", "")
+        if not name and section_type == "skill_category":
+            metadata = section_data.get("metadata", {})
+            name = metadata.get("name", "")
+        if not name:
+            name = section_name
 
         if section_type == "work_experience":
             return self._parse_work_experience(section_data)
@@ -272,39 +308,62 @@ class ResumeDocument:
             return data
         
     def _parse_work_experience(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract work experience data from YAML for markdown conversion.
+        """Extract work experience data from YAML, respecting mode.
 
         Args:
             section_data: Work experience data from YAML
 
         Returns:
-            Structured work experience data dict with LaTeX formatting
-            (to be converted to markdown by formatters)
+            Structured work experience data dict with formatting based on mode
         """
         metadata = section_data["metadata"]
         content = section_data["content"]
 
-        # Extract latex_raw for markdown conversion
-        bullets = [bullet["latex_raw"] for bullet in content["bullets"]]
+        # Convert metadata fields based on mode (they may contain LaTeX like \&)
+        converted_metadata = {}
+        for key, value in metadata.items():
+            if isinstance(value, str) and value:
+                if self.mode == "markdown":
+                    converted_metadata[key] = latex_to_markdown(value)
+                else:  # plaintext
+                    converted_metadata[key] = to_plaintext(value)
+            else:
+                converted_metadata[key] = value
+
+        # Extract bullets based on mode
+        if self.mode == "markdown":
+            bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in content["bullets"]]
+        else:  # plaintext
+            bullets = [bullet["plaintext"] for bullet in content["bullets"]]
 
         # Parse projects with their bullets
         projects = []
         for proj in content.get("projects", []):
             proj_metadata = proj.get("metadata", {})
+
+            # Project name is always LaTeX in metadata (no plaintext version yet)
+            # Apply mode conversion
+            if self.mode == "markdown":
+                project_name = latex_to_markdown(proj_metadata["name"])
+                project_bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj["bullets"]]
+            else:  # plaintext
+                project_name = to_plaintext(proj_metadata["name"])
+                project_bullets = [bullet["plaintext"] for bullet in proj["bullets"]]
+
             project_data = {
-                "name": proj_metadata["name"],  # Already LaTeX from metadata
-                "bullets": [bullet["latex_raw"] for bullet in proj["bullets"]]
+                "name": project_name,
+                "bullets": project_bullets
             }
             projects.append(project_data)
 
         return {
-            **metadata,
+            **converted_metadata,
             "projects": projects,
             "bullets": bullets
         }
 
     def _parse_education(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse education section for markdown conversion.
+        """Parse education section, respecting mode.
 
         Args:
             section_data: Education data from YAML
@@ -313,12 +372,30 @@ class ResumeDocument:
         metadata = section_data.get("metadata", {})
         content = section_data.get("content", {})
 
+        # Convert metadata fields based on mode
+        if self.mode == "markdown":
+            institution = latex_to_markdown(metadata.get("institution", ""))
+            degree = latex_to_markdown(metadata.get("degree", ""))
+            field = latex_to_markdown(metadata.get("field", ""))
+            dates = latex_to_markdown(metadata.get("dates", ""))
+        else:  # plaintext
+            institution = to_plaintext(metadata.get("institution", ""))
+            degree = to_plaintext(metadata.get("degree", ""))
+            field = to_plaintext(metadata.get("field", ""))
+            dates = to_plaintext(metadata.get("dates", ""))
+
+        # Extract items based on mode
+        if self.mode == "markdown":
+            items = [latex_to_markdown(b["latex_raw"]) for b in content.get("bullets", [])]
+        else:  # plaintext
+            items = [b["plaintext"] for b in content.get("bullets", [])]
+
         data = {
-            "institution": metadata.get("institution", ""),
-            "degree": metadata.get("degree", ""),
-            "field": metadata.get("field", ""),
-            "dates": metadata.get("dates", ""),
-            "items": [b["latex_raw"] for b in content.get("bullets", [])]
+            "institution": institution,
+            "degree": degree,
+            "field": field,
+            "dates": dates,
+            "items": items
         }
 
         return data
@@ -415,7 +492,7 @@ class ResumeDocumentArchive:
         self.archive_path = archive_path
         self.structured_path = archive_path / "structured"
 
-    def load(self, mode: str = "available") -> List[ResumeDocument]:
+    def load(self, mode: str = "available", format_mode: str = "markdown") -> List[ResumeDocument]:
         """
         Load resume documents from archive.
 
@@ -423,22 +500,23 @@ class ResumeDocumentArchive:
             mode: Loading mode
                 - "available": Load only pre-converted YAMLs from structured/
                 - "all": Load all .tex files, converting if needed
+            format_mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
 
         Returns:
             List of successfully loaded ResumeDocument instances
 
         Raises:
-            ValueError: If mode is invalid
+            ValueError: If mode or format_mode is invalid
         """
         if mode not in ("available", "all"):
             raise ValueError(f"Invalid mode: {mode}. Must be 'available' or 'all'")
 
         if mode == "available":
-            return self._load_available()
+            return self._load_available(format_mode)
         else:
-            return self._load_all()
+            return self._load_all(format_mode)
 
-    def _load_available(self) -> List[ResumeDocument]:
+    def _load_available(self, format_mode: str = "markdown") -> List[ResumeDocument]:
         """Load only pre-converted YAMLs from structured/ directory."""
         if not self.structured_path.exists():
             warnings.warn(
@@ -454,7 +532,7 @@ class ResumeDocumentArchive:
 
         for yaml_file in yaml_files:
             try:
-                doc = ResumeDocument(yaml_file)
+                doc = ResumeDocument(yaml_file, mode=format_mode)
                 documents.append(doc)
             except Exception as e:
                 errors.append((yaml_file.name, str(e)))
@@ -468,7 +546,7 @@ class ResumeDocumentArchive:
 
         return documents
 
-    def _load_all(self) -> List[ResumeDocument]:
+    def _load_all(self, format_mode: str = "markdown") -> List[ResumeDocument]:
         """Load all resumes, converting .tex files if needed."""
         # Get all .tex files
         tex_files = sorted(self.archive_path.glob("*.tex"))
@@ -487,10 +565,10 @@ class ResumeDocumentArchive:
                 if tex_file.stem in existing_yamls:
                     # Load from YAML
                     yaml_file = self.structured_path / f"{tex_file.stem}.yaml"
-                    doc = ResumeDocument(yaml_file)
+                    doc = ResumeDocument(yaml_file, mode=format_mode)
                 else:
                     # Convert from .tex
-                    doc = ResumeDocument.from_tex(tex_file)
+                    doc = ResumeDocument.from_tex(tex_file, mode=format_mode)
                 documents.append(doc)
             except Exception as e:
                 errors.append((tex_file.name, str(e)))

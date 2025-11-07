@@ -38,6 +38,9 @@ def _remove_href_keep_text(text: str) -> str:
             text_start = url_end + 1
             display_text, text_end = extract_balanced_delimiters(result, text_start)
 
+            # Strip leading/trailing whitespace from extracted text
+            display_text = display_text.strip()
+
             # Replace entire \href{url}{text} with just display_text
             result = result[:pos] + display_text + result[text_end:]
         except ValueError:
@@ -71,8 +74,18 @@ def latex_to_markdown(text: str) -> str:
     # Remove href, keep just the link text
     text = _remove_href_keep_text(text)
 
+    # Convert special symbols
+    text = text.replace('\\texttimes', '×')
+
+    # Convert LaTeX line breaks to spaces (in inline text like skill names)
+    text = text.replace('\\\\', ' ')
+
     # Remove color commands
     text = re.sub(r'\\color\{[^}]+\}', '', text)
+
+    # Remove page/line break hints (no visual effect in markdown)
+    text = text.replace('\\nolinebreak', '')
+    text = text.replace('\\nopagebreak', '')
 
     # Remove common formatting commands
     text = text.replace('\\centering', '')
