@@ -343,3 +343,32 @@ This asymmetry made parsing patterns invisible and difficult to maintain. Change
 **Trade-offs**: Acknowledged imperfection in LaTeX roundtrip, but semantic correctness (validated by 100% YAML roundtrip) is the critical requirement. Established that cosmetic differences in LaTeX output are acceptable when semantic structure is preserved.
 
 ---
+
+## Design Decision 15: Dual-Mode Content Formatting in ResumeDocument
+
+**Date**: Nov 7, 2025
+
+**Decision**: Implement two formatting modes in `ResumeDocument` for content extraction: "markdown" mode (converts LaTeX → Markdown) and "plaintext" mode (strips all formatting).
+
+**Issue**: The `ResumeDocument` class extracts content from YAML files for analysis and generation. After YAML standardization added both `latex_raw` and `plaintext` fields to all content, a decision was needed about which field to use. The optimal choice depends on the use case:
+- **Generation tasks** benefit from markdown formatting (`**bold**`, `*italic*`) for fine-grained syntactical emphasis
+- **Statistical analysis** (embeddings, search, keyword matching) requires plaintext without formatting interference
+
+**Rationale**:
+- **Use-case optimization** - Different workflows need different formatting levels; single mode forces suboptimal tradeoffs
+- **Separation of concerns** - Structural markdown (headers `##`, bullets `-`) always present from formatters; inline formatting (bold/italic) controlled by mode
+- **Future-proof for Targeting** - When Targeting context analyzes historical resumes, plaintext mode enables clean semantic analysis
+- **Clean API** - Simple mode parameter: `ResumeDocument(path, mode="markdown"|"plaintext")`
+- **Backward compatible** - Markdown mode as default maintains existing behavior
+
+**Implementation**:
+- Mode parameter in `ResumeDocument.__init__()`, `from_tex()`, and `ResumeDocumentArchive.load()`
+- Extraction methods (`_parse_work_experience()`, `_parse_education()`, `_get_plaintext_items_from_yaml_list()`) check mode:
+  - Markdown mode: Extract `latex_raw` → apply `latex_to_markdown()` conversion
+  - Plaintext mode: Extract `plaintext` field directly (already stripped during parsing)
+- Metadata fields (company, title, dates, etc.) also converted based on mode
+- Enhanced `latex_to_markdown()` to handle LaTeX line breaks (`\\`), symbols (`\texttimes` → `×`), and layout hints (`\nolinebreak`, `\nopagebreak`)
+
+**Trade-offs**: Slight API complexity (mode parameter), but benefit of use-case optimization outweighs cost. Alternative of separate classes (`MarkdownResumeDocument`, `PlaintextResumeDocument`) would duplicate significant logic.
+
+---

@@ -180,6 +180,37 @@ Section
 └── spacing_after (str)           # LaTeX spacing command
 ```
 
+## ResumeDocument API
+
+`ResumeDocument` provides a high-level API for consuming structured resume data with dual-mode output: **markdown** (preserves `**bold**`, `*italic*`, `` `code` ``) and **plaintext** (strips all formatting for analysis).
+
+### Usage
+
+```python
+from archer.contexts.templating.resume_data_structure import ResumeDocument
+
+# Markdown mode (default) - human-readable with formatting
+doc = ResumeDocument("resume.yaml", mode="markdown")
+text = doc.get_all_text()
+
+# Plaintext mode - for text analysis, search, LLM processing
+doc = ResumeDocument("resume.yaml", mode="plaintext")
+```
+
+### Key Features
+
+`latex_to_markdown()` handles common commands: `\textbf{}` → `**bold**`, `\textit{}` → `*italic*`, `\texttt{}` → `` `code` ``, special symbols (`\&` → `&`, `\texttimes` → `×`), and strips structural commands (`\\`, `\nolinebreak`, `\href{url}{text}` → `text`).
+
+**Dual-field extraction**: Checks both `content["items"]` (skill lists) and `content["bullets"]` (personality, skill_category).
+
+**Metadata conversion**: All metadata fields (company, title, dates, location) converted based on mode to handle LaTeX like `\&`.
+
+**Category names**: `skill_category` extracts names from `metadata["name"]` for hierarchical structure.
+
+**Unknown type fallback**: Unrecognized sections display `"(No content)"` instead of raw dict (affects 6/56 historical resumes, all "2 Truths and a Lie" sections).
+
+**For detailed API documentation, formatting examples, and implementation details, see [docs/RESUME_DOCUMENT_CLASS.md](../../docs/RESUME_DOCUMENT_CLASS.md).**
+
 ## Converter Architecture
 
 ### Layered Design
