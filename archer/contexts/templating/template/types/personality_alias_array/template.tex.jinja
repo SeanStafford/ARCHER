@@ -1,8 +1,8 @@
-\begin{itemizeMain}
+\begin{<<< metadata.get('environment_name') >>>}
 <%% for item in content['bullets'] %%>
     \<<< item['marker'] >>> <<< item['latex_raw'] >>>
 <%% endfor %%>
-\end{itemizeMain}
+\end{<<< metadata.get('environment_name') >>>}
 <%% if metadata.get('trailing_text') %%>
 
 <<< metadata.trailing_text >>>

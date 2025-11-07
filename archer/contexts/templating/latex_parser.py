@@ -231,16 +231,32 @@ class LaTeXToYAMLConverter:
 
             elif operation == 'extract_environment':
                 # Extract environment content and parameters
-                env_name = operation_config['env_name']
+                # env_name can be a single string or a list of strings
+                env_names = operation_config['env_name']
+                if isinstance(env_names, str):
+                    env_names = [env_names]
+
                 num_params = operation_config.get('num_params', 0)
                 num_optional_params = operation_config.get('num_optional_params', 0)
                 param_names = operation_config.get('param_names', [])
                 capture_trailing = operation_config.get('capture_trailing_text', False)
 
-                # Find environment
-                env_params, env_content, _, end_start_pos = extract_environment(
-                    content_source, env_name, num_params, num_optional_params
-                )
+                # Try each environment name until one succeeds
+                last_error = None
+                for env_name in env_names:
+                    try:
+                        env_params, env_content, _, end_start_pos = extract_environment(
+                            content_source, env_name, num_params, num_optional_params
+                        )
+                        # Success - store the actual environment name found
+                        actual_env_name = env_name
+                        break
+                    except Exception as e:
+                        last_error = e
+                        continue
+                else:
+                    # None of the environment names matched
+                    raise ValueError(f"None of the environment names matched: {env_names}. Last error: {last_error}")
 
                 # Store params in result if param_names specified
                 if param_names:
@@ -250,6 +266,10 @@ class LaTeXToYAMLConverter:
 
                 # Set value for output
                 value = env_content
+
+                # Store the actual environment name that matched (useful when env_name is a list)
+                if isinstance(operation_config['env_name'], list):
+                    set_nested_field(result, "metadata.environment_name", actual_env_name)
 
                 # Capture trailing text after environment if requested
                 if capture_trailing:
@@ -916,12 +936,12 @@ class LaTeXToYAMLConverter:
             left_content = paracol_content[:switch_match.start()].strip()
             main_content = paracol_content[switch_match.end():].strip()
 
-            left_sections = self._extract_sections_from_column(left_content)
-            main_sections = self._extract_sections_from_column(main_content)
+            left_sections = self._extract_sections_from_column(left_content, region_name="left_column")
+            main_sections = self._extract_sections_from_column(main_content, region_name="main_column")
         else:
             # No switchcolumn - all content is in main column (continuation page)
             left_sections = []
-            main_sections = self._extract_sections_from_column(paracol_content.strip())
+            main_sections = self._extract_sections_from_column(paracol_content.strip(), region_name="main_column")
 
         return {
             "top": {
@@ -937,12 +957,13 @@ class LaTeXToYAMLConverter:
             "decorations": decorations if decorations else None
         }
 
-    def _extract_sections_from_column(self, column_content: str) -> List[Dict[str, Any]]:
+    def _extract_sections_from_column(self, column_content: str, region_name: str) -> List[Dict[str, Any]]:
         """
         Extract all sections from column content.
 
         Args:
             column_content: LaTeX content for a single column
+            region_name: Column identifier ("left_column" or "main_column")
 
         Returns:
             List of section dicts
@@ -1008,7 +1029,7 @@ class LaTeXToYAMLConverter:
 
             # Infer type and parse section
             try:
-                section_dict = self._parse_section_by_inference(section_name, section_content)
+                section_dict = self._parse_section_by_inference(section_name, section_content, region_name)
 
                 # Add spacing metadata if present
                 if spacing_after:
@@ -1024,13 +1045,14 @@ class LaTeXToYAMLConverter:
 
         return sections
 
-    def _parse_section_by_inference(self, section_name: str, content: str) -> Dict[str, Any]:
+    def _parse_section_by_inference(self, section_name: str, content: str, region_name: str) -> Dict[str, Any]:
         """
         Infer section type from content and parse accordingly.
 
         Args:
             section_name: Section name (e.g., "Core Skills")
             content: Section content LaTeX
+            region_name: Column identifier ("left_column" or "main_column")
 
         Returns:
             Section dict with type, name, and parsed content
@@ -1103,8 +1125,9 @@ class LaTeXToYAMLConverter:
                 "content": parsed["content"]
             }
 
-        elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE_MAIN, content):
-            # personality_alias_array
+        elif region_name == "left_column" and re.search(EnvironmentPatterns.BEGIN_ITEMIZE_ANY, content):
+            # personality_alias_array - Left column itemize variants (itemizeMain, itemizeLL)
+            # All left-column itemize sections are personality sections (verified empirically)
             parsed = self.parse_personality_alias_array(content)
             return {
                 "name": section_name,
@@ -1127,7 +1150,7 @@ class LaTeXToYAMLConverter:
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE_ANY, content):
             # simple_list - Fallback for custom itemize variants (itemizeLL, etc.)
-            # This catches custom environment variants that don't match known semantic types above
+            # This should rarely be reached now that left_column itemize is handled above
             parsed = self._parse_as_simple_list(content)
             return {
                 "name": section_name,
