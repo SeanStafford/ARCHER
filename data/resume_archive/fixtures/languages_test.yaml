@@ -1,0 +1,16 @@
+# Test case: skill_list_pipes section (Languages)
+# Testing round-trip conversion: LaTeX <-> YAML
+# Items use standardized dict format with latex_raw and plaintext
+
+section:
+  type: skill_list_pipes
+  content:
+    items:
+    - latex_raw: \texttt{Python}
+      plaintext: Python
+    - latex_raw: \texttt{Bash}
+      plaintext: Bash
+    - latex_raw: \texttt{C++}
+      plaintext: C++
+    - latex_raw: \texttt{Mathematica}
+      plaintext: Mathematica

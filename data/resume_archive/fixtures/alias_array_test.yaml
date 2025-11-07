@@ -1,0 +1,20 @@
+section:
+  type: personality_alias_array
+  metadata: {}  # Empty metadata (template checks for optional trailing_text)
+  content:
+    bullets:
+    - marker: item[\blackbelt]
+      latex_raw: Bash Black Belt
+      plaintext: Bash Black Belt
+    - marker: item[\meditate]
+      latex_raw: GPU Guru
+      plaintext: GPU Guru
+    - marker: item[\faUserNinja]
+      latex_raw: NumPy Ninja
+      plaintext: NumPy Ninja
+    - marker: item[\faUserTie]
+      latex_raw: PyTorch Pro
+      plaintext: PyTorch Pro
+    - marker: item[\faMagic]
+      latex_raw: Scaling Sorcerer
+      plaintext: Scaling Sorcerer

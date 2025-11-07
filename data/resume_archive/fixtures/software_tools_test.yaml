@@ -1,0 +1,61 @@
+# Test case: skill_categories section (Software Tools with nested categories)
+# Testing round-trip conversion: LaTeX <-> YAML
+# Items use structured format with marker, latex_raw, and plaintext fields
+
+section:
+  type: skill_categories
+  subsections:
+  - type: skill_category
+    metadata:
+      marker: \item[\faRobot]
+      name_raw: '{\scshape LLM Architectures}'
+      name: LLM Architectures
+      toc_title: LLM Architectures
+    content:
+      bullets:
+      - marker: itemLL
+        latex_raw: '{Mixture of Experts (MoE)}'
+        plaintext: Mixture of Experts (MoE)
+      - marker: itemLL
+        latex_raw: '{Multimodal Models}'
+        plaintext: Multimodal Models
+      - marker: itemLL
+        latex_raw: '{Binary Models}'
+        plaintext: Binary Models
+  - type: skill_category
+    metadata:
+      marker: \item[\faChartLine]
+      name_raw: '{\scshape ML Frameworks}'
+      name: ML Frameworks
+      toc_title: ML Frameworks
+    content:
+      bullets:
+      - marker: itemLL
+        latex_raw: '{PyTorch}'
+        plaintext: PyTorch
+      - marker: itemLL
+        latex_raw: '{JAX/Equinox}'
+        plaintext: JAX/Equinox
+      - marker: itemLL
+        latex_raw: '{Keras/TF}'
+        plaintext: Keras/TF
+      - marker: itemLL
+        latex_raw: '{Transformers}'
+        plaintext: Transformers
+  - type: skill_category
+    metadata:
+      marker: \item[\faCode]
+      name_raw: '{\scshape Development}'
+      name: Development
+      toc_title: Development
+    content:
+      bullets:
+      - marker: itemLL
+        latex_raw: '{Git}'
+        plaintext: Git
+      - marker: itemLL
+        latex_raw: '{Docker}'
+        plaintext: Docker
+      - marker: itemLL
+        latex_raw: '{CI/CD}'
+        plaintext: CI/CD

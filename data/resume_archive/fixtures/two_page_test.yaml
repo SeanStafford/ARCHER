@@ -12,10 +12,13 @@ document:
         - name: Core Skills
           type: skill_list_caps
           content:
-            list:
-            - Machine Learning
-            - High-Performance\\Computing (HPC)
-            - MLOps
+            items:
+            - latex_raw: Machine Learning
+              plaintext: Machine Learning
+            - latex_raw: High-Performance\\Computing (HPC)
+              plaintext: High-Performance Computing (HPC)
+            - latex_raw: MLOps
+              plaintext: MLOps
       main_column:
         sections:
         - name: Experience

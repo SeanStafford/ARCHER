@@ -1,0 +1,42 @@
+subsection:
+  type: work_experience
+  metadata:
+    company: Booz Allen Hamilton
+    title: Machine Learning Engineer
+    subtitle: \textit{\color{verygray}Supporting a federal client as a subcontractor
+      \href{https://www.mbopartners.com/}{staffed through the MBO freelancing platform}}
+    location: Catonsville, MD
+    dates: Nov 2023 -- May 2025
+  content:
+    bullets:
+    - marker: itemi
+      latex_raw: \textbf{Reduced compute time from 1 month $\to$ 12 hours} by scaling
+        from 1 $\to$ 64 GPUs using \texttt{PyTorch} distributed training
+      plaintext: Reduced compute time from 1 month to 12 hours by scaling from 1 to
+        64 GPUs using PyTorch distributed training
+    - marker: itemi
+      latex_raw: Built custom \texttt{PyTorch} models from the ground up to grow team
+        LLM capabilities
+      plaintext: Built custom PyTorch models from the ground up to grow team LLM capabilities
+    - marker: itemi
+      latex_raw: Served as liaison between 50+ participants and key stakeholders during
+        3 on-site workshops
+      plaintext: Served as liaison between 50+ participants and key stakeholders during
+        3 on-site workshops
+    projects:
+    - type: project
+      metadata:
+        environment_type: itemizeKeyProject
+        bullet_symbol: \faLaptopCode
+        name: Neural differential equations for quantum computing
+        dates: ''
+      bullets:
+      - marker: itemii
+        latex_raw: Prototyped a novel adaptation of backpropagation using neural
+          differential equations
+        plaintext: Prototyped a novel adaptation of backpropagation using neural
+          differential equations
+      - marker: itemii
+        latex_raw: \textbf{Engineered a low-level interface enabling \texttt{JAX}-\texttt{PyTorch}
+          interoperability}
+        plaintext: Engineered a low-level interface enabling JAX-PyTorch interoperability

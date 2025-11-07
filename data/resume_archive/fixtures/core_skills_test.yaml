@@ -1,0 +1,12 @@
+# Test case: Single skill_list_caps section (Core Skills)
+# Testing round-trip conversion: LaTeX <-> YAML
+
+section:
+  type: skill_list_caps
+  content:
+    items:
+    - latex_raw: Machine Learning (ML)
+      plaintext: Machine Learning (ML)
+    - latex_raw: High-Performance\\Computing (HPC)
+      plaintext: High-Performance Computing (HPC)
+

@@ -1,0 +1,5 @@
+section:
+  type: education
+  metadata:
+    include_dissertation: true
+    include_minor: true

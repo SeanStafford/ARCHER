@@ -12,18 +12,24 @@ page:
       - name: Core Skills
         type: skill_list_caps
         content:
-          list:
-          - Machine Learning
-          - High-Performance\\Computing (HPC)
-          - MLOps
+          items:
+          - latex_raw: Machine Learning
+            plaintext: Machine Learning
+          - latex_raw: High-Performance\\Computing (HPC)
+            plaintext: High-Performance Computing (HPC)
+          - latex_raw: MLOps
+            plaintext: MLOps
 
       - name: Languages
         type: skill_list_pipes
         content:
-          list:
-          - Python
-          - Bash
-          - C++
+          items:
+          - latex_raw: \texttt{Python}
+            plaintext: Python
+          - latex_raw: \texttt{Bash}
+            plaintext: Bash
+          - latex_raw: \texttt{C++}
+            plaintext: C++
 
     main_column:
       sections:
