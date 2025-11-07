@@ -35,6 +35,16 @@ install-dev: venv
 	pip install -e ".[dev]"
 	@echo ">>> Development dependencies installed"
 
+## Verify system dependencies (LaTeX)
+.PHONY: check-deps
+check-deps:
+	@echo "Checking system dependencies..."
+	@command -v pdflatex >/dev/null 2>&1 || \
+		(echo "ERROR: pdflatex not found. Please install a LaTeX distribution." && \
+		 echo "See README.md for installation instructions." && exit 1)
+	@pdflatex --version | head -n 1
+	@echo ">>> All system dependencies satisfied"
+
 #################################################################################
 # CODE HYGIENE COMMANDS                                                         #
 #################################################################################
