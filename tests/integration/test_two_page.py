@@ -16,14 +16,14 @@ from archer.contexts.templating.converter import (
 )
 
 load_dotenv()
-STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
+FIXTURES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "fixtures"
 
 
 @pytest.mark.integration
 def test_extract_two_pages():
     """Test extracting two pages from LaTeX document."""
-    latex_path = STRUCTURED_PATH / "two_page_test.tex"
-    yaml_path = STRUCTURED_PATH / "two_page_test.yaml"
+    latex_path = FIXTURES_PATH / "two_page_test.tex"
+    yaml_path = FIXTURES_PATH / "two_page_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)
@@ -68,8 +68,8 @@ def test_extract_two_pages():
 @pytest.mark.integration
 def test_two_page_content_preservation():
     """Test that content is preserved across pages."""
-    latex_path = STRUCTURED_PATH / "two_page_test.tex"
-    yaml_path = STRUCTURED_PATH / "two_page_test.yaml"
+    latex_path = FIXTURES_PATH / "two_page_test.tex"
+    yaml_path = FIXTURES_PATH / "two_page_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)
@@ -103,8 +103,8 @@ def test_two_page_content_preservation():
 @pytest.mark.integration
 def test_two_page_yaml_match():
     """Test that parsed structure matches expected YAML."""
-    latex_path = STRUCTURED_PATH / "two_page_test.tex"
-    yaml_path = STRUCTURED_PATH / "two_page_test.yaml"
+    latex_path = FIXTURES_PATH / "two_page_test.tex"
+    yaml_path = FIXTURES_PATH / "two_page_test.yaml"
 
     paracol_content = latex_path.read_text(encoding="utf-8")
     latex_str = "\\begin{document}\n" + paracol_content + "\n\\end{document}"

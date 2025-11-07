@@ -3,7 +3,7 @@
 \addcontentsline{toc}{section}{<<< metadata.toc_title >>>}
 <%% endif %%>
 \begin{itemizeLL}
-<%% for item in content.list %%>
+<%% for item in content.bullets %%>
     \<<< item.marker >>> <<< item.latex_raw >>>
 <%% endfor %%>
 \end{itemizeLL}

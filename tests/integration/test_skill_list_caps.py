@@ -16,18 +16,18 @@ from archer.contexts.templating.converter import (
 )
 
 load_dotenv()
-STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
+FIXTURES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "fixtures"
 
 
 @pytest.mark.integration
 def test_yaml_to_latex_skill_list_caps():
     """Test converting YAML skill list to LaTeX format."""
-    yaml_path = STRUCTURED_PATH / "core_skills_test.yaml"
+    yaml_path = FIXTURES_PATH / "core_skills_test.yaml"
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
     # Extract expected items from YAML fixture
-    expected_items = yaml_dict["section"]["content"]["list"]
+    expected_items = yaml_dict["section"]["content"]["items"]
 
     converter = YAMLToLaTeXConverter()
     latex = converter.convert_skill_list_caps(yaml_dict["section"])
@@ -38,14 +38,14 @@ def test_yaml_to_latex_skill_list_caps():
 
     # Verify all expected items present in generated LaTeX
     for item in expected_items:
-        assert item in latex
+        assert item['latex_raw'] in latex
 
 
 @pytest.mark.integration
 def test_latex_to_yaml_skill_list_caps():
     """Test parsing LaTeX skill list to YAML structure."""
-    latex_path = STRUCTURED_PATH / "core_skills_test.tex"
-    yaml_path = STRUCTURED_PATH / "core_skills_test.yaml"
+    latex_path = FIXTURES_PATH / "core_skills_test.tex"
+    yaml_path = FIXTURES_PATH / "core_skills_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)
@@ -58,18 +58,18 @@ def test_latex_to_yaml_skill_list_caps():
 
     # Validate against expected YAML structure (dynamic, not hardcoded)
     assert result["type"] == expected["type"]
-    assert "list" in result["content"]
-    assert len(result["content"]["list"]) == len(expected["content"]["list"])
+    assert "items" in result["content"]
+    assert len(result["content"]["items"]) == len(expected["content"]["items"])
 
     # Verify all expected items are parsed
-    for item in expected["content"]["list"]:
-        assert item in result["content"]["list"]
+    for item in expected["content"]["items"]:
+        assert item in result["content"]["items"]
 
 
 @pytest.mark.integration
 def test_skill_list_caps_roundtrip():
     """Test full round-trip: YAML -> LaTeX -> YAML."""
-    yaml_path = STRUCTURED_PATH / "core_skills_test.yaml"
+    yaml_path = FIXTURES_PATH / "core_skills_test.yaml"
     original_yaml = OmegaConf.load(yaml_path)
     original_dict = OmegaConf.to_container(original_yaml, resolve=True)
 

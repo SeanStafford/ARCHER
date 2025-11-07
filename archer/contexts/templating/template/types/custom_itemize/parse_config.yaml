@@ -10,7 +10,7 @@
 # NOTE: Uses custom split_by_item_markers operation instead of parse_itemize_content
 # because ITEM_ANY pattern can't handle nested braces in \item[...] brackets.
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
@@ -35,4 +35,5 @@ patterns:
     operation: split
     source: environment_content
     delimiter_pattern: '\\item'
+    keep_delimiter: true
     output_context: item_chunks

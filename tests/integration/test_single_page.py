@@ -16,14 +16,14 @@ from archer.contexts.templating.converter import (
 )
 
 load_dotenv()
-STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
-
+FIXTURES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "fixtures"
+TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
 
 @pytest.mark.integration
 def test_parse_single_page_structure():
     """Test parsing LaTeX page with paracol into structured format."""
-    latex_path = STRUCTURED_PATH / "single_page_test.tex"
-    yaml_path = STRUCTURED_PATH / "single_page_test.yaml"
+    latex_path = FIXTURES_PATH / "single_page_test.tex"
+    yaml_path = FIXTURES_PATH / "single_page_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)
@@ -59,7 +59,7 @@ def test_parse_single_page_structure():
 @pytest.mark.integration
 def test_generate_single_page_structure():
     """Test generating LaTeX page from structured format."""
-    yaml_path = STRUCTURED_PATH / "single_page_test.yaml"
+    yaml_path = FIXTURES_PATH / "single_page_test.yaml"
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
@@ -85,7 +85,7 @@ def test_generate_single_page_structure():
 @pytest.mark.integration
 def test_single_page_roundtrip():
     """Test full round-trip: LaTeX → structure → LaTeX."""
-    latex_path = STRUCTURED_PATH / "single_page_test.tex"
+    latex_path = FIXTURES_PATH / "single_page_test.tex"
     original_latex = latex_path.read_text(encoding="utf-8")
 
     # Parse LaTeX to structure
@@ -122,7 +122,7 @@ def test_single_page_roundtrip():
 @pytest.mark.integration
 def test_paracol_column_separation():
     """Test that left and main columns are correctly separated."""
-    latex_path = STRUCTURED_PATH / "single_page_test.tex"
+    latex_path = FIXTURES_PATH / "single_page_test.tex"
     latex_str = latex_path.read_text(encoding="utf-8")
 
     converter = LaTeXToYAMLConverter()
@@ -146,8 +146,8 @@ def test_paracol_column_separation():
 @pytest.mark.integration
 def test_section_content_preserved():
     """Test that section content is correctly preserved in round-trip."""
-    latex_path = STRUCTURED_PATH / "single_page_test.tex"
-    yaml_path = STRUCTURED_PATH / "single_page_test.yaml"
+    latex_path = FIXTURES_PATH / "single_page_test.tex"
+    yaml_path = FIXTURES_PATH / "single_page_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)

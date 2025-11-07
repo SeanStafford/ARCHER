@@ -1,8 +1,8 @@
 # Parsing configuration for project
-# Defines patterns for extracting project data from itemizeAProject/itemizeKeyProject environment
+# Defines operations for extracting project data from itemizeAProject/itemizeKeyProject environment
 # Note: env_name will be dynamically set to the actual environment name found
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal

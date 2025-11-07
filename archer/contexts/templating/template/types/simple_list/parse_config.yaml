@@ -4,7 +4,7 @@
 # This type handles itemize variants that don't match known semantic types.
 # Uses permissive regex patterns to extract structure from any itemize environment.
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
@@ -14,7 +14,7 @@ patterns:
   # Extract environment name (itemizeLL, itemizeMain, itemizeCustom, etc.)
   environment_name:
     operation: extract_regex
-    regex: '\\begin\{(?P<env_name>itemize[A-Za-z]*)\}'
+    regex_pattern: '\\begin\{(?P<env_name>itemize[A-Za-z]*)\}'
     output_paths:
       env_name: metadata.itemize_env
 
@@ -22,7 +22,7 @@ patterns:
   # Matches: \itemi, \itemLL, \itemMain, \item[], \item[X], etc.
   item_command:
     operation: extract_regex
-    regex: '(?P<cmd>\\item[A-Za-z]*(?:\[[^\]]*\])?)'
+    regex_pattern: '(?P<cmd>\\item[A-Za-z]*(?:\[[^\]]*\])?)'
     output_paths:
       cmd: metadata.item_command
 
@@ -30,5 +30,5 @@ patterns:
   # Permissive pattern - matches ANY \item* variant, even custom ones
   items:
     operation: extract_regex
-    regex: '\\item[A-Za-z]*(?:\[[^\]]*\])?\s+(?P<item>.+)'
+    regex_pattern: '\\item[A-Za-z]*(?:\[[^\]]*\])?\s+(?P<item>.+)'
     output_path: content.items

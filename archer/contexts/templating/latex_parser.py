@@ -6,6 +6,8 @@ Converts LaTeX to structured YAML format.
 
 import re
 import os
+import copy
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -47,24 +49,6 @@ TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
 TEMPLATING_CONTEXT_PATH = Path(os.getenv("TEMPLATING_CONTEXT_PATH"))
 
 
-def set_nested_field(data: Dict, field_path: str, value: Any):
-    """
-    Helper to set nested fields using dot notation (e.g., 'content.list').
-
-    Args:
-        data: Dictionary to update
-        field_path: Dot-separated path (e.g., 'content.list')
-        value: Value to set at the path
-    """
-    keys = field_path.split('.')
-    current = data
-    for key in keys[:-1]:
-        if key not in current:
-            current[key] = {}
-        current = current[key]
-    current[keys[-1]] = value
-
-
 def get_nested_field(data: Dict, field_path: str) -> Any:
     """
     Helper to get nested fields using dot notation (e.g., 'content.list').
@@ -85,6 +69,93 @@ def get_nested_field(data: Dict, field_path: str) -> Any:
             return None
     return current
 
+def get_content_to_parse(config, context, result, latex_str):
+    """Get source content from context, result path, or default to latex_str."""
+    source = config.get('source')
+    source_path = config.get('source_path')
+
+    if source:
+        return context.get(source, latex_str)
+    elif source_path:
+        return get_nested_field(result, source_path)  # Already have this function!
+    else:
+        return latex_str
+
+def set_nested_field(data: Dict, field_path: str, value: Any):
+    """
+    Helper to set nested fields using dot notation (e.g., 'content.list').
+
+    Args:
+        data: Dictionary to update
+        field_path: Dot-separated path (e.g., 'content.list')
+        value: Value to set at the path
+    """
+    keys = field_path.split('.')
+    current = data
+    for key in keys[:-1]:
+        if key not in current:
+            current[key] = {}
+        current = current[key]
+    current[keys[-1]] = value
+
+def set_output(value, config, context, result):
+    """Store value in context and/or result based on config."""
+    if config.get('output_context'):
+        context[config['output_context']] = value
+    elif config.get('output_paths'):
+        # Map dict fields to multiple result paths
+        output_paths = config['output_paths']
+        if isinstance(value, dict):
+            assert len(output_paths) == len(value.keys()), "the number of keys in value dict does not match number of output paths"
+            # value is a dict, map each key to its output path
+            for key, path in output_paths.items():
+                if key in value:
+                    set_nested_field(result, path, value[key])
+        elif isinstance(value, list):
+            # value is a list, assign each item to corresponding path
+            # If list is shorter than output_paths, remaining paths get empty string
+            # Example: work_experience splits title on \\ to get [title, subtitle]
+            #          but some titles don't have \\, so we only get [title]
+            #          In this case, subtitle should be "" not fail assertion
+            for i, path in enumerate(output_paths):
+                if i < len(value):
+                    set_nested_field(result, path, value[i])
+                else:
+                    set_nested_field(result, path, "")
+        else:
+            raise ValueError(f"output_paths requires dict or list value, got {type(value)}")
+    elif config.get('output_path'):
+        set_nested_field(result, config['output_path'], value)
+    else:
+          raise ValueError(
+              f"No output destination specified in pattern config. "
+              f"Must provide one of: output_context, output_paths, or output_path"
+          )
+
+def get_patterns_to_parse(config):
+    """
+    Resolve all pattern constants referenced in config.
+
+    Returns dict mapping 'key_without_suffix' -> resolved_pattern_value.
+    Example: {'delimiter': '\\\\item\\[.*?\\]...', 'cleanup': '...'}
+
+    For any key ending in '_pattern', looks up the constant from EnvironmentPatterns
+    and returns it without the '_pattern' suffix.
+    """
+    resolved = {}
+    for key, value in config.items():
+        if key.endswith('_pattern'):
+            # Get pattern constant from EnvironmentPatterns
+            pattern_value = getattr(EnvironmentPatterns, value, None)
+            if pattern_value is None:
+                # Check if it looks like a constant name (ALL_CAPS_WITH_UNDERSCORES)
+                if value.isupper() and '_' in value:
+                    warnings.warn(f"Pattern constant '{value}' not found in EnvironmentPatterns, using as literal regex")
+                pattern_value = value
+            # Store without '_pattern' suffix (e.g., 'delimiter_pattern' -> 'delimiter')
+            key_without_suffix = key[:-8]  # Remove '_pattern'
+            resolved[key_without_suffix] = pattern_value
+    return resolved
 
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
@@ -148,45 +219,41 @@ class LaTeXToYAMLConverter:
         result = {}
         context = {}  # For intermediate results between operations
 
-        for pattern_name, pattern_config in config.get("patterns", {}).items():
-            operation = pattern_config.get('operation')
+        for _, operation_config in config.get("operations", {}).items():
+            operation = operation_config.get('operation')
+            content_source = get_content_to_parse(operation_config, context, result, latex_str)
+            patterns = get_patterns_to_parse(operation_config)  # Resolve all *_pattern constants
+            value = None  # Will be set by each operation
 
             if operation == 'set_literal':
                 # Set constant value
-                output_path = pattern_config['output_path']
-                value = pattern_config['value']
-                set_nested_field(result, output_path, value)
+                value = operation_config['value']
 
             elif operation == 'extract_environment':
                 # Extract environment content and parameters
-                env_name = pattern_config['env_name']
-                num_params = pattern_config.get('num_params', 0)
-                num_optional_params = pattern_config.get('num_optional_params', 0)
-                param_names = pattern_config.get('param_names', [])
-                output_path = pattern_config.get('output_path')
-                output_context = pattern_config.get('output_context')
-                capture_trailing = pattern_config.get('capture_trailing_text', False)
+                env_name = operation_config['env_name']
+                num_params = operation_config.get('num_params', 0)
+                num_optional_params = operation_config.get('num_optional_params', 0)
+                param_names = operation_config.get('param_names', [])
+                capture_trailing = operation_config.get('capture_trailing_text', False)
 
                 # Find environment
                 env_params, env_content, _, end_start_pos = extract_environment(
-                    latex_str, env_name, num_params, num_optional_params
+                    content_source, env_name, num_params, num_optional_params,
+                    begin_pattern=patterns.get("begin"), end_pattern=patterns.get("end")
                 )
 
                 # Store params in result if param_names specified
                 if param_names:
+                    assert len(param_names) == len(env_params), "len(param_names) must match the number of extracted parameters"
                     for i, param_name in enumerate(param_names):
-                        if i < len(env_params):
-                            set_nested_field(result, param_name, env_params[i])
+                        set_nested_field(result, param_name, env_params[i])
 
-                # Store content in result and/or context
-                if output_context:
-                    context[output_context] = env_content
-                if output_path:
-                    set_nested_field(result, output_path, env_content)
+                # Set value for output
+                value = env_content
 
                 # Capture trailing text after environment if requested
                 if capture_trailing:
-                    # Find newline after \end{env_name}
                     newline_pos = latex_str.find('\n', end_start_pos)
                     if newline_pos != -1:
                         trailing_text = latex_str[newline_pos + 1:].strip()
@@ -195,98 +262,37 @@ class LaTeXToYAMLConverter:
 
             elif operation == 'split':
                 # Generalized split operation
-                source_path = pattern_config.get('source_path')
-                source = pattern_config.get('source')
-                delimiter = pattern_config.get('delimiter')
-                delimiter_pattern = pattern_config.get('delimiter_pattern')
-                output_paths = pattern_config.get('output_paths')
-                output_path = pattern_config.get('output_path')
-                output_context = pattern_config.get('output_context')
-                cleanup_pattern = pattern_config.get('cleanup_pattern')
 
-                # Get source content
-                if source:
-                    source_content = context.get(source, latex_str)
-                elif source_path:
-                    # Extract from result using dot notation
-                    source_content = result
-                    for key in source_path.split('.'):
-                        source_content = source_content[key]
-                else:
-                    source_content = latex_str
-
-                # Get delimiter (either literal or from pattern constant)
-                if delimiter_pattern:
-                    # Look up pattern from EnvironmentPatterns
-                    pattern = getattr(EnvironmentPatterns, delimiter_pattern)
-                    delimiter = f'(?={pattern})'
+                delimiter = patterns.get('delimiter')
+                # Wrap in lookahead if we want to keep the delimiter (not let it get consumed by regex matching)
+                if operation_config.get('keep_delimiter', False):
+                    delimiter = f'(?={delimiter})'
 
                 # Split content
-                parts = re.split(delimiter, source_content)
+                parts = re.split(delimiter, content_source)
 
-                # Clean up parts
+                # Clean up parts if cleanup_pattern provided
+                cleanup_pattern = patterns.get('cleanup')
                 if cleanup_pattern:
-                    cleanup_regex = getattr(EnvironmentPatterns, cleanup_pattern)
-                    parts = [re.sub(cleanup_regex, '', part) for part in parts]
+                    parts = [re.sub(cleanup_pattern, '', part) for part in parts]
 
-                # Filter empty parts
-                parts_list = [p.strip() for p in parts if p.strip()]
-
-                # Assign to output paths (multiple fields) or output_path/output_context (single list)
-                if output_paths:
-                    for i, out_path in enumerate(output_paths):
-                        if i < len(parts_list):
-                            set_nested_field(result, out_path, parts_list[i].strip())
-                else:
-                    # Store in context and/or result
-                    if output_context:
-                        context[output_context] = parts_list
-                    if output_path:
-                        set_nested_field(result, output_path, parts_list)
+                # Filter empty parts and set value
+                value = [p.strip() for p in parts if p.strip()]
 
             elif operation == 'parse_itemize_content':
-                # Parse itemize entries using marker pattern
-                source = pattern_config.get('source', 'environment_content')
-                marker_pattern = pattern_config.get('marker_pattern')
-                output_path = pattern_config['output_path']
-
-                # Get source content
-                source_content = context.get(source, latex_str)
-
-                # Get marker pattern (either literal regex or pattern name from EnvironmentPatterns)
-                if marker_pattern:
-                    # Check if it's a pattern name (doesn't start with backslash)
-                    if not marker_pattern.startswith('\\'):
-                        # Try to get from EnvironmentPatterns
-                        try:
-                            marker_pattern = getattr(EnvironmentPatterns, marker_pattern)
-                        except AttributeError:
-                            # Not a pattern name, use as-is (literal regex)
-                            pass
-                else:
-                    # Fallback to generic item pattern
-                    marker_pattern = r'\\item\b'
-
-                # Parse itemize content
-                entries = parse_itemize_content(source_content, marker_pattern)
-
-                # Store in result
-                set_nested_field(result, output_path, entries)
+                # Parse itemize content using resolved marker pattern (with fallback)
+                marker_pattern = patterns.get('marker', r'\\item\b')
+                value = parse_itemize_content(content_source, marker_pattern)
 
             elif operation == 'recursive_parse':
                 # Extract and recursively parse nested types
-                recursive_pattern_name = pattern_config.get('recursive_pattern')
-                output_path = pattern_config['output_path']
-                source = pattern_config.get('source', 'environment_content')
-                config_name = pattern_config['config_name']
-
-                # Get input from context
-                input_content = context.get(source, latex_str)
+                output_path = operation_config['output_path']
+                config_name = operation_config['config_name']
 
                 # Check if input is already a list of chunks (from split operation)
-                if isinstance(input_content, list):
+                if isinstance(content_source, list):
                     # Input is already split chunks, parse each directly
-                    chunks = input_content
+                    chunks = content_source
                     nested_config = self.parse_config_registry.get_config(config_name)
 
                     nested_results = []
@@ -298,38 +304,30 @@ class LaTeXToYAMLConverter:
                         set_nested_field(result, output_path, nested_results)
 
                 else:
-                    # Input is LaTeX string, extract environments using pattern
-                    if recursive_pattern_name:
-                        pattern = getattr(EnvironmentPatterns, recursive_pattern_name)
-                    else:
-                        # Fallback to generic itemize pattern
-                        pattern = r'itemize[A-Za-z]*'
-
                     # Extract all matching environments (with full LaTeX including begin/end)
-                    environments = extract_all_environments(input_content, pattern, include_env_command_in_positions=True)
+                    environments = extract_all_environments(content_source, patterns.get('recursive'), include_env_command_in_positions=True)
 
                     if environments:
                         nested_config = self.parse_config_registry.get_config(config_name)
                         nested_results = []
 
                         # Clean input content by removing nested environments
-                        cleaned_content = input_content
+                        cleaned_content = content_source
                         for env_name, _, _, begin_pos, end_pos in reversed(environments):
                             cleaned_content = cleaned_content[:begin_pos] + cleaned_content[end_pos:]
 
                         # Update context with cleaned content (for bullets extraction)
                         context['environment_content'] = cleaned_content
 
-                        for env_name, params, _, begin_pos, end_pos in environments:
+                        for env_name, _, _, begin_pos, end_pos in environments:
                             # Get full environment LaTeX (with begin/end tags)
-                            nested_latex = input_content[begin_pos:end_pos]
+                            nested_latex = content_source[begin_pos:end_pos]
 
                             # Substitute {{{PROJECT_ENVIRONMENT_NAME}}} if present in config
-                            import copy
                             config_copy = copy.deepcopy(nested_config)
-                            if 'patterns' in config_copy and 'environment' in config_copy['patterns']:
-                                if config_copy['patterns']['environment'].get('env_name') == '{{{PROJECT_ENVIRONMENT_NAME}}}':
-                                    config_copy['patterns']['environment']['env_name'] = env_name
+                            if 'operations' in config_copy and 'environment' in config_copy['operations']:
+                                if config_copy['operations']['environment'].get('env_name') == '{{{PROJECT_ENVIRONMENT_NAME}}}':
+                                    config_copy['operations']['environment']['env_name'] = env_name
 
                             # Parse recursively
                             nested_result = self.parse_with_config(nested_latex, config_copy)
@@ -343,77 +341,56 @@ class LaTeXToYAMLConverter:
 
                         set_nested_field(result, output_path, nested_results)
 
-            elif operation == 'extract_braced_after_pattern':
-                # Find pattern then extract balanced braces
-                pattern_str = pattern_config.get('pattern')
-                pattern_name = pattern_config.get('pattern_name')
-                output_path = pattern_config.get('output_path')
-                output_context = pattern_config.get('output_context')
-
-                # Get pattern (either literal or from constants)
-                if pattern_name:
-                    pattern_str = getattr(EnvironmentPatterns, pattern_name)
-
-                # Find pattern
-                match = re.search(pattern_str, latex_str)
-                if match:
-                    # Extract balanced braces after pattern
-                    start_pos = match.end()
-                    content, _ = extract_balanced_delimiters(latex_str, start_pos)
-
-                    # Store in context and/or result
-                    if output_context:
-                        context[output_context] = content
-                    if output_path:
-                        set_nested_field(result, output_path, content)
-
             elif operation == 'extract_regex':
-                # Extract using regex with named capture groups
-                regex = pattern_config['regex']
-                output_path = pattern_config.get('output_path')
-                output_paths = pattern_config.get('output_paths')
-                source = pattern_config.get('source')
+                # Extract all matches using regex with named capture groups
+                matches = extract_regex_matches(content_source, patterns['regex'])
 
-                # Get source content
-                if source:
-                    source_content = context.get(source, latex_str)
-                else:
-                    source_content = latex_str
-
-                # Extract all matches
-                matches = extract_regex_matches(source_content, regex)
-
-                if output_paths:
-                    # Mode: Single match, multiple named groups → multiple fields
+                # Determine output value based on match structure
+                if operation_config.get('output_paths'):
+                    # Mode: Single match, multiple named groups → dict
                     if matches:
-                        first_match = matches[0]
-                        for capture_group, field_path in output_paths.items():
-                            if capture_group in first_match:
-                                set_nested_field(result, field_path, first_match[capture_group])
-                elif output_path:
-                    # Mode: Multiple matches → list
-                    # Check if we want list of dicts or list of strings
-                    if matches and len(matches[0]) == 1:
-                        # Single capture group per match → list of strings
-                        field_name = list(matches[0].keys())[0]
-                        values = [m[field_name] for m in matches]
-                        set_nested_field(result, output_path, values)
-                    else:
-                        # Multiple capture groups per match → list of dicts
-                        set_nested_field(result, output_path, matches)
+                        value = matches[0]
+                        # Validate all required capture groups are present
+                        required_groups = set(operation_config['output_paths'].keys())
+                        actual_groups = set(value.keys())
+                        assert required_groups.issubset(actual_groups), \
+                            f"Missing capture groups: {required_groups - actual_groups}"
+                        
+                elif matches and len(matches[0]) == 1:
+                    # Single capture group per match → list of strings
+                    field_name = list(matches[0].keys())[0]
+                    value = [m[field_name] for m in matches]
+                else:
+                    # Multiple capture groups per match → list of dicts
+                    value = matches
+
+            elif operation == 'extract_braced_after_pattern':
+                # Find pattern, then extract balanced braces after it
+                pattern = patterns.get('search')
+                match = re.search(patterns.get('search'), content_source)
+                if not match:
+                    raise ValueError(f"Pattern not found: {pattern}")
+
+                value, _ = extract_balanced_delimiters( content_source, start_pos = match.end())
 
             elif operation == 'to_plaintext':
                 # Convert LaTeX to plaintext
-                source_path = pattern_config.get('source_path')
-                output_path = pattern_config.get('output_path')
+                # If source is a list, transform to list of dicts with {latex_raw, plaintext}
+                # If source is a string, convert to plaintext string
+                if isinstance(content_source, list):
+                    value = [
+                        {
+                            "latex_raw": item,
+                            "plaintext": to_plaintext(item)
+                        }
+                        for item in content_source
+                    ]
+                else:
+                    value = to_plaintext(content_source)
 
-                if source_path and output_path:
-                    # Get the LaTeX value from result dict
-                    latex_value = get_nested_field(result, source_path)
-                    if latex_value:
-                        # Convert to plaintext and save
-                        plaintext_value = to_plaintext(latex_value)
-                        set_nested_field(result, output_path, plaintext_value)
+            # Store output (unless it's recursive_parse which handles its own output)
+            if operation != 'recursive_parse' and value is not None:
+                set_output(value, operation_config, context, result)
 
         return result
 
@@ -573,150 +550,40 @@ class LaTeXToYAMLConverter:
         }
 
     def parse_work_experience(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse LaTeX itemizeAcademic environment to structured YAML.
+        return self.parse_section(latex_str, "work_experience")
 
-        See: archer/contexts/templating/types/work_experience/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
+    def parse_section(self, latex_str: str, section_type: str) -> Dict[str, Any]:
+        """
+        Generic section parser - loads config and delegates to parse_with_config().
+
+        Use this for all standard section types. Only create specialized methods
+        when custom post-processing logic is needed.
 
         Args:
-            latex_str: LaTeX source for work experience subsection
+            latex_str: LaTeX source for section
+            section_type: Type name matching parse_config filename (e.g., "skill_list_caps")
 
         Returns:
-            Dict matching YAML structure
+            Parsed dict matching YAML structure defined in type's parse_config.yaml
         """
-        config = self.parse_config_registry.get_config("work_experience")
-        result = self.parse_with_config(latex_str, config)
+        config = self.parse_config_registry.get_config(section_type)
+        return self.parse_with_config(latex_str, config)
 
-        if "metadata" not in result or "company" not in result["metadata"]:
-            raise ValueError("Failed to parse work_experience: No itemizeAcademic found")
-
-        return result
-
+    # Convenience aliases for common types (optional, can call parse_section directly)
     def parse_projects(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse standalone projects section (itemizeProjMain with itemizeProjSecond children).
-
-        See: archer/contexts/templating/types/projects/
-             - parse_config.yaml (parsing patterns)
-
-        Args:
-            latex_str: LaTeX source for projects section
-
-        Returns:
-            Dict with type='projects' and subsections list
-        """
-        config = self.parse_config_registry.get_config("projects")
-        result = self.parse_with_config(latex_str, config)
-
-        if "subsections" not in result:
-            raise ValueError("Failed to parse projects: No itemizeProjMain found")
-
-        return result
+        return self.parse_section(latex_str, "projects")
 
     def parse_skill_list_caps(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse skill_list_caps section (e.g., Core Skills).
-
-        See: archer/contexts/templating/types/skill_list_caps/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
-
-        Args:
-            latex_str: LaTeX source for skill list section
-
-        Returns:
-            Dict matching YAML structure
-        """
-        config = self.parse_config_registry.get_config("skill_list_caps")
-        result = self.parse_with_config(latex_str, config)
-
-        if "content" not in result or "list" not in result["content"]:
-            raise ValueError("No items found in skill_list_caps")
-
-        return result
+        return self.parse_section(latex_str, "skill_list_caps")
 
     def parse_skill_list_pipes(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse skill_list_pipes section (e.g., Languages, Hardware).
-
-        See: archer/contexts/templating/types/skill_list_pipes/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
-
-        Args:
-            latex_str: LaTeX source for pipe-separated skill list
-
-        Returns:
-            Dict matching YAML structure
-        """
-        config = self.parse_config_registry.get_config("skill_list_pipes")
-        result = self.parse_with_config(latex_str, config)
-
-        if "content" not in result or "list" not in result["content"]:
-            raise ValueError("No items found in skill_list_pipes")
-
-        return result
+        return self.parse_section(latex_str, "skill_list_pipes")
 
     def _parse_skill_category(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse individual skill_category (child element).
-
-        See: archer/contexts/templating/types/skill_category/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
-
-        Args:
-            latex_str: LaTeX source for single category
-
-        Returns:
-            Dict matching YAML structure
-        """
-        config = self.parse_config_registry.get_config("skill_category")
-        result = self.parse_with_config(latex_str, config)
-
-        if "metadata" not in result or "name" not in result["metadata"]:
-            raise self._create_parsing_error(
-                message="Failed to parse skill_category: No \\item[icon] {\\scshape name} pattern found",
-                type_name="skill_category",
-                latex_snippet=latex_str[:300]
-            )
-
-        # Ensure icon field exists (may be empty string)
-        if "icon" not in result["metadata"]:
-            result["metadata"]["icon"] = ""
-
-        return result
+        return self.parse_section(latex_str, "skill_category")
 
     def parse_skill_categories(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse skill_categories section (parent with multiple categories).
-
-        See: archer/contexts/templating/types/skill_categories/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
-
-        Each child category is parsed using skill_category type.
-
-        Args:
-            latex_str: LaTeX source for skill categories section
-
-        Returns:
-            Dict matching YAML structure
-        """
-        config = self.parse_config_registry.get_config("skill_categories")
-        result = self.parse_with_config(latex_str, config)
-
-        if "subsections" not in result or not result["subsections"]:
-            raise ValueError("No skill categories found")
-
-        return result
+        return self.parse_section(latex_str, "skill_categories")
 
     def parse_education(self, latex_str: str) -> Dict[str, Any]:
         """
@@ -752,27 +619,7 @@ class LaTeXToYAMLConverter:
         }
 
     def parse_personality_alias_array(self, latex_str: str) -> Dict[str, Any]:
-        """
-        Parse personality_alias_array section (e.g., Alias Array).
-
-        See: archer/contexts/templating/types/personality_alias_array/
-             - type.yaml (schema)
-             - template.tex.jinja (generation template)
-             - parse_config.yaml (parsing patterns)
-
-        Args:
-            latex_str: LaTeX source for personality section
-
-        Returns:
-            Dict matching YAML structure
-        """
-        config = self.parse_config_registry.get_config("personality_alias_array")
-        result = self.parse_with_config(latex_str, config)
-
-        if "content" not in result or "items" not in result["content"]:
-            raise ValueError("No items found in personality_alias_array")
-
-        return result
+        return self.parse_section(latex_str, "personality_alias_array")
 
     def _parse_as_custom_itemize(self, content: str) -> Dict[str, Any]:
         """

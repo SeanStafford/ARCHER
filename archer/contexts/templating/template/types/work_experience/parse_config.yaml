@@ -4,7 +4,7 @@
 #              \begin{itemizeXXXProject}{...}{...}{...} nested projects \end{...}
 #            \end{itemizeAcademic}
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
@@ -27,7 +27,7 @@ patterns:
   split_title:
     operation: split
     source_path: metadata.title
-    delimiter: '\\\\'
+    delimiter_pattern: '\\\\'
     output_paths:
       - metadata.title
       - metadata.subtitle

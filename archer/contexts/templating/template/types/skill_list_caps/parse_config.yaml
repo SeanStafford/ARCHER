@@ -5,7 +5,7 @@
 #           Item 2
 #         }
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
@@ -13,14 +13,22 @@ patterns:
     value: skill_list_caps
 
   # Extract braced content after formatting commands
+  # Pattern matches opening brace through newline
+  # Then proper brace matching extracts content until closing brace
   braced_content:
     operation: extract_braced_after_pattern
-    pattern: '\{\s*\\setlength\{\\baselineskip\}.*?\\scshape\s*'
-    output_context: braced_content
+    search_pattern: '\{\s*\\setlength.*?\n'
+    output_context: braces_content
 
-  # Split extracted content into items
+  # Extract items as strings
+  items_raw:
+    operation: extract_regex
+    source: braces_content
+    regex_pattern: '\s*(?P<item>\S[\s\S]*?)(?=\n\s*\n|\\par\s*|$)'
+    output_context: items_strings
+
+  # Transform strings to dicts with {latex_raw, plaintext}
   items:
-    operation: split
-    source: braced_content
-    delimiter: '\n\s*\n|\\par\s*'
-    output_path: content.list
+    operation: to_plaintext
+    source: items_strings
+    output_path: content.items

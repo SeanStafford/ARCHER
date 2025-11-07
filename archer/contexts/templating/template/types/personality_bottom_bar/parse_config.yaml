@@ -4,7 +4,7 @@
 #           text content}
 #         \end{textblock*}
 
-patterns:
+operations:
   # Set type field
   type_field:
     extract_literal: type
@@ -12,7 +12,7 @@ patterns:
 
 # Section pattern to find \section*{ opening (not for parse_with_config)
 section_opening:
-  regex: '\\section\*\{'
+  regex_pattern: '\\section\*\{'
   # After finding this, use extract_balanced_delimiters to get section name
 
 # Cleanup patterns for section name and text content

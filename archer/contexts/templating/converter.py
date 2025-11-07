@@ -10,22 +10,12 @@ This module exports:
 """
 
 import re
-import os
 from pathlib import Path
 from typing import Any, Dict
 
 from omegaconf import OmegaConf
-from dotenv import load_dotenv
 
-from archer.contexts.templating.latex_patterns import (
-    DocumentRegex,
-    EnvironmentPatterns,
-)
-
-load_dotenv()
-
-
-# Import converter classes
+from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
 from archer.contexts.templating.latex_generator import YAMLToLaTeXConverter
 from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
 

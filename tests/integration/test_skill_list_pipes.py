@@ -16,25 +16,25 @@ from archer.contexts.templating.converter import (
 )
 
 load_dotenv()
-STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
+FIXTURES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "fixtures"
 
 
 @pytest.mark.integration
 def test_yaml_to_latex_skill_list_pipes():
     """Test converting YAML skill list to LaTeX pipe-separated format."""
-    yaml_path = STRUCTURED_PATH / "languages_test.yaml"
+    yaml_path = FIXTURES_PATH / "languages_test.yaml"
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
     # Extract expected items from YAML fixture
-    expected_items = yaml_dict["section"]["content"]["list"]
+    expected_items = yaml_dict["section"]["content"]["items"]
 
     converter = YAMLToLaTeXConverter()
     latex = converter.convert_skill_list_pipes(yaml_dict["section"])
 
     # Verify all expected items present in generated LaTeX
     for item in expected_items:
-        assert f"\\texttt{{{item}}}" in latex
+        assert item['latex_raw'] in latex
 
     # Verify pipe separators present
     assert " | " in latex
@@ -43,31 +43,34 @@ def test_yaml_to_latex_skill_list_pipes():
 @pytest.mark.integration
 def test_latex_to_yaml_skill_list_pipes():
     """Test parsing LaTeX pipe-separated skill list to YAML structure."""
-    latex_path = STRUCTURED_PATH / "languages_test.tex"
-    yaml_path = STRUCTURED_PATH / "languages_test.yaml"
+    latex_path = FIXTURES_PATH / "languages_test.tex"
+    yaml_path = FIXTURES_PATH / "languages_test.yaml"
 
     # Load expected structure from YAML fixture
     yaml_data = OmegaConf.load(yaml_path)
     expected = OmegaConf.to_container(yaml_data)["section"]
 
-    # Parse LaTeX
+    # Parse LaTeX (extract just the content line, not the section header)
     latex_str = latex_path.read_text(encoding="utf-8")
+    # Extract the pipe-separated content line (skip section header)
+    content_line = [line for line in latex_str.split('\n') if '|' in line][0].strip()
+
     converter = LaTeXToYAMLConverter()
-    result = converter.parse_skill_list_pipes(latex_str)
+    result = converter.parse_skill_list_pipes(content_line)
 
     # Validate against expected YAML structure (dynamic, not hardcoded)
     assert result["type"] == expected["type"]
-    assert "list" in result["content"]
-    assert len(result["content"]["list"]) == len(expected["content"]["list"])
+    assert "items" in result["content"]
+    assert len(result["content"]["items"]) == len(expected["content"]["items"])
 
     # Verify all expected items are parsed in correct order
-    assert result["content"]["list"] == expected["content"]["list"]
+    assert result["content"]["items"] == expected["content"]["items"]
 
 
 @pytest.mark.integration
 def test_skill_list_pipes_roundtrip():
     """Test full round-trip: YAML -> LaTeX -> YAML."""
-    yaml_path = STRUCTURED_PATH / "languages_test.yaml"
+    yaml_path = FIXTURES_PATH / "languages_test.yaml"
     original_yaml = OmegaConf.load(yaml_path)
     original_dict = OmegaConf.to_container(original_yaml, resolve=True)
 
@@ -83,19 +86,22 @@ def test_skill_list_pipes_roundtrip():
     assert roundtrip_dict == original_dict["section"]
 
     # Verify order preservation (critical for languages - Python first = primary)
-    assert roundtrip_dict["content"]["list"] == original_dict["section"]["content"]["list"]
+    assert roundtrip_dict["content"]["items"] == original_dict["section"]["content"]["items"]
 
 
 @pytest.mark.integration
 def test_skill_list_pipes_special_characters():
     """Test handling of special characters like ++ in C++."""
-    # Test data with special characters
-    expected_items = ["C++", "C\\#", "F\\#"]
-    latex_snippet = " | ".join(f"\\texttt{{{item}}}" for item in expected_items)
+    # Test data with special characters (formatted as in LaTeX source)
+    expected_items_plain = ["C++", "C\\#", "F\\#"]
+    expected_items_formatted = [f"\\texttt{{{item}}}" for item in expected_items_plain]
+    latex_snippet = " | ".join(expected_items_formatted)
 
     converter = LaTeXToYAMLConverter()
     result = converter.parse_skill_list_pipes(latex_snippet)
 
-    items = result["content"]["list"]
-    for item in expected_items:
-        assert item in items
+    items = result["content"]["items"]
+    # Parser preserves formatting in latex_raw field, check structured dicts
+    latex_raws = [item["latex_raw"] for item in items]
+    for expected_formatted in expected_items_formatted:
+        assert expected_formatted in latex_raws

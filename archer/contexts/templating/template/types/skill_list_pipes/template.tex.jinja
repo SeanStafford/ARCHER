@@ -1,1 +1,2 @@
-    <%% for item in content.list %%><<< item >>><%% if not loop.last %%> | <%% endif %%><%% endfor %%>
+    <%% for item in content['items'] %%><<< item.latex_raw >>><%% if item.latex_raw.endswith('\\\\') %%>
+    <%% elif not loop.last %%> | <%% endif %%><%% endfor %%>

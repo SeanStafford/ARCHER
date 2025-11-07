@@ -2,7 +2,7 @@
 # Note: This type uses custom parsing logic due to complex nested structure
 # Config documents expected patterns for reference
 
-patterns:
+operations:
   # Set type field
   type_field:
     extract_literal: type

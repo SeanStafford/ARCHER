@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 from jinja2 import TemplateNotFound
 
-from archer.contexts.templating.template_registry import TemplateRegistry
+from archer.contexts.templating.registries import TemplateRegistry
 
 
 @pytest.mark.unit
@@ -83,10 +83,10 @@ def test_template_rendering():
     test_data = {
         "type": "skill_list_caps",
         "content": {
-            "list": [
-                "Python",
-                "Machine Learning",
-                "High Performance Computing"
+            "items": [
+                {"latex_raw": "Python", "plaintext": "Python"},
+                {"latex_raw": "Machine Learning", "plaintext": "Machine Learning"},
+                {"latex_raw": "High Performance Computing", "plaintext": "High Performance Computing"}
             ]
         }
     }
@@ -113,8 +113,8 @@ def test_custom_delimiters():
     test_data = {
         "type": "skill_list_caps",
         "content": {
-            "list": [
-                "\\textbf{Bold Text}",  # LaTeX command with braces
+            "items": [
+                {"latex_raw": "\\textbf{Bold Text}", "plaintext": "Bold Text"},  # LaTeX command with braces
             ]
         }
     }

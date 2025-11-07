@@ -108,6 +108,22 @@ test-cov-html: test-cov
 	xdg-open htmlcov/index.html 2>/dev/null || open htmlcov/index.html 2>/dev/null || echo "Please open htmlcov/index.html manually"
 
 #################################################################################
+# RESUME PROCESSING COMMANDS                                                    #
+#################################################################################
+
+## Clean and normalize all historical resumes (raw/ → processed/)
+.PHONY: normalize-archive
+normalize-archive:
+	$(PYTHON_INTERPRETER) scripts/process_all_resumes.py
+	@echo ">>> Resume archive normalized"
+
+## Convert all LaTeX resumes to structured YAML (archive/ → structured/)
+.PHONY: generate-yaml-archive
+generate-yaml-archive:
+	$(PYTHON_INTERPRETER) scripts/latex_to_yaml.py batch
+	@echo ">>> YAML archive generated in resume_archive/structured/"
+
+#################################################################################
 # UTILITY COMMANDS                                                              #
 #################################################################################
 

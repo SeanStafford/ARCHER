@@ -130,7 +130,7 @@ class YAMLToLaTeXConverter:
         """
         # Get environment name from parse config
         config = self.parse_config_registry.get_config("work_experience")
-        latex_environment = config['patterns']['environment']['env_name']
+        latex_environment = config['operations']['environment']['env_name']
 
         metadata = subsection["metadata"]
         content = subsection["content"]
@@ -309,7 +309,7 @@ class YAMLToLaTeXConverter:
         args = decoration["args"]
 
         if command == "textblock":
-            # Special handling: wrap LaTeX literal (Layer 5) in textblock (Layer 2)
+            # Special handling: wrap LaTeX literal in textblock
             if textblock_content:
                 inner_content = self.generate_textblock_literal(textblock_content)
                 return format_latex_environment(
@@ -340,7 +340,7 @@ class YAMLToLaTeXConverter:
         lines.append(regex_to_literal(PageRegex.BEGIN_PARACOL))
         lines.append("")
 
-        # Generate page decorations (Layer 2: absolute positioning)
+        # Generate page decorations (which have absolute positioning)
         # Render textblock + grad/bar commands at top of page
         if page_data.get("decorations"):
             for decoration in page_data["decorations"]:

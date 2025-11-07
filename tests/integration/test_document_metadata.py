@@ -16,14 +16,14 @@ from archer.contexts.templating.converter import (
 )
 
 load_dotenv()
-STRUCTURED_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "structured"
+FIXTURES_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH")) / "fixtures"
 
 
 @pytest.mark.integration
 def test_parse_document_metadata():
     """Test parsing document metadata from LaTeX preamble."""
-    latex_path = STRUCTURED_PATH / "document_metadata_test.tex"
-    yaml_path = STRUCTURED_PATH / "document_metadata_test.yaml"
+    latex_path = FIXTURES_PATH / "document_metadata_test.tex"
+    yaml_path = FIXTURES_PATH / "document_metadata_test.yaml"
 
     # Load expected values from YAML fixture
     expected_yaml = OmegaConf.load(yaml_path)
@@ -35,12 +35,18 @@ def test_parse_document_metadata():
     metadata = parser.extract_document_metadata(latex_str)
 
     # Validate against expected YAML values (dynamic, not hardcoded)
-    assert metadata["name"] == expected["name"]
+    # Parser returns dual fields: raw (with LaTeX formatting) + plaintext
+    # The fixture stores semantic plaintext values, so compare against name_plaintext
+    assert metadata["name_plaintext"] == expected["name"]
     assert metadata["date"] == expected["date"]
-    assert metadata["brand"] == expected["brand"]
+    assert metadata["brand_plaintext"] == expected["brand"]
 
-    # Verify professional profile
-    assert metadata["professional_profile"] == expected["professional_profile"]
+    # Verify name field preserves LaTeX formatting
+    assert "\\textbf{" in metadata["name"]
+    assert expected["name"] in metadata["name"]  # Plaintext is contained in raw
+
+    # Verify professional profile (dual fields)
+    assert metadata["professional_profile_plaintext"] == expected["professional_profile"]
 
     # Verify colors
     for color_key in expected["colors"]:
@@ -56,10 +62,10 @@ def test_parse_document_metadata():
 def test_generate_preamble():
     """Test generating LaTeX preamble from metadata."""
     metadata = {
-        "name": "Sean Stafford",
+        "name": "\\textbf{Sean Stafford}",  # Raw LaTeX for template
         "date": "July 2025",
         "brand": "Research Infrastructure Engineer | Physicist",
-        "professional_profile": "Physicist scaling research infrastructure from quantum simulation pipelines to LLM benchmarking systems",
+        "professional_profile": "\\centering \\textbf{Physicist scaling research infrastructure from quantum simulation pipelines to LLM benchmarking systems}\\par",
         "colors": {
             "emphcolor": "NetflixDark",
             "topbarcolor": "black",
@@ -69,7 +75,14 @@ def test_generate_preamble():
         },
         "fields": {
             "pdfkeywords": "Sean, Stafford, Resume"
-        }
+        },
+        "setlengths": {  # Required by template
+            "leftmargin": "0.4in",
+            "rightmargin": "0.5in",
+            "aboveheader": "10pt",
+            "bottommargin": "0.2in"
+        },
+        "deflens": {}  # Required by template (can be empty)
     }
 
     generator = YAMLToLaTeXConverter()
@@ -95,7 +108,7 @@ def test_generate_preamble():
 @pytest.mark.integration
 def test_metadata_roundtrip():
     """Test full round-trip: LaTeX → metadata → LaTeX."""
-    latex_path = STRUCTURED_PATH / "document_metadata_test.tex"
+    latex_path = FIXTURES_PATH / "document_metadata_test.tex"
     original_latex = latex_path.read_text(encoding="utf-8")
 
     # Parse metadata
@@ -136,10 +149,13 @@ def test_metadata_without_profile():
     parser = LaTeXToYAMLConverter()
     metadata = parser.extract_document_metadata(latex)
 
-    assert metadata["name"] == "Test Name"
+    # Parser returns dual fields: raw + plaintext
+    assert metadata["name_plaintext"] == "Test Name"
+    assert "\\textbf{Test Name}" == metadata["name"]  # Raw preserves formatting
     assert metadata["date"] == "January 2025"
-    assert metadata["brand"] == "Software Engineer"
+    assert metadata["brand_plaintext"] == "Software Engineer"
     assert metadata["professional_profile"] is None
+    assert metadata["professional_profile_plaintext"] is None
     assert metadata["colors"]["emphcolor"] == "black"
 
 
@@ -161,9 +177,11 @@ def test_metadata_field_preservation():
     parser = LaTeXToYAMLConverter()
     metadata = parser.extract_document_metadata(latex)
 
-    # Known fields extracted correctly
-    assert metadata["name"] == "Test User"
-    assert metadata["brand"] == "Test Brand"
+    # Known fields extracted correctly (dual fields: raw + plaintext)
+    assert metadata["name_plaintext"] == "Test User"
+    assert metadata["name"] == "\\textbf{Test User}"  # Raw preserves formatting
+    assert metadata["brand_plaintext"] == "Test Brand"
+    assert metadata["brand"] == "Test Brand"  # Brand has no formatting in this test
 
     # Custom fields preserved in fields dict
     assert "customfield" in metadata["fields"]

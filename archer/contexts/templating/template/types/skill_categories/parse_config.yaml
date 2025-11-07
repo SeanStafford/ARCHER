@@ -7,7 +7,7 @@
 #              \end{itemizeLL}
 #            \end{itemize}
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
@@ -27,6 +27,7 @@ patterns:
     operation: split
     source: itemize_content
     delimiter_pattern: SKILL_CATEGORY_HEADER
+    keep_delimiter: true
     output_context: category_chunks
 
   # Recursively parse each chunk as a skill_category

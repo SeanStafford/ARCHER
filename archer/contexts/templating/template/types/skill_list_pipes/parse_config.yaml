@@ -1,16 +1,22 @@
 # Parsing configuration for skill_list_pipes
 # Structural pattern: items separated by ' | ' delimiter
-# Items may have formatting (\texttt{}, {}, or plain text) - parser extracts as-is
+# Items post-processed in Python to format as dicts with plaintext and latex_raw
 
-patterns:
+operations:
   # Set type field to literal value
   type_field:
     operation: set_literal
     output_path: type
     value: skill_list_pipes
 
-  # Split on pipe delimiter to extract items
+  # Extract items including optional line breaks
+  items_raw:
+    operation: extract_regex
+    regex_pattern: '(?P<item>[^|\s]+(\s*\\\\)?)'
+    output_context: items_strings
+
+  # Transform strings to dicts with {latex_raw, plaintext}
   items:
-    operation: split
-    delimiter: '\s*\|\s*'
-    output_path: content.list
+    operation: to_plaintext
+    source: items_strings
+    output_path: content.items

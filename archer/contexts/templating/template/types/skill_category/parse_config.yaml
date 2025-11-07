@@ -2,7 +2,7 @@
 # Defines how to extract data from LaTeX format: \item[\faIcon] {\scshape Name} \begin{itemizeLL} ...
 # Handles two hspace variants: \item[]{\hspace{...}...} and \item[]\hspace{...}{...}
 
-patterns:
+operations:
   # Set type field to literal value
   type_field:
     operation: set_literal
@@ -21,12 +21,12 @@ patterns:
     operation: parse_itemize_content
     source: itemizeLL_content
     marker_pattern: ITEM_ANY
-    output_path: content.list
+    output_path: content.bullets
 
   # Extract all metadata with single regex (marker, name_raw, nolinebreak)
   metadata:
     operation: extract_regex
-    regex: '(?P<marker>\\item\[.*?\])\s*(?P<name_raw>[^\n]+?)(?:\s+(?P<nolinebreak>\\nolinebreak))?(?=\n|$)'
+    regex_pattern: '(?P<marker>\\item\[.*?\])\s*(?P<name_raw>[^\n]+?)(?:\s+(?P<nolinebreak>\\nolinebreak))?(?=\n|$)'
     output_paths:
       marker: metadata.marker
       name_raw: metadata.name_raw
@@ -35,7 +35,7 @@ patterns:
   # Extract optional TOC title from \addcontentsline (may be on next line)
   toc_title:
     operation: extract_regex
-    regex: '\\addcontentsline\{toc\}\{section\}\{(?P<toc_title>[^}]+)\}'
+    regex_pattern: '\\addcontentsline\{toc\}\{section\}\{(?P<toc_title>[^}]+)\}'
     output_paths:
       toc_title: metadata.toc_title
 

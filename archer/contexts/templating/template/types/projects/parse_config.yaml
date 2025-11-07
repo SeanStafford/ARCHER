@@ -4,7 +4,7 @@
 #              \begin{itemizeProjSecond}{bullet}{name}{dates} ... \end{itemizeProjSecond}
 #            \end{itemizeProjMain}
 
-patterns:
+operations:
   # Set type field
   type_field:
     operation: set_literal
