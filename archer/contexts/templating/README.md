@@ -71,113 +71,17 @@ The parsing system uses a **unified `parse_with_config()` method** that reads de
 
 ### Available Operations
 
-**`set_literal`** - Set a literal value
-```yaml
-type_field:
-  operation: set_literal
-  output_path: type
-  value: work_experience
-```
+- **`set_literal`** - Set a literal value (e.g., `type: work_experience`)
+- **`extract_environment`** - Extract LaTeX environment with parameters (e.g., `\begin{itemizeAcademic}{company}{title}{location}{dates}`)
+- **`split`** - Split strings on delimiters (e.g., split title on `\\`)
+- **`recursive_parse`** - Parse nested structures using another config (e.g., nested projects)
+- **`parse_itemize_content`** - Parse bullet lists with markers (e.g., `\itemi`, `\itemii`)
+- **`extract_braced_after_pattern`** - Extract balanced braces after pattern
+- **`extract_regex`** - Extract using named capture groups
 
-**`extract_environment`** - Extract LaTeX environment with parameters
-```yaml
-environment:
-  operation: extract_environment
-  env_name: itemizeAcademic
-  num_params: 4
-  param_names:
-    - metadata.company
-    - metadata.title
-    - metadata.location
-    - metadata.dates
-  output_context: environment_content  # Store content for later ops
-```
+Operations execute in order. Some operations store content in contexts (e.g., `environment_content`) for later operations to consume.
 
-**`split`** - Split strings on delimiters (regex or literal)
-```yaml
-split_title:
-  operation: split
-  source_path: metadata.title
-  delimiter: '\\\\'  # Split on \\
-  output_paths:
-    - metadata.title
-    - metadata.subtitle
-```
-
-**`recursive_parse`** - Parse nested structures using another config
-```yaml
-projects:
-  operation: recursive_parse
-  source: environment_content
-  recursive_pattern: ITEMIZE_PROJECT_ENV
-  config_name: project
-  output_path: content.projects
-```
-
-**`parse_itemize_content`** - Parse bullet lists with markers
-```yaml
-bullets:
-  operation: parse_itemize_content
-  marker_pattern: ITEM_ANY
-  source: environment_content
-  output_path: content.bullets
-```
-
-**`extract_braced_after_pattern`** - Extract balanced braces after pattern
-```yaml
-extract_braced:
-  operation: extract_braced_after_pattern
-  pattern: '(\{)\s*\\setlength'  # Capture opening brace
-  output_context: braced_content
-```
-
-**`extract_regex`** - Extract using named capture groups
-```yaml
-header:
-  operation: extract_regex
-  regex: '\\item\[(?P<icon>[^\]]*)\].*?\\scshape\s+(?P<name>[^}]+)\}'
-  extract:
-    icon: metadata.icon
-    name: metadata.name
-```
-
-### Example: work_experience Parse Config
-
-```yaml
-patterns:
-  type_field:
-    operation: set_literal
-    output_path: type
-    value: work_experience
-
-  environment:
-    operation: extract_environment
-    env_name: itemizeAcademic
-    num_params: 4
-    param_names: [metadata.company, metadata.title, metadata.location, metadata.dates]
-    output_context: environment_content
-
-  split_title:
-    operation: split
-    source_path: metadata.title
-    delimiter: '\\\\'
-    output_paths: [metadata.title, metadata.subtitle]
-
-  projects:
-    operation: recursive_parse
-    recursive_pattern: ITEMIZE_PROJECT_ENV
-    config_name: project
-    source: environment_content
-    output_path: content.projects
-
-  bullets:
-    operation: parse_itemize_content
-    marker_pattern: ITEM_ANY
-    source: environment_content
-    output_path: content.bullets
-```
-
-Operations execute in order. The `environment` operation stores content in `environment_content` context, which later operations (`projects`, `bullets`) read from. The `projects` operation removes nested projects from the content before `bullets` extracts remaining items.
+**For detailed examples and complete parse config walkthroughs, see [docs/OPERATION_BASED_PARSING.md](../../docs/OPERATION_BASED_PARSING.md).**
 
 ### Example: Template File
 
