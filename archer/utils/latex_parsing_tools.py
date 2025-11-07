@@ -559,29 +559,54 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
     return items
 
 
-def unwrap_command(text: str, command: str) -> str:
+def replace_command(text: str, command: str, prefix: str = "", suffix: str = "") -> str:
     """
-    Remove LaTeX command wrapper but keep the content inside.
+    Replace LaTeX command with optional prefix/suffix around content.
 
-    For example, \\textbf{content} becomes just "content".
-    Handles nested braces correctly.
+    Handles nested braces correctly using balanced delimiter matching.
 
     Args:
         text: Text containing the command
         command: Command name without backslash (e.g., "textbf", "centering")
+        prefix: String to insert before content (default: "")
+        suffix: String to insert after content (default: "")
 
     Returns:
-        Text with command wrapper removed
+        Text with command replaced by prefix + content + suffix
 
-    Example:
-        >>> unwrap_command("\\\\textbf{bold text}", "textbf")
+    Examples:
+        >>> replace_command("\\\\textbf{bold text}", "textbf")
         'bold text'
-        >>> unwrap_command("Normal \\\\textbf{bold} text", "textbf")
-        'Normal bold text'
+        >>> replace_command("\\\\textbf{bold}", "textbf", "**", "**")
+        '**bold**'
+        >>> replace_command("Normal \\\\textbf{bold} text", "textbf", "**", "**")
+        'Normal **bold** text'
+        >>> replace_command("\\\\textbf{text \\\\texttt{nested} more}", "textbf")
+        'text \\\\texttt{nested} more'
     """
-    # Build pattern from template, escaping command name
-    pattern = LaTeXPatterns.COMMAND_WITH_BRACES.format(command=re.escape(command))
-    return re.sub(pattern, r'\1', text)
+    result = text
+    command_pattern = f'\\{command}{{'
+
+    while True:
+        # Find next occurrence of \command{
+        pos = result.find(command_pattern)
+        if pos == -1:
+            break
+
+        # Position AFTER opening brace (extract_balanced_delimiters expects this)
+        brace_pos = pos + len(command_pattern)
+
+        try:
+            # Extract content using balanced delimiter matching
+            content, end_pos = extract_balanced_delimiters(result, brace_pos)
+
+            # Replace \command{content} with prefix + content + suffix
+            result = result[:pos] + prefix + content + suffix + result[end_pos:]
+        except ValueError:
+            # Unmatched braces, skip this occurrence
+            break
+
+    return result
 
 
 def strip_formatting(text: str, commands: List[str]) -> str:
@@ -678,7 +703,7 @@ def to_plaintext(latex_str: str) -> str:
     # Remove common content wrappers by unwrapping them
     wrappers = ['textbf', 'textit', 'emph', 'underline', 'texttt', 'scshape']
     for wrapper in wrappers:
-        result = unwrap_command(result, wrapper)
+        result = replace_command(result, wrapper)
 
     # Remove color commands (\\color{...}{...} or \\color{...})
     result = re.sub(LaTeXPatterns.COLOR_WITH_TEXT, r'\1', result)
@@ -693,6 +718,21 @@ def to_plaintext(latex_str: str) -> str:
 
     # Handle line breaks (\\) - convert to space
     result = result.replace(r'\\', ' ')
+
+    # Handle common math mode symbols before general command removal
+    math_symbols = [
+        (' to ', r'$\to$'),      # Arrow: 1 $\to$ 64 -> 1 to 64
+        ('->', r'\to'),          # Bare arrow command
+        ('->', r'\rightarrow'),  # Right arrow
+        ('<-', r'\leftarrow'),   # Left arrow
+        ('<=', r'\leq'),         # Less than or equal
+        ('>=', r'\geq'),         # Greater than or equal
+        ('!=', r'\neq'),         # Not equal
+        ('~', r'\sim'),          # Similar to
+        ('≈', r'\approx'),       # Approximately
+    ]
+    for replacement, latex_cmd in math_symbols:
+        result = result.replace(latex_cmd, replacement)
 
     # Handle escaped special characters and spacing commands
     # These must be done before general command removal
@@ -709,6 +749,9 @@ def to_plaintext(latex_str: str) -> str:
     ]
     for replacement, escaped in escaped_chars:
         result = result.replace(escaped, replacement)
+
+    # Remove math mode delimiters ($...$) after handling math symbols
+    result = result.replace('$', '')
 
     # Remove any remaining backslash commands (\\command or \\command{...})
     # First remove commands with braces
