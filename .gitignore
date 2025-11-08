@@ -82,6 +82,9 @@ Thumbs.db
 .env
 .env.local
 
+# For local experimentation
+notebooks/*
+
 # Temporary files
 *.tmp
 *.bak
