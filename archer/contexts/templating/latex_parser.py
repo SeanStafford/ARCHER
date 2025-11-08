@@ -1031,6 +1031,9 @@ class LaTeXToYAMLConverter:
             try:
                 section_dict = self._parse_section_by_inference(section_name, section_content, region_name)
 
+                # Add plaintext version of section name
+                section_dict['name_plaintext'] = to_plaintext(section_name)
+
                 # Add spacing metadata if present
                 if spacing_after:
                     section_dict['spacing_after'] = spacing_after

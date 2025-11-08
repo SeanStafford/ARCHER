@@ -40,7 +40,7 @@ class ResumeSection:
     Provides lazy-evaluated plaintext representation for search and analysis.
 
     Attributes:
-        name: Section name (e.g., "Core Skills", "Experience")
+        name: Section name in plaintext (e.g., "AI & Machine Learning", "Core Skills")
         section_type: Type identifier (e.g., "work_experience", "skill_list_caps")
         data: Structured content (varies by section type)
         page_number: Page number where section appears (1-indexed)
@@ -193,8 +193,8 @@ class ResumeDocument:
                     continue
 
                 for section_data in region_data["sections"]:
-                    # Get section name from container
-                    section_name = section_data["name"]
+                    # Get section name (plaintext version for analysis)
+                    section_name = section_data.get("name_plaintext", section_data["name"])
 
                     # Skip section if name matches any blacklist pattern
                     if any(re.search(pattern, section_name, re.IGNORECASE) for pattern in self.blacklist_patterns):
@@ -204,7 +204,7 @@ class ResumeDocument:
                         # Parse all subsections
                         subsections = [self._get_section_data(subsection) for subsection in section_data["subsections"]]
                         data = {"subsections": subsections}
-                        
+
                     else:
                         # Handle direct sections
                         data = self._get_section_data(section_data)
