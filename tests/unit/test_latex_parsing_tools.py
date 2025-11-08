@@ -484,7 +484,7 @@ class TestExtractEnvironment:
         """Test that ValueError is raised when environment not found."""
         text = r'Some text without the environment'
 
-        with pytest.raises(ValueError, match=r"No environment start pattern found"):
+        with pytest.raises(ValueError, match=r"No \\begin\{itemize\} found"):
             extract_environment(text, "itemize")
 
     def test_unmatched_environment_error(self):
@@ -651,7 +651,7 @@ class TestExtractEnvironmentContent:
     def test_environment_not_found(self):
         """Test ValueError when environment not found."""
         text = r'No environment here'
-        with pytest.raises(ValueError, match=r"No environment start pattern found"):
+        with pytest.raises(ValueError, match=r"No \\begin\{itemize\} found"):
             extract_environment_content(text, 'itemize')
 
     def test_unmatched_begin(self):
