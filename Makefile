@@ -117,6 +117,22 @@ test-cov-html: test-cov
 	@echo ">>> Opening coverage report..."
 	xdg-open htmlcov/index.html 2>/dev/null || open htmlcov/index.html 2>/dev/null || echo "Please open htmlcov/index.html manually"
 
+## Test roundtrip conversion on a single resume
+.PHONY: test-roundtrip
+test-roundtrip:
+	@if [ -z "$(FILE)" ]; then \
+		echo "ERROR: FILE parameter required"; \
+		echo "Usage: make test-roundtrip FILE=path/to/resume.tex"; \
+		exit 1; \
+	fi
+	$(PYTHON_INTERPRETER) scripts/test_roundtrip.py test $(FILE)
+
+## Test roundtrip conversion on all resumes (batch mode)
+.PHONY: test-roundtrip-all
+test-roundtrip-all:
+	$(PYTHON_INTERPRETER) scripts/test_roundtrip.py batch
+	@echo ">>> Roundtrip tests complete"
+
 #################################################################################
 # RESUME PROCESSING COMMANDS                                                    #
 #################################################################################
