@@ -776,6 +776,55 @@ def to_plaintext(latex_str: str) -> str:
     return result
 
 
+def to_latex(plaintext_str: str) -> str:
+    """
+    Convert plaintext to LaTeX by escaping special characters.
+
+    STUB IMPLEMENTATION: Currently only handles ampersand escaping.
+    Will be expanded as needed to handle other LaTeX special characters
+    and formatting requirements for reverse conversion.
+
+    Current conversions:
+    - & → \\&
+
+    Future conversions (to be implemented as needed):
+    - % → \\%
+    - $ → \\$
+    - # → \\#
+    - _ → \\_
+    - { → \\{
+    - } → \\}
+    - ~ → \\textasciitilde or \\~{}
+    - ^ → \\textasciicircum or \\^{}
+    - \\ → \\textbackslash
+    - Line breaks and spacing
+    - Text formatting (bold, italic, etc.)
+
+    Args:
+        plaintext_str: Plain text string
+
+    Returns:
+        LaTeX string with special characters escaped
+
+    Example:
+        >>> to_latex("AI & Machine Learning")
+        'AI \\\\& Machine Learning'
+    """
+    if not plaintext_str:
+        return ''
+
+    result = plaintext_str
+
+    # Escape ampersand
+    result = result.replace('&', r'\&')
+
+    # TODO: Add other special character escaping as needed
+    # TODO: Add text formatting conversion (e.g., **bold** → \\textbf{bold})
+    # TODO: Add line break handling
+
+    return result
+
+
 # Used only once in converter, might not be useful. Might replace it with other, more general function(s)
 def skip_latex_arguments(
     text: str,

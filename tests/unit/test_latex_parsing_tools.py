@@ -15,6 +15,7 @@ from archer.utils.latex_parsing_tools import (
     extract_sequential_params,
     extract_environment_content,
     to_plaintext,
+    to_latex,
     extract_brace_arguments,
     replace_command,
     strip_formatting,
@@ -749,6 +750,112 @@ class TestToPlaintext:
         """Test that extra whitespace is cleaned up."""
         result = to_plaintext('Text   with    extra   spaces')
         assert result == 'Text with extra spaces'
+
+
+class TestToLatex:
+    """Tests for to_latex function."""
+
+    # Tests for current functionality (ampersand escaping)
+    def test_escape_ampersand(self):
+        """Test escaping single ampersand."""
+        result = to_latex('AI & Machine Learning')
+        assert result == r'AI \& Machine Learning'
+
+    def test_multiple_ampersands(self):
+        """Test escaping multiple ampersands."""
+        result = to_latex('A & B & C')
+        assert result == r'A \& B \& C'
+
+    def test_ampersand_only(self):
+        """Test escaping ampersand alone."""
+        result = to_latex('&')
+        assert result == r'\&'
+
+    def test_empty_string(self):
+        """Test empty string returns empty string."""
+        result = to_latex('')
+        assert result == ''
+
+    def test_no_special_chars(self):
+        """Test text without special characters passes through unchanged."""
+        result = to_latex('Hello World')
+        assert result == 'Hello World'
+
+    # Tests for future functionality (marked xfail)
+    @pytest.mark.xfail(reason="Percent escaping not yet implemented")
+    def test_escape_percent(self):
+        """Test escaping percent sign."""
+        result = to_latex('50% improvement')
+        assert result == r'50\% improvement'
+
+    @pytest.mark.xfail(reason="Dollar sign escaping not yet implemented")
+    def test_escape_dollar(self):
+        """Test escaping dollar sign."""
+        result = to_latex('Cost: $100')
+        assert result == r'Cost: \$100'
+
+    @pytest.mark.xfail(reason="Hash escaping not yet implemented")
+    def test_escape_hash(self):
+        """Test escaping hash/pound sign."""
+        result = to_latex('Issue #123')
+        assert result == r'Issue \#123'
+
+    @pytest.mark.xfail(reason="Underscore escaping not yet implemented")
+    def test_escape_underscore(self):
+        """Test escaping underscore."""
+        result = to_latex('variable_name')
+        assert result == r'variable\_name'
+
+    @pytest.mark.xfail(reason="Brace escaping not yet implemented")
+    def test_escape_braces(self):
+        """Test escaping literal braces."""
+        result = to_latex('Use { and } for grouping')
+        assert result == r'Use \{ and \} for grouping'
+
+    @pytest.mark.xfail(reason="Tilde escaping not yet implemented")
+    def test_escape_tilde(self):
+        """Test escaping tilde."""
+        result = to_latex('~username')
+        # Could be \textasciitilde or \~{}
+        assert r'\textasciitilde' in result or r'\~{}' in result
+
+    @pytest.mark.xfail(reason="Caret escaping not yet implemented")
+    def test_escape_caret(self):
+        """Test escaping caret."""
+        result = to_latex('x^2')
+        # Could be \textasciicircum or \^{}
+        assert r'\textasciicircum' in result or r'\^{}' in result
+
+    @pytest.mark.xfail(reason="Backslash escaping not yet implemented")
+    def test_escape_backslash(self):
+        """Test escaping backslash."""
+        result = to_latex(r'C:\path\to\file')
+        assert r'\textbackslash' in result
+
+    @pytest.mark.xfail(reason="Multiple special character escaping not yet implemented")
+    def test_multiple_special_chars(self):
+        """Test escaping multiple different special characters."""
+        result = to_latex('50% of $100 & #1 rank')
+        assert result == r'50\% of \$100 \& \#1 rank'
+
+    @pytest.mark.xfail(reason="Line break conversion not yet implemented")
+    def test_line_breaks(self):
+        """Test converting line breaks to LaTeX."""
+        result = to_latex('Line one\nLine two')
+        # Should convert to \\ or \par
+        assert r'\\' in result or r'\par' in result
+
+    @pytest.mark.xfail(reason="Text formatting conversion not yet implemented")
+    def test_bold_formatting(self):
+        """Test converting bold markdown to LaTeX."""
+        result = to_latex('This is **bold** text')
+        assert r'\textbf{bold}' in result
+
+    @pytest.mark.xfail(reason="Text formatting conversion not yet implemented")
+    def test_italic_formatting(self):
+        """Test converting italic markdown to LaTeX."""
+        result = to_latex('This is *italic* text')
+        assert r'\textit{italic}' in result
 
 
 class TestExtractBraceArguments:
