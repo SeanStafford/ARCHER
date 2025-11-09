@@ -566,23 +566,30 @@ class ResumeArchiveAnalyzer:
         prevalence = self.section_prevalence()
         total = self.get_resume_count()
 
-        lines = []
-        lines.append("=" * 100)
-        lines.append("SECTION PREVALENCE ACROSS RESUME ARCHIVE")
-        lines.append("=" * 100)
-        lines.append(f"Analyzed {total} resumes from {self.archive_path}\n")
+        formatter = TableFormatter(
+            columns=[
+                Column("Section Name", 50, "<"),
+                Column("Count", 10, "<"),
+                Column("% Resumes", 15, "<"),
+            ],
+            total_width=100,
+        )
 
-        lines.append(f"{'Section Name':<50} {'Count':<10} {'% Resumes':<15}")
-        lines.append("-" * 100)
+        formatter.add_section_header("SECTION PREVALENCE ACROSS RESUME ARCHIVE")
+        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_blank_line()
+        formatter.add_table_header()
+        formatter.add_separator("-")
 
         for section_name, count in prevalence.items():
             percent = (count / total) * 100
-            lines.append(f"{section_name:<50} {count:<10} {percent:>13.1f}%")
+            formatter.add_row([section_name, count, f"{percent:>13.1f}%"])
 
-        lines.append(f"\nTotal unique sections: {len(prevalence)}")
-        lines.append("")
+        formatter.add_blank_line()
+        formatter.add_text(f"Total unique sections: {len(prevalence)}")
+        formatter.add_blank_line()
 
-        return "\n".join(lines)
+        return formatter.render()
 
     def format_section_type_report(self) -> str:
         """
@@ -594,22 +601,25 @@ class ResumeArchiveAnalyzer:
         distribution = self.section_type_distribution()
         total = self.get_resume_count()
 
-        lines = []
-        lines.append("=" * 100)
-        lines.append("SECTION TYPE DISTRIBUTION")
-        lines.append("=" * 100)
-        lines.append(f"Analyzed {total} resumes from {self.archive_path}\n")
+        formatter = TableFormatter(
+            columns=[Column("Section Type", 50, "<"), Column("Count", 10, "<")],
+            total_width=100,
+        )
 
-        lines.append(f"{'Section Type':<50} {'Count':<10}")
-        lines.append("-" * 100)
+        formatter.add_section_header("SECTION TYPE DISTRIBUTION")
+        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_blank_line()
+        formatter.add_table_header()
+        formatter.add_separator("-")
 
         for section_type, count in distribution.items():
-            lines.append(f"{section_type:<50} {count:<10}")
+            formatter.add_row([section_type, count])
 
-        lines.append(f"\nTotal unique types: {len(distribution)}")
-        lines.append("")
+        formatter.add_blank_line()
+        formatter.add_text(f"Total unique types: {len(distribution)}")
+        formatter.add_blank_line()
 
-        return "\n".join(lines)
+        return formatter.render()
 
     def format_professional_title_report(self) -> str:
         """
@@ -621,25 +631,32 @@ class ResumeArchiveAnalyzer:
         distribution = self.professional_title_distribution()
         total = self.get_resume_count()
 
-        lines = []
-        lines.append("=" * 100)
-        lines.append("PROFESSIONAL TITLE DISTRIBUTION")
-        lines.append("=" * 100)
-        lines.append(f"Analyzed {total} resumes from {self.archive_path}\n")
+        formatter = TableFormatter(
+            columns=[
+                Column("Title", 60, "<"),
+                Column("Count", 10, "<"),
+                Column("% Resumes", 15, "<"),
+            ],
+            total_width=100,
+        )
 
-        lines.append(f"{'Title':<60} {'Count':<10} {'% Resumes':<15}")
-        lines.append("-" * 100)
+        formatter.add_section_header("PROFESSIONAL TITLE DISTRIBUTION")
+        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_blank_line()
+        formatter.add_table_header()
+        formatter.add_separator("-")
 
         for title, count in distribution.items():
             percent = (count / total) * 100
             # Truncate long titles
             display_title = title if len(title) <= 58 else title[:55] + "..."
-            lines.append(f"{display_title:<60} {count:<10} {percent:>13.1f}%")
+            formatter.add_row([display_title, count, f"{percent:>13.1f}%"])
 
-        lines.append(f"\nTotal unique titles: {len(distribution)}")
-        lines.append("")
+        formatter.add_blank_line()
+        formatter.add_text(f"Total unique titles: {len(distribution)}")
+        formatter.add_blank_line()
 
-        return "\n".join(lines)
+        return formatter.render()
 
     def format_title_component_report(self) -> str:
         """
@@ -651,25 +668,32 @@ class ResumeArchiveAnalyzer:
         frequency = self.title_component_frequency()
         total = self.get_resume_count()
 
-        lines = []
-        lines.append("=" * 100)
-        lines.append("TITLE COMPONENT FREQUENCY")
-        lines.append("=" * 100)
-        lines.append(f"Analyzed {total} resumes from {self.archive_path}\n")
+        formatter = TableFormatter(
+            columns=[
+                Column("Component", 60, "<"),
+                Column("Count", 10, "<"),
+                Column("% Resumes", 15, "<"),
+            ],
+            total_width=100,
+        )
 
-        lines.append(f"{'Component':<60} {'Count':<10} {'% Resumes':<15}")
-        lines.append("-" * 100)
+        formatter.add_section_header("TITLE COMPONENT FREQUENCY")
+        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_blank_line()
+        formatter.add_table_header()
+        formatter.add_separator("-")
 
         for component, count in frequency.items():
             percent = (count / total) * 100
             # Truncate long components
             display_component = component if len(component) <= 58 else component[:55] + "..."
-            lines.append(f"{display_component:<60} {count:<10} {percent:>13.1f}%")
+            formatter.add_row([display_component, count, f"{percent:>13.1f}%"])
 
-        lines.append(f"\nTotal unique components: {len(frequency)}")
-        lines.append("")
+        formatter.add_blank_line()
+        formatter.add_text(f"Total unique components: {len(frequency)}")
+        formatter.add_blank_line()
 
-        return "\n".join(lines)
+        return formatter.render()
 
     def format_title_component_co_occurrence_report(self, component: Optional[str] = None) -> str:
         """
@@ -683,77 +707,104 @@ class ResumeArchiveAnalyzer:
         """
         co_occur = self.title_component_co_occurrence()
 
-        lines = []
-        lines.append("=" * 100)
-
         if component:
-            lines.append(f"TITLE COMPONENT CO-OCCURRENCE: {component}")
-            lines.append("=" * 100)
-            lines.append(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}\n")
+            # Single component report
+            formatter = TableFormatter(
+                columns=[Column("Co-occurring Component", 60, "<"), Column("Count", 10, "<")],
+                total_width=100,
+            )
+
+            formatter.add_section_header(f"TITLE COMPONENT CO-OCCURRENCE: {component}")
+            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}")
+            formatter.add_blank_line()
 
             if component not in co_occur:
-                lines.append(f"Component '{component}' not found in any titles.")
-                return "\n".join(lines)
+                formatter.add_text(f"Component '{component}' not found in any titles.")
+                formatter.add_blank_line()
+                return formatter.render()
 
-            lines.append(f"{'Co-occurring Component':<60} {'Count':<10}")
-            lines.append("-" * 100)
+            formatter.add_table_header()
+            formatter.add_separator("-")
 
             for other_component, count in co_occur[component].items():
-                display_comp = other_component if len(other_component) <= 58 else other_component[:55] + "..."
-                lines.append(f"{display_comp:<60} {count:<10}")
+                display_comp = (
+                    other_component if len(other_component) <= 58 else other_component[:55] + "..."
+                )
+                formatter.add_row([display_comp, count])
+
+            formatter.add_blank_line()
+            return formatter.render()
 
         else:
-            lines.append("TITLE COMPONENT CO-OCCURRENCE (Top 5 Components)")
-            lines.append("=" * 100)
-            lines.append(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}\n")
+            # Top 5 components report
+            formatter = TableFormatter(columns=[], total_width=100)
+
+            formatter.add_section_header("TITLE COMPONENT CO-OCCURRENCE (Top 5 Components)")
+            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}")
+            formatter.add_blank_line()
 
             # Get top 5 components by frequency
             freq = self.title_component_frequency()
             top_components = list(freq.keys())[:5]
 
             for comp in top_components:
-                lines.append(f"\n{comp}:")
-                lines.append("-" * 100)
+                formatter.add_blank_line()
+                formatter.add_text(f"{comp}:")
+                formatter.add_separator("-")
                 if comp in co_occur:
                     for other_comp, count in list(co_occur[comp].items())[:10]:
-                        display_comp = other_comp if len(other_comp) <= 56 else other_comp[:53] + "..."
-                        lines.append(f"  {display_comp:<58} {count:<10}")
+                        display_comp = (
+                            other_comp if len(other_comp) <= 56 else other_comp[:53] + "..."
+                        )
+                        formatter.add_text(f"  {display_comp:<58} {count:<10}")
 
-        lines.append("")
-        return "\n".join(lines)
+            formatter.add_blank_line()
+            return formatter.render()
 
-    def format_skill_frequency_report(self, top_n: int = 20) -> str:
+    def format_skill_frequency_report(
+        self, top_n: int = 20, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS
+    ) -> str:
         """
         Generate formatted report for skill frequency analysis.
 
         Args:
             top_n: Number of top skills to include (default: 20)
+            exclude_sections: Section names to exclude from skill extraction.
+                If None, defaults to personality/fun sections.
+                Pass empty list [] to disable exclusions.
 
         Returns:
             Formatted string report
         """
-        frequency = self.skill_frequency()
+        frequency = self.skill_frequency(exclude_sections=exclude_sections)
         total = self.get_resume_count()
 
         # Get top N skills
         top_skills = dict(list(frequency.items())[:top_n])
 
-        lines = []
-        lines.append("=" * 100)
-        lines.append(f"SKILL FREQUENCY (Top {top_n})")
-        lines.append("=" * 100)
-        lines.append(f"Analyzed {total} resumes from {self.archive_path}\n")
+        formatter = TableFormatter(
+            columns=[
+                Column("Skill", 50, "<"),
+                Column("Count", 10, "<"),
+                Column("% Resumes", 15, "<"),
+            ],
+            total_width=100,
+        )
 
-        lines.append(f"{'Skill':<50} {'Count':<10} {'% Resumes':<15}")
-        lines.append("-" * 100)
+        formatter.add_section_header(f"SKILL FREQUENCY (Top {top_n})")
+        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_blank_line()
+        formatter.add_table_header()
+        formatter.add_separator("-")
 
         for skill, count in top_skills.items():
             percent = (count / total) * 100
             # Truncate long skills
             display_skill = skill if len(skill) <= 48 else skill[:45] + "..."
-            lines.append(f"{display_skill:<50} {count:<10} {percent:>13.1f}%")
+            formatter.add_row([display_skill, count, f"{percent:>13.1f}%"])
 
-        lines.append(f"\nTotal unique skills: {len(frequency)}")
-        lines.append("")
+        formatter.add_blank_line()
+        formatter.add_text(f"Total unique skills: {len(frequency)}")
+        formatter.add_blank_line()
 
-        return "\n".join(lines)
+        return formatter.render()
