@@ -13,7 +13,18 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Set
 
 from archer.contexts.templating import ResumeDocument, ResumeDocumentArchive
+from archer.utils.report_formatter import Column, TableFormatter
 
+# Default exclusion list: personality/fun sections
+DEFAULT_EXCLUDED_SECTIONS = [
+    "Passions",
+    "Alias Array",
+    "Alliterative Aliases",
+    "Proficiency Pseudonyms",
+    "Marketable Monikers",
+    "Certifiable Pseudonyms",
+    "Alliterative Alias"
+]
 
 class ResumeArchiveAnalyzer:
     """
@@ -284,11 +295,16 @@ class ResumeArchiveAnalyzer:
 
         return counts
 
-    def extract_all_skills(self) -> Set[str]:
+    def extract_all_skills(self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS) -> Set[str]:
         """
         Extract all unique skills across all resumes.
 
         Handles both flat skill lists and categorized skills.
+
+        Args:
+            exclude_sections: Section names to exclude from skill extraction.
+                If None, defaults to personality/fun sections.
+                Pass empty list [] to disable exclusions.
 
         Returns:
             Set of unique skill strings (plaintext format)
@@ -296,10 +312,15 @@ class ResumeArchiveAnalyzer:
         if not self.documents:
             raise ValueError("No resumes loaded. Call load_archive() first.")
 
+        exclude_set = set(exclude_sections)
         skills = set()
 
         for doc in self.documents:
             for section in doc.sections:
+                # Skip excluded sections
+                if section.name in exclude_set:
+                    continue
+
                 # Flat skill lists
                 if section.section_type in ("skill_list_caps", "skill_list_pipes"):
                     skills.update(section.data.get('items', []))
@@ -311,9 +332,14 @@ class ResumeArchiveAnalyzer:
 
         return skills
 
-    def skill_frequency(self) -> Dict[str, int]:
+    def skill_frequency(self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS) -> Dict[str, int]:
         """
         Count how often each skill appears across all resumes.
+
+        Args:
+            exclude_sections: Section names to exclude from skill extraction.
+                If None, defaults to personality/fun sections.
+                Pass empty list [] to disable exclusions.
 
         Returns:
             Dict mapping skill → count of resumes containing it
@@ -322,6 +348,7 @@ class ResumeArchiveAnalyzer:
         if not self.documents:
             raise ValueError("No resumes loaded. Call load_archive() first.")
 
+        exclude_set = set(exclude_sections)
         counts = defaultdict(int)
 
         for doc in self.documents:
@@ -329,6 +356,10 @@ class ResumeArchiveAnalyzer:
             skills_in_doc = set()
 
             for section in doc.sections:
+                # Skip excluded sections
+                if section.name in exclude_set:
+                    continue
+
                 if section.section_type in ("skill_list_caps", "skill_list_pipes"):
                     skills_in_doc.update(section.data.get('items', []))
                 elif section.section_type == "skill_categories":

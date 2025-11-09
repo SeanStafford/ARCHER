@@ -189,7 +189,7 @@ class ResumeDocument:
         for page_number, page in enumerate(doc["pages"], start=1):
             for region_name, region_data in page["regions"].items():
                 if not region_data or not isinstance(region_data, dict) or "sections" not in region_data:
-                    # Claude Code, put a descriptive comment here
+                    # Skip empty regions or regions without sections
                     continue
 
                 for section_data in region_data["sections"]:
