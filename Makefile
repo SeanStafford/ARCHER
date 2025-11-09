@@ -35,6 +35,12 @@ install-dev: venv
 	pip install -e ".[dev]"
 	@echo ">>> Development dependencies installed"
 
+## Install embeddings/clustering dependencies
+.PHONY: install-embeddings
+install-embeddings: venv
+	pip install -e ".[embeddings]"
+	@echo ">>> Embeddings dependencies installed (sentence-transformers, UMAP, HDBSCAN)"
+
 ## Verify system dependencies (LaTeX)
 .PHONY: check-deps
 check-deps:
