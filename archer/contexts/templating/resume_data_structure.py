@@ -339,13 +339,13 @@ class ResumeDocument:
             else:
                 converted_metadata[key] = value
 
-        # Extract bullets based on mode
+        # Extract items based on mode
         if self.mode == "markdown":
-            bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in content["bullets"]]
+            items = [latex_to_markdown(bullet["latex_raw"]) for bullet in content["bullets"]]
         else:  # plaintext
-            bullets = [bullet["plaintext"] for bullet in content["bullets"]]
+            items = [bullet["plaintext"] for bullet in content["bullets"]]
 
-        # Parse projects with their bullets (standardized structure: proj.content.bullets)
+        # Parse projects with their items (standardized structure: proj.content.bullets)
         projects = []
         for proj in content.get("projects", []):
             proj_metadata = proj["metadata"]
@@ -354,21 +354,21 @@ class ResumeDocument:
             # Project name: use name_plaintext if available, otherwise convert name based on mode
             if self.mode == "markdown":
                 project_name = latex_to_markdown(proj_metadata["name"])
-                project_bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj_content["bullets"]]
+                project_items = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj_content["bullets"]]
             else:  # plaintext
                 project_name = proj_metadata["name_plaintext"]
-                project_bullets = [bullet["plaintext"] for bullet in proj_content["bullets"]]
+                project_items = [bullet["plaintext"] for bullet in proj_content["bullets"]]
 
             project_data = {
                 "name": project_name,
-                "bullets": project_bullets
+                "items": project_items
             }
             projects.append(project_data)
 
         return {
             **converted_metadata,
             "projects": projects,
-            "bullets": bullets
+            "items": items
         }
 
     def _parse_education(self, section_data: Dict[str, Any]) -> Dict[str, Any]:

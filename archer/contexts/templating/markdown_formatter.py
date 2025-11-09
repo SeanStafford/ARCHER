@@ -37,19 +37,16 @@ def format_work_experience_markdown(data: Dict[str, Any]) -> str:
 
     parts.append("")  # Blank line before content
 
-    # Add top-level bullets
-    for bullet in data.get('bullets', []):
-        bullet_text = latex_to_markdown(bullet)
-        parts.append(f"- {bullet_text}")
+    # Add top-level items
+    for item in data.get('items', []):
+        parts.append(f"- {item}")
 
     # Add projects as #### headers
     for project in data.get('projects', []):
         if project.get('name'):
-            proj_name = latex_to_markdown(project['name'])
-            parts.append(f"\n#### {proj_name}\n")
-        for bullet in project.get('bullets', []):
-            bullet_text = latex_to_markdown(bullet)
-            parts.append(f"- {bullet_text}")
+            parts.append(f"\n#### {project['name']}\n")
+        for item in project.get('items', []):
+            parts.append(f"- {item}")
 
     return "\n".join(parts)
 
