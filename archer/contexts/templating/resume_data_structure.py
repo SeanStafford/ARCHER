@@ -23,7 +23,7 @@ from archer.contexts.templating import latex_to_yaml
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
 from archer.contexts.templating.markdown_formatter import (
     format_education_markdown,
-    format_skills_markdown,
+    format_subsections_markdown,
     format_work_experience_markdown,
 )
 from archer.utils.latex_parsing_tools import to_plaintext
@@ -82,29 +82,16 @@ class ResumeSection:
         if self.section_type == "work_history":
             # Format section header, then each work experience
             parts = [f"## {self.name}\n"]
-            for work_exp in self.data.get("subsections", []):
+            for work_exp in self.data["subsections"]:
                 parts.append(format_work_experience_markdown(work_exp))
             return "\n\n".join(parts)
-        elif self.section_type == "skill_categories":
-            # Format section header, then each category
-            parts = [f"## {self.name}\n"]
-            for category in self.data.get("subsections", []):
-                # Unified structure: categories are subsections with items
-                category_name = category.get("name", "")
-                if category_name:
-                    parts.append(f"\n### {category_name}\n")
-                # Use "items" key from unified structure
-                for skill in category.get("items", []):
-                    parts.append(f"- {skill}")
-            return "\n".join(parts)
-        elif self.section_type in ("skill_list_caps", "skill_list_pipes"):
-            # Adapt formatter to use unified "items" key
-            adapted_data = {"skills": self.data.get("items", [])}
-            return format_skills_markdown(adapted_data, self.name)
+        elif self.section_type in ("skill_categories", "projects"):
+            # Wrapper sections with subsections (each has name and items)
+            return format_subsections_markdown(self.data, self.name)
+        elif self.section_type in ("personality_alias_array", "personality_bottom_bar", "skill_list_caps", "skill_list_pipes"):
+            return format_list_markdown(self.data["items"], self.name)
         elif self.section_type == "education":
             return format_education_markdown(self.data, self.name)
-        elif self.section_type in ("personality_alias_array", "personality_bottom_bar"):
-            return format_list_markdown(self.data.get("items", []), self.name)
         else:
             # Generic fallback for unknown types
             # Try to format as a list if it has items

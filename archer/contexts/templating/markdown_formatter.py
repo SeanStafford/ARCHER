@@ -54,35 +54,33 @@ def format_work_experience_markdown(data: Dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
-def format_skills_markdown(data: Dict[str, Any], section_name: str) -> str:
+def format_subsections_markdown(data: Dict[str, Any], section_name: str) -> str:
     """
-    Format skills data as markdown.
+    Format wrapper sections with subsections (skill_categories, projects).
 
-    Handles both flat skill lists and categorized skills.
+    Each subsection has a name and items. Formats as:
+    ## Section Name
+    ### Subsection 1
+    - item
+    - item
+    ### Subsection 2
+    - item
 
     Args:
-        data: Skills data dict
+        data: Section data dict with "subsections" key
         section_name: Name to use as header
 
     Returns:
-        Markdown-formatted skills
+        Markdown-formatted section with subsections
     """
     parts = [f"## {section_name}\n"]
 
-    # Handle flat skills list
-    if "skills" in data:
-        for skill in data['skills']:
-            skill_text = latex_to_markdown(skill)
-            parts.append(f"- {skill_text}")
+    for subsection in data["subsections"]:
+        subsection_name = subsection["name"]
+        parts.append(f"\n### {subsection_name}\n")
 
-    # Handle categorized skills
-    elif "categories" in data:
-        for category in data['categories']:
-            if category.get('name'):
-                parts.append(f"\n### {category['name']}\n")
-            for skill in category.get('skills', []):
-                skill_text = latex_to_markdown(skill)
-                parts.append(f"- {skill_text}")
+        for item in subsection["items"]:
+            parts.append(f"- {item}")
 
     return "\n".join(parts)
 

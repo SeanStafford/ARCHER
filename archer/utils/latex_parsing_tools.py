@@ -701,7 +701,7 @@ def to_plaintext(latex_str: str) -> str:
     result = latex_str
 
     # Remove common content wrappers by unwrapping them
-    wrappers = ['textbf', 'textit', 'emph', 'underline', 'texttt', 'scshape']
+    wrappers = ['textbf', 'textit', 'emph', 'underline', 'texttt', 'scshape', 'coloremph']
     for wrapper in wrappers:
         result = replace_command(result, wrapper)
 
