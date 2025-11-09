@@ -25,5 +25,11 @@ operations:
   bullets:
     operation: parse_itemize_content
     marker_pattern: ITEM_ANY
-    output_path: bullets
+    output_path: content.bullets
     source: environment_content
+
+  # Convert metadata.name to plaintext
+  name_plaintext:
+    operation: to_plaintext
+    source_path: metadata.name
+    output_path: metadata.name_plaintext

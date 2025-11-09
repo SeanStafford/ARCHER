@@ -164,15 +164,14 @@ class YAMLToLaTeXConverter:
         Convert project subsection to LaTeX.
 
         Args:
-            project: Dict with type, metadata, and bullets
+            project: Dict with type, metadata, and content (with bullets)
             indent: Indentation string to prepend to each line
 
         Returns:
             LaTeX string for itemizeAProject environment
         """
-        # Bullets now have 'marker' field from parser (itemstudy, itemii, etc.)
-        # Template uses bullet.marker directly - no transformation needed
-        bullets = project["bullets"]
+        # Extract content structure
+        content = project.get("content", {})
 
         # Prepare metadata with defaults
         metadata = project["metadata"].copy()
@@ -188,7 +187,7 @@ class YAMLToLaTeXConverter:
         return template.render(
             latex_environment=latex_environment,
             metadata=metadata,
-            bullets=bullets,
+            content=content,
             indent=indent
         )
 
@@ -379,7 +378,7 @@ class YAMLToLaTeXConverter:
         Generate LaTeX for a single section.
 
         Args:
-            section_data: Dict with name, type, and content/subsections
+            section_data: Dict with type, metadata (with name, name_plaintext, spacing_after), and content/subsections
 
         Returns:
             LaTeX string for section
@@ -452,8 +451,11 @@ class YAMLToLaTeXConverter:
         section_wrapper_content = section_wrapper_path.read_text(encoding="utf-8")
         wrapper_template = self.template_registry.env.from_string(section_wrapper_content)
 
+        # Extract metadata fields (metadata is required, name is required within it)
+        metadata = section_data["metadata"]
+
         return wrapper_template.render(
-            name=section_data["name"],
+            name=metadata["name"],
             content=content_latex,
-            spacing_after=section_data.get("spacing_after")
+            spacing_after=metadata.get("spacing_after")  # spacing_after is optional
         )

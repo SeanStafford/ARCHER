@@ -1,5 +1,5 @@
 <<< indent >>>\begin{<<< latex_environment >>>}{<<< metadata.bullet_symbol >>>}{<<< metadata.name >>>}{<<< metadata.dates >>>}
-<%% for bullet in bullets %%>
+<%% for bullet in content.bullets %%>
 <<< indent >>>    \<<< bullet.marker >>> <<< bullet.latex_raw >>>
 <%% endfor %%>
 <<< indent >>>\end{<<< latex_environment >>>}

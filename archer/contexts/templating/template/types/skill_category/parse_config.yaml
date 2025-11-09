@@ -29,7 +29,7 @@ operations:
     regex_pattern: '(?P<marker>\\item\[.*?\])\s*(?P<name_raw>[^\n]+?)(?:\s+(?P<nolinebreak>\\nolinebreak))?(?=\n|$)'
     output_paths:
       marker: metadata.marker
-      name_raw: metadata.name_raw
+      name_raw: metadata.name
       nolinebreak: metadata.nolinebreak
 
   # Extract optional TOC title from \addcontentsline (may be on next line)
@@ -42,5 +42,5 @@ operations:
   # Convert name_raw to plaintext for name field
   name:
     operation: to_plaintext
-    source_path: metadata.name_raw
-    output_path: metadata.name
+    source_path: metadata.name
+    output_path: metadata.name_plaintext

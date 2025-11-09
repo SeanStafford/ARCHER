@@ -172,7 +172,7 @@ class ResumeDocument:
         self.sections = []
 
         # Extract professional profile from metadata (appears at top of page 1)
-        metadata_dict = doc.get("metadata", {})
+        metadata_dict = doc["metadata"]
         self.name = metadata_dict["name_plaintext"]
         self.professional_title = metadata_dict.get("brand_plaintext", "")
         self.professional_profile = metadata_dict.get("professional_profile_plaintext", "")
@@ -188,13 +188,15 @@ class ResumeDocument:
         # Extract sections from all pages and regions
         for page_number, page in enumerate(doc["pages"], start=1):
             for region_name, region_data in page["regions"].items():
+                
+                # Skip empty regions or regions without sections
                 if not region_data or not isinstance(region_data, dict) or "sections" not in region_data:
-                    # Skip empty regions or regions without sections
                     continue
 
                 for section_data in region_data["sections"]:
-                    # Get section name (plaintext version for analysis)
-                    section_name = section_data.get("name_plaintext", section_data["name"])
+                    # Get section name from metadata (plaintext version for analysis)
+                    metadata = section_data["metadata"]
+                    section_name = metadata["name_plaintext"]
 
                     # Skip section if name matches any blacklist pattern
                     if any(re.search(pattern, section_name, re.IGNORECASE) for pattern in self.blacklist_patterns):
@@ -298,24 +300,31 @@ class ResumeDocument:
             section_data: Section data from YAML
             section_name: Optional parent section name (e.g., "Experience", "Education")
         """
-        section_type = section_data.get("type")
+        section_type = section_data["type"]
 
-        # Get name from section, falling back to section_name parameter
-        # For skill_category, also check metadata.name
-        name = section_data.get("name", "")
-        if not name and section_type == "skill_category":
-            metadata = section_data.get("metadata", {})
-            name = metadata.get("name", "")
-        if not name:
-            name = section_name
+        # Get name from metadata (standardized structure)
+        metadata = section_data["metadata"]
+        raw_name = metadata.get("name", section_name)  # Fallback to section_name if name not in metadata
 
         if section_type == "work_experience":
             return self._parse_work_experience(section_data)
         elif section_type == "education":
             return self._parse_education(section_data)
         else:
+            # For all other types (project, skill_category, etc.)
             content = section_data.get("content", {})
             items = self._get_plaintext_items_from_yaml_list(content)
+
+            # Convert name based on mode (may contain LaTeX like \coloremph{})
+            # Use name_plaintext if available (added during standardization), otherwise convert
+            if self.mode == "markdown":
+                name = latex_to_markdown(metadata.get("name_plaintext", raw_name))
+            else:  # plaintext
+                try:
+                    name = metadata["name_plaintext"]
+                except KeyError:
+                    raise ValueError(f"Missing 'name_plaintext' in metadata for section with data:\n{section_data}")
+                # name = metadata.get("name_plaintext", to_plaintext(raw_name))
 
             data = {"items": items, "name": name}
             return data
@@ -349,19 +358,19 @@ class ResumeDocument:
         else:  # plaintext
             bullets = [bullet["plaintext"] for bullet in content["bullets"]]
 
-        # Parse projects with their bullets
+        # Parse projects with their bullets (standardized structure: proj.content.bullets)
         projects = []
         for proj in content.get("projects", []):
-            proj_metadata = proj.get("metadata", {})
+            proj_metadata = proj["metadata"]
+            proj_content = proj["content"]
 
-            # Project name is always LaTeX in metadata (no plaintext version yet)
-            # Apply mode conversion
+            # Project name: use name_plaintext if available, otherwise convert name based on mode
             if self.mode == "markdown":
                 project_name = latex_to_markdown(proj_metadata["name"])
-                project_bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj["bullets"]]
+                project_bullets = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj_content["bullets"]]
             else:  # plaintext
-                project_name = to_plaintext(proj_metadata["name"])
-                project_bullets = [bullet["plaintext"] for bullet in proj["bullets"]]
+                project_name = proj_metadata["name_plaintext"]
+                project_bullets = [bullet["plaintext"] for bullet in proj_content["bullets"]]
 
             project_data = {
                 "name": project_name,
@@ -414,7 +423,7 @@ class ResumeDocument:
         return data
 
 
-    def get_section(self, name: str, case_sensitive: bool = False) -> Optional[ResumeSection]:
+    def get_section(self, name: str, case_sensitive: bool = False) -> ResumeSection:
         """
         Find a section by name.
 
@@ -434,7 +443,8 @@ class ResumeDocument:
             for section in self.sections:
                 if section.name.lower() == name_lower:
                     return section
-        return None
+                
+        raise AttributeError(f"Section not found: {name}")        
 
     def get_all_text(self) -> str:
         """

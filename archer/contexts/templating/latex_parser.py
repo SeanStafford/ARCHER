@@ -634,7 +634,8 @@ class LaTeXToYAMLConverter:
                 "include_dissertation": include_dissertation,
                 "include_minor": include_minor,
                 "use_icon_bullets": use_icon_bullets
-            }
+            },
+            "content": {}
         }
 
     def parse_personality_alias_array(self, latex_str: str) -> Dict[str, Any]:
@@ -1031,12 +1032,16 @@ class LaTeXToYAMLConverter:
             try:
                 section_dict = self._parse_section_by_inference(section_name, section_content, region_name)
 
-                # Add plaintext version of section name
-                section_dict['name_plaintext'] = to_plaintext(section_name)
+                # Ensure metadata dict exists
+                if 'metadata' not in section_dict:
+                    section_dict['metadata'] = {}
 
-                # Add spacing metadata if present
+                # Move section-level fields into metadata
+                section_dict['metadata']['name'] = section_name
+                section_dict['metadata']['name_plaintext'] = to_plaintext(section_name)
+
                 if spacing_after:
-                    section_dict['spacing_after'] = spacing_after
+                    section_dict['metadata']['spacing_after'] = spacing_after
 
                 sections.append(section_dict)
             except Exception as e:
@@ -1053,12 +1058,12 @@ class LaTeXToYAMLConverter:
         Infer section type from content and parse accordingly.
 
         Args:
-            section_name: Section name (e.g., "Core Skills")
+            section_name: Section name (e.g., "Core Skills") - will be added to metadata by caller
             content: Section content LaTeX
             region_name: Column identifier ("left_column" or "main_column")
 
         Returns:
-            Section dict with type, name, and parsed content
+            Section dict with type, metadata (empty), and content or subsections
         """
 
         # Try to infer type from content structure
@@ -1066,8 +1071,8 @@ class LaTeXToYAMLConverter:
             # Standalone projects section (about half of historical resumes use this)
             parsed = self.parse_projects(content)
             return {
-                "name": section_name,
                 "type": "projects",
+                "metadata": {},
                 "subsections": parsed["subsections"]
             }
 
@@ -1087,8 +1092,8 @@ class LaTeXToYAMLConverter:
                     subsections.append(subsection)
 
             return {
-                "name": section_name,
                 "type": "work_history",
+                "metadata": {},
                 "subsections": subsections
             }
 
@@ -1096,17 +1101,17 @@ class LaTeXToYAMLConverter:
             # education (check before skill_categories - more specific pattern)
             parsed = self.parse_education(content)
             return {
-                "name": section_name,
                 "type": "education",
-                "metadata": parsed["metadata"]
+                "metadata": parsed["metadata"],
+                "content": parsed.get("content", {})
             }
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content) and re.search(EnvironmentPatterns.ITEM_BRACKET, content) and FormattingPatterns.SCSHAPE in content:
             # skill_categories
             parsed = self.parse_skill_categories(content)
             return {
-                "name": section_name,
                 "type": "skill_categories",
+                "metadata": {},
                 "subsections": parsed["subsections"]
             }
 
@@ -1114,8 +1119,8 @@ class LaTeXToYAMLConverter:
             # skill_list_caps
             parsed = self.parse_skill_list_caps(content)
             return {
-                "name": section_name,
                 "type": "skill_list_caps",
+                "metadata": {},
                 "content": parsed["content"]
             }
 
@@ -1123,8 +1128,8 @@ class LaTeXToYAMLConverter:
             # skill_list_pipes (pipe-delimited list, may or may not have \texttt formatting)
             parsed = self.parse_skill_list_pipes(content)
             return {
-                "name": section_name,
                 "type": "skill_list_pipes",
+                "metadata": {},
                 "content": parsed["content"]
             }
 
@@ -1133,10 +1138,9 @@ class LaTeXToYAMLConverter:
             # All left-column itemize sections are personality sections (verified empirically)
             parsed = self.parse_personality_alias_array(content)
             return {
-                "name": section_name,
                 "type": "personality_alias_array",
-                "content": parsed["content"],
-                "metadata": parsed.get("metadata", {})
+                "metadata": parsed.get("metadata", {}),
+                "content": parsed["content"]
             }
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content):
@@ -1145,7 +1149,6 @@ class LaTeXToYAMLConverter:
             # This handles sections like "HPC Highlights" that use standard itemize environment
             parsed = self._parse_as_custom_itemize(content)
             return {
-                "name": section_name,
                 "type": "custom_itemize",
                 "metadata": parsed.get("metadata", {}),
                 "content": parsed["content"]
@@ -1156,7 +1159,6 @@ class LaTeXToYAMLConverter:
             # This should rarely be reached now that left_column itemize is handled above
             parsed = self._parse_as_simple_list(content)
             return {
-                "name": section_name,
                 "type": "simple_list",
                 "metadata": parsed["metadata"],
                 "content": parsed["content"]
@@ -1165,7 +1167,7 @@ class LaTeXToYAMLConverter:
         else:
             # Unknown type - store as raw
             return {
-                "name": section_name,
                 "type": "unknown",
+                "metadata": {},
                 "content": {"raw": content}
             }
