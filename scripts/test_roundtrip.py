@@ -235,6 +235,12 @@ def test_command(
         "-v",
         help="Show detailed progress",
     ),
+    keep_all: bool = typer.Option(
+        False,
+        "--keep-all",
+        "-k",
+        help="Keep all intermediate files even on perfect roundtrip (for inspection)",
+    ),
 ):
     """
     Test roundtrip conversion on a single resume.
@@ -313,15 +319,18 @@ def test_command(
 
                 typer.secho(f"\n✓ Success!", fg=typer.colors.GREEN)
 
-                # Clean up intermediate files but keep log
-                for item in work_dir.iterdir():
-                    if item.name != "test.log":
-                        if item.is_file():
-                            item.unlink()
-                        elif item.is_dir():
-                            shutil.rmtree(item)
-
-                typer.echo(f"Log saved to: {log_file}")
+                # Clean up intermediate files but keep log (unless --keep-all)
+                if not keep_all:
+                    for item in work_dir.iterdir():
+                        if item.name != "test.log":
+                            if item.is_file():
+                                item.unlink()
+                            elif item.is_dir():
+                                shutil.rmtree(item)
+                    typer.echo(f"Log saved to: {log_file}")
+                else:
+                    typer.echo(f"All artifacts kept in: {work_dir}")
+                    typer.echo(f"Log saved to: {log_file}")
 
             else:
                 log.write(f"\nValidation: FAILED\n")
@@ -373,6 +382,12 @@ def batch_command(
         "--quiet",
         "-q",
         help="Suppress non-error output",
+    ),
+    keep_all: bool = typer.Option(
+        False,
+        "--keep-all",
+        "-k",
+        help="Keep all intermediate files even on perfect roundtrip (for inspection)",
     ),
 ):
     """
@@ -470,10 +485,12 @@ def batch_command(
 
                         log.write(f"  Validation: PASSED\n")
 
-                        # Clean up work directory only on perfect roundtrip
-                        if perfect_roundtrip:
+                        # Clean up work directory only on perfect roundtrip (unless --keep-all)
+                        if perfect_roundtrip and not keep_all:
                             shutil.rmtree(work_dir)
                             log.write(f"  Perfect roundtrip - artifacts cleaned\n\n")
+                        elif keep_all:
+                            log.write(f"  Artifacts kept (--keep-all flag)\n\n")
                         else:
                             log.write(f"  Artifacts kept (has diffs within threshold)\n\n")
                     else:
