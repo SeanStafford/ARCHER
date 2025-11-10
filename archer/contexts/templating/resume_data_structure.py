@@ -102,6 +102,41 @@ class ResumeSection:
                 # Empty or unrecognized - just show header
                 return f"## {self.name}\n\n(No content)"
 
+    def get_items(self) -> List[str]:
+        """
+        Extract text items from this section based on its type.
+
+        Returns a flat list of searchable strings (skills, bullet texts, etc.)
+        appropriate for the section type. Items are already formatted according
+        to the mode specified when the ResumeDocument was loaded.
+
+        Returns:
+            List of text items (may be empty if section type doesn't have items)
+        """
+        items = []
+
+        # Simple lists: items already processed and formatted
+        if self.section_type in ("skill_list_caps", "skill_list_pipes"):
+            items.extend(self.data["items"])
+
+        # Wrapper sections: flatten all subsection items
+        elif self.section_type in ("skill_categories", "projects"):
+            for subsection in self.data["subsections"]:
+                items.extend(subsection["items"])
+
+        # Work history: extract items from experiences and nested projects
+        # Note: subsections are already processed by _parse_work_experience()
+        elif self.section_type == "work_history":
+            for subsection in self.data["subsections"]:
+                items.extend(subsection["items"])
+                # Projects are optional
+                for project in subsection.get("projects", []):
+                    items.extend(project["items"])
+
+        # Other section types (education, personality_alias_array, etc.) return empty
+
+        return items
+
 
 
 class ResumeDocument:
@@ -434,6 +469,34 @@ class ResumeDocument:
                     return section
                 
         raise AttributeError(f"Section not found: {name}")        
+
+    def get_items_by_section(
+        self, sections: List[str] | str, case_sensitive: bool = False
+    ) -> Dict[str, List[str]]:
+        """
+        Get items from one or more sections.
+
+        Args:
+            sections: Section name (str) or list of section names
+            case_sensitive: Whether to match section names case-exactly
+
+        Returns:
+            Dict mapping section name → list of items
+            Sections not found will have empty lists
+        """
+        # Normalize to list
+        section_names = [sections] if isinstance(sections, str) else sections
+
+        results = {}
+        for section_name in section_names:
+            section = self.get_section(section_name, case_sensitive=case_sensitive)
+            if section:
+                results[section_name] = section.get_items()
+            else:
+                # Section not found - return empty list
+                results[section_name] = []
+
+        return results
 
     def get_all_text(self) -> str:
         """
