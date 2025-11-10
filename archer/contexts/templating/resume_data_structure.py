@@ -313,7 +313,7 @@ class ResumeDocument:
                     raise ValueError(f"Missing 'name_plaintext' in metadata for section with data:\n{section_data}")
                 # name = metadata.get("name_plaintext", to_plaintext(raw_name))
 
-            data = {"items": items, "name": name}
+            data = {"items": items, "name": name, "type": section_type}
             return data
         
     def _parse_work_experience(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -361,11 +361,13 @@ class ResumeDocument:
 
             project_data = {
                 "name": project_name,
-                "items": project_items
+                "items": project_items,
+                "type": "project"
             }
             projects.append(project_data)
 
         return {
+            "type": "work_experience",
             **converted_metadata,
             "projects": projects,
             "items": items
