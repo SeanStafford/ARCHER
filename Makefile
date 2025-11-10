@@ -171,6 +171,28 @@ clean-tmp:
 	@rm -rf /tmp/archer/*
 	@echo ">>> Cleaned /tmp/archer/"
 
+## Show frequency of conventional commit types
+.PHONY: commit-stats
+commit-stats:
+	@echo "Commit type frequency:"
+	@git log --oneline | grep -oP '(?<=^[0-9a-f]{7} )[^:]+' | sort | uniq -c | sort -rn
+
+## Stop tracking changes to notebooks (for local experimentation)
+.PHONY: ignore-notebooks
+ignore-notebooks:
+	@git ls-files 'notebooks/*.ipynb' | xargs -r git update-index --assume-unchanged
+	@echo ">>> Notebooks marked as unchanged (local changes will be ignored)"
+	@echo ">>> Ignored notebooks:"
+	@git ls-files -v | grep '^h'
+
+## Resume tracking changes to notebooks
+.PHONY: track-notebooks
+track-notebooks:
+	@git ls-files 'notebooks/*.ipynb' | xargs -r git update-index --no-assume-unchanged
+	@echo ">>> Notebooks tracking resumed"
+	@echo ">>> Currently ignored notebooks:"
+	@git ls-files -v | grep '^h' || echo "(none)"
+
 #################################################################################
 # Self Documenting Boilerplate                                                  #
 #################################################################################
