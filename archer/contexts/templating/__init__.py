@@ -20,10 +20,12 @@ from archer.contexts.templating.resume_data_structure import (
     ResumeDocument,
     ResumeDocumentArchive,
 )
+from archer.contexts.templating.resume_database import ResumeDatabase
 
 __all__ = [
     "yaml_to_latex",
     "latex_to_yaml",
     "ResumeDocument",
     "ResumeDocumentArchive",
+    "ResumeDatabase",
 ]
