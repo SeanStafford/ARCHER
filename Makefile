@@ -193,6 +193,15 @@ track-notebooks:
 	@echo ">>> Currently ignored notebooks:"
 	@git ls-files -v | grep '^h' || echo "(none)"
 
+## Undo last N commits (default 1), keeping changes staged
+# Usage: make git-undo
+# Usage: make git-undo N=3
+.PHONY: git-undo
+git-undo:
+	@n=$${N:-1}; \
+	git reset --soft HEAD~$$n && \
+	echo ">>> Undid last $$n commit(s), changes remain staged"
+
 #################################################################################
 # Self Documenting Boilerplate                                                  #
 #################################################################################
