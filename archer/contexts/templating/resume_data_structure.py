@@ -525,9 +525,13 @@ class ResumeDocumentArchive:
             raise ValueError(f"Invalid mode: {mode}. Must be 'available' or 'all'")
 
         if mode == "available":
-            return self._load_available(format_mode, blacklist_patterns)
+            docs = self._load_available(format_mode, blacklist_patterns)
         else:
-            return self._load_all(format_mode, blacklist_patterns)
+            docs = self._load_all(format_mode, blacklist_patterns)
+
+        # Store documents in dict keyed by filename
+        self.documents = {doc.filename: doc for doc in docs}
+        return docs
 
     def _load_available(self, format_mode: str = "markdown", blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS) -> List[ResumeDocument]:
         """Load only pre-converted YAMLs from structured/ directory."""
