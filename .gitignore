@@ -89,6 +89,18 @@ notebooks/*
 *.tmp
 *.bak
 
-# Data - exclude processed resumes but keep figures
+# Logs
+outs/logs/**
+
+# Project-specific
+archer/contexts/rendering/mystyle/Fonts/*.ttf
+.archive/**
+TODO.md
+IDEAS.md
+
+# Data - exclude processed resumes but keep fixtures
+data/**/*.db
 data/resume_archive/**/*.tex
+data/resume_archive/**/*.yaml
+!data/resume_archive/fixures
 # data/figs/ will be committed (needed for LaTeX compilation)
