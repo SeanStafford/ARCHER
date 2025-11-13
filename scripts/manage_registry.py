@@ -300,5 +300,79 @@ def status_command(
     typer.echo(f"  Status: {entry['status']}")
 
 
+@app.command("update")
+def update_command(
+    resume_name: str = typer.Argument(
+        ...,
+        help="Resume name to update"
+    ),
+    new_status: str = typer.Argument(
+        ...,
+        help="New status value (see docs/RESUME_STATUS_REFERENCE.md)"
+    ),
+    reason: Optional[str] = typer.Option(
+        None,
+        "--reason",
+        "-r",
+        help="Reason for manual update"
+    )
+):
+    """
+    Manually update resume status.
+
+    This logs the update as a status change event with source="manual".
+
+    Examples:
+        # Mark resume as completed
+        python scripts/manage_registry.py update Res202510 completed
+
+        # Mark as failed with reason
+        python scripts/manage_registry.py update Res202511 failed --reason "LaTeX errors"
+    """
+    if not resume_is_registered(resume_name):
+        typer.secho(
+            f"Resume '{resume_name}' not found in registry",
+            fg=typer.colors.RED,
+            err=True
+        )
+        raise typer.Exit(code=1)
+
+    # Get current status
+    entry = get_resume_status(resume_name)
+    old_status = entry['status']
+
+    if old_status == new_status:
+        typer.secho(
+            f"Resume is already in status '{new_status}'",
+            fg=typer.colors.YELLOW,
+            err=True
+        )
+        raise typer.Exit(code=0)
+
+    # Update status
+    try:
+        extra_fields = {}
+        if reason:
+            extra_fields['reason'] = reason
+
+        update_resume_status(
+            updates={resume_name: new_status},
+            source="manual",
+            **extra_fields
+        )
+
+        typer.secho(
+            f"✓ Updated {resume_name}: {old_status} → {new_status}",
+            fg=typer.colors.GREEN
+        )
+
+        if reason:
+            typer.echo(f"  Reason: {reason}")
+
+    except Exception as e:
+        typer.secho(f"✗ Failed to update: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":
     app()
