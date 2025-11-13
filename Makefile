@@ -151,6 +151,25 @@ generate-yaml-archive:
 	@echo ">>> YAML archive generated in resume_archive/structured/"
 
 #################################################################################
+# RESUME REGISTRY COMMANDS                                                      #
+#################################################################################
+
+## Show registry statistics (counts by status and type)
+.PHONY: registry-stats
+registry-stats:
+	$(PYTHON_INTERPRETER) scripts/manage_registry.py stats
+
+## List all resumes in registry
+.PHONY: registry-list
+registry-list:
+	$(PYTHON_INTERPRETER) scripts/manage_registry.py list
+
+## Initialize registry with historical resumes
+.PHONY: registry-init
+registry-init:
+	$(PYTHON_INTERPRETER) scripts/manage_registry.py init
+
+#################################################################################
 # UTILITY COMMANDS                                                              #
 #################################################################################
 
