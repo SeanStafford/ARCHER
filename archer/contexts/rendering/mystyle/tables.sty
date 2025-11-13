@@ -1,0 +1,163 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% tables.sty - Custom List and Table Environments
+%
+% This file defines specialized table formats and list environments for resume content, including:
+% - Custom itemize environments for work experience, projects, and skills
+% - Chronological table layouts for timeline-based content
+% - Professional profile text blocks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Table formatting utilities
+
+% Three-column table with left-center-right alignment
+% Argument: inner margin as fraction of linewidth
+\newcommand{\BeginTriTable}[1]{\setlength{\tabcolsep}{0pt}
+\begin{longtable}{ p{\dimexpr 1\linewidth/3 - #1\linewidth*2/3} @{\hskip #1\linewidth}  >{\centering\arraybackslash}p{\dimexpr 1\linewidth/3 - #1\linewidth*2/3} @{\hskip #1\linewidth}  >{\raggedleft\arraybackslash}p{\dimexpr 1\linewidth/3 - #1\linewidth*2/3}  }
+}
+
+% Two-column chronological table (dates on left, content on right)
+% Argument: left column width as fraction of linewidth
+\newcommand{\BeginChrononologicalTable}[1]{
+    \setlength{\tabcolsep}{0pt}
+    \begin{longtable}{ >{\raggedleft}p{\dimexpr #1\linewidth - 1\CTinnermargin} @{\hskip \CTinnermargin} !{\color{lightgray}\vrule width \CTlinewidth} @{\hskip \CTinnermargin} p{\dimexpr 1\linewidth - #1\linewidth - 1\CTinnermargin - \CTlinewidth}  }
+}
+
+% Three-column chronological table
+% Arguments: #1 = first column width, #2 = second column width (both as fractions of linewidth)
+\newcommand{\BeginChrononologicalTriTable}[2]{
+    \setlength{\tabcolsep}{0pt}
+    \begin{longtable}{ >{\raggedleft}p{\dimexpr #1\linewidth - 1\CTinnermargin} @{\hskip \CTinnermargin} p{\dimexpr #2\linewidth - #1\linewidth - 1\CTinnermargin} @{\hskip \CTinnermargin} !{\color{lightgray}\vrule width \CTlinewidth} @{\hskip \CTinnermargin} p{\dimexpr 1\linewidth - #2\linewidth - 1\CTinnermargin  - \CTlinewidth} }
+}
+\newcommand{\EndChrononologicalTable}{\end{longtable}\setlength{\tabcolsep}{6pt}}
+
+% Supertabular variant (for tables that shouldn't break across pages)
+\newcommand{\BeginChrononologicalTableS}[1]{
+    \setlength{\tabcolsep}{0pt}
+    \begin{supertabular}{ >{\raggedleft}p{\dimexpr #1\linewidth - 1\CTinnermargin} @{\hskip \CTinnermargin} !{\color{lightgray}\vrule width \CTlinewidth} @{\hskip \CTinnermargin} p{\dimexpr 1\linewidth - #1\linewidth - 1\CTinnermargin - \CTlinewidth}  }
+}
+\newcommand{\EndChrononologicalTableS}{\end{supertabular}\setlength{\tabcolsep}{6pt}}
+
+% Longtable spacing configuration
+\setlength{\LTpost}{0pt}
+\setlength{\LTpre}{5pt}
+\renewcommand{\arraystretch}{1.2}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Professional Profile text block (positioned absolutely in header)
+\newenvironment{textblockPP}{
+    \begin{textblock*}{\columnwidth}(\leftmargin, \aboveheader + \headheight + 0.5\headervskip - \baselineskip + \fsize) \large\color{lightgray} }{\end{textblock*}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom bullet point styles
+\newcommand{\itemi}{\item[{\large $\bullet$}]}                        % primary bullet (large)
+\newcommand{\itemii}{\item[\faCaretRight]}                            % Secondary bullet (caret)
+\newcommand{\itemLL}{\item[{$\cdot$}]}                                % Compact bullet (dot)
+\newcommand{\itemstudy}{\item[\footnotesize\faSearch]}                % Research/study icon
+\newcommand{\itemidea}{\item[{\footnotesize\faLightbulb[regular]}]}   % Idea/innovation icon
+\newcommand{\itemresult}{\item[{\footnotesize\faCheckCircle[regular]}]} % Achievement icon
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% List environments
+
+% Compact list (for left sidebar skills)
+\newenvironment{itemizeLL}{
+    \begin{itemize}[leftmargin=\LLmargin, itemsep = \LLitmsep, topsep=\LLtopsep, align=center, labelwidth=\LLlabelwid, labelsep=\LLlabelsep]
+}{
+    \end{itemize}
+}
+
+% Main-level list (for job/project metadata)
+\newenvironment{itemizeMain}{
+    \begin{itemize}[leftmargin=\firstlistindent, labelsep = 0pt, align=center, labelwidth=\firstlistlabelsep, itemsep = \seclistitemsep, topsep=\seclisttopsepmeta]
+}{
+    \end{itemize}
+}
+
+% Comprehensive academic position (with hours/week and supervisor)
+% Specialized work experience environments
+% These environments format job entries with metadata (location, dates, supervisor, etc.)
+% Arguments: #1=title, #2=institution, #3=supervisor, #4=hours/week, #5=dates, #6=location
+\newenvironment{itemizeComprehensive}[6]{
+    \item[] { \scshape #1 }
+    \begin{itemizeMain}
+        {\color{verygray}
+        \item[\faUniversity] #2 \hfill \faUserTie \hspace{\metadatasep}Supervisor: #3
+        \item[\faCalendar] #4 hrs/wk: #5 \hfill \faMapMarker* \hspace{\metadatasep}#6}
+}{
+    \end{itemizeMain}
+}
+
+% Standard position
+% "Academic" comes from original (legacy) implementation
+% Arguments: #1=title, #2=company, #3=location, #4=dates
+\newenvironment{itemizeAcademic}[4]{
+    \item[] { \scshape #1 } \hfill #2
+    \begin{itemizeMain}
+        {\color{verygray}
+        \item[\faMapMarker*] #3 \hfill \faCalendar \hspace{\metadatasep}#4}
+}{
+    \end{itemizeMain}
+}
+
+% Position with subtitle/annotation
+% Arguments: #1=title, #2=company, #3=location, #4=dates, #5=annotation
+\newenvironment{itemizeAcademicAnnotated}[5]{
+    \item[] { \scshape #1} #5 \hfill #2
+    \begin{itemizeMain}
+        {\color{verygray}
+        \item[\faMapMarker*] #3 \hfill \faCalendar \hspace{\metadatasep}#4}
+}{
+    \end{itemizeMain}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nested list environment (for bullet points under jobs/projects)
+\newenvironment{itemizeSecond}{
+    \begin{itemize}[leftmargin=\seclistindent, labelwidth=\seclistlabelsep, align=center, itemsep = \seclistitemsep, topsep=\seclisttopsepcontent]
+}{
+    \end{itemize}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Project subsections (used within work experience entries)
+
+% Key project (emphasized importance)
+% Arguments: #1=icon, #2=project name, #3=dates/duration
+\newenvironment{itemizeKeyProject}[3]{
+    \vspace{\keyprojvsep}
+    \item[#1] {{\color{verygray}Key Project: } #2 } \hfill #3
+    \begin{itemizeSecond}
+}{
+    \end{itemizeSecond}
+}
+
+% Sometimes you might not want to call all projects listed under a work experience "Key ProjecT" (esp when listing 3+ projects)
+% Arguments: #1=icon, #2=project name, #3=dates/duration
+\newenvironment{itemizeAProject}[3]{
+    \vspace{\keyprojvsep}
+    \item[#1] {{\color{verygray}Project: } #2 } \hfill #3
+    \begin{itemizeSecond}
+}{
+    \end{itemizeSecond}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Standalone project section environments
+
+% Main-level project list
+\newenvironment{itemizeProjMain}{
+    \begin{itemize}[leftmargin=\firstlistindent, labelsep = 0pt, align=center, labelwidth=\firstlistlabelsep, itemsep = \projlistvsep]
+}{
+    \end{itemize}
+}
+
+% Individual project entry (for standalone Projects section)
+% Arguments: #1=icon, #2=project name, #3=dates
+\newenvironment{itemizeProjSecond}[3]{
+    \item[#1] #2\hfill#3
+    \begin{itemizeSecond}
+}{
+    \end{itemizeSecond}
+}

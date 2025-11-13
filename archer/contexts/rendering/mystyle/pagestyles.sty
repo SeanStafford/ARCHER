@@ -1,0 +1,90 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% pagestyles.sty - Header and Footer Configuration
+%
+% This file defines page styles for ARCHER resumes using the fancyhdr package.
+% Currently includes only 1 style, 'resume', which has a customizable professional profile
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{fancyhdr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Header customization toggles
+\newtoggle{useleftbar}                      % Whether to display left sidebar color bar
+\newtoggle{usePP}                           % Whether to include Professional Profile in header
+\newtoggle{list_title_after_name}           % Whether to display "Ph.D." after name
+
+% Conditional Ph.D. title display
+% Also, can be adapted in to general cases of setting a variable based on a boolean
+\newcommand{\setpersonaltitlestr}[1]{
+    \iftoggle{#1}{ \def\personaltitlestr{\huge, Ph.D.} } {\def\personaltitlestr{} }
+    \def\nameinheader{{\Huge \myname}\personaltitlestr}
+}
+
+% Footer removal utility
+\newcommand{\nofooter}{
+    \renewcommand{\footruleskip}{0pt}
+    \setlength{\footskip}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Standard resume page style
+\fancypagestyle{resume}{%
+
+    % header stuff
+    \renewcommand{\headruleskip}{0.5\headervskip}
+    \iftoggle{usePP}{
+        % using a profession profile 
+        % header will be longer and a line will be inserted
+        \setlength{\headsep}{1.5\headervskip +\nlinesPP\baselineskip}
+        \renewcommand{\headrule}{\color{\brandcolor}\hrule height \rulethickness } 
+    }{
+        % not using a profession profile 
+        % header will be shorter and no line will be inserted
+        \setlength{\headsep}{0.5\headervskip}
+        \renewcommand{\headrule}{\color{\brandcolor}\hrule height 0\rulethickness } 
+
+    }
+    \setlength{\topbarheight}{\aboveheader + \headheight + \headsep - 0.5\headervskip }%1\headervskip + \nlinesPP\baselineskip } 
+
+    % footer stuff
+    \nofooter
+    \fancyfoot[C]{}
+
+    
+    % banners
+    \ClearShipoutPicture
+    \iftoggle{useleftbar}{\leftbar{\leftbarwidth}{0pt}{\paperheight}{\leftbarcolor}}{}
+    \topbar{\topbarheight}{0pt}{\paperwidth}{\topbarcolor}
+
+    % left header column
+    \fancyhead[L]{\setlength{\tabcolsep}{0pt}%
+        \renewcommand{\arraystretch}{1}%
+        \begin{tabular}{l} 
+            \vspace{\contactinfoshift}\\
+            {\color{\namecolor} \nameinheader} \\% \addcontentsline{toc}{section}{Top}\\
+    	{\color{\brandcolor} \textbf{\brand}}\\
+        \end{tabular}
+    }
+
+    % right header column
+    \fancyhead[R]{\color{\brandcolor} \small \setlength{\tabcolsep}{0pt}%
+        \renewcommand{\arraystretch}{1}
+        \begin{tabular}{r @{\hskip \headericonsep} c} %\vspace{100pt}
+            YOUR_PHONE_NUMBER_HERE &  \faPhone\\%
+            YOUR_LOCATION_HERE & \faMapMarker*\\%
+            \href{mailto:YOUR_EMAIL_ADDRESS_HERE}{YOUR_EMAIL_ADDRESS_HERE}  & \href{mailto:YOUR_EMAIL_ADDRESS_HERE}{\faInbox}\\%
+            \href{https://www.linkedin.com/in/sean-stafford-physics/}{linkedin.com/in/sean-stafford-physics} & \href{https://www.linkedin.com/in/sean-stafford-physics/}{\faLinkedin}%
+        \end{tabular}%
+    }%
+
+    % place Professional Profile if that is toggled on
+    \iftoggle{usePP}{
+        \begin{textblockPP}
+            {\color{\brandcolor} \ProfessionalProfile}
+            \color{black} % for some reason, the PP color setting changes color on following pages (but not the rest of this page) unless I have this additional color change outside of the curlybraces
+        \end{textblockPP}
+    }{}
+}
+
+

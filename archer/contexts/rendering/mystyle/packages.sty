@@ -1,0 +1,48 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% packages.sty - Core LaTeX Package Imports
+%
+% This file contains all package imports required by ARCHER's LaTeX style system.
+% Packages are organized by functionality for maintainability.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Utility packages
+\usepackage{comment, printlen}           % Conditional compilation and length debugging
+\usepackage[nodayofweek]{datetime}       % Date formatting without day names
+\usepackage[hidelinks]{hyperref}         % Clickable links without colored boxes
+\usepackage{etoolbox}                    % Boolean toggles and command manipulation
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Font configuration
+\usepackage[T1]{fontenc}                 % Enhanced font encoding for better PDF output
+\usepackage{ebgaramond}                  % Professional serif font (EB Garamond)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Graphics and visual effects
+\usepackage{eso-pic, soul}               % Background graphics and text highlighting
+\usepackage{graphicx}                    % Image manipulation (rotation, scaling)
+\usepackage{background}                  % Page background customization (for gradient bars)
+\backgroundsetup{contents={}}            % Initialize empty background (customized per-resume)
+\usepackage{xcolor}                      % Color definitions and manipulation
+
+% Symbol fonts
+\usepackage{svrsymbols, fontawesome5}    % Icons for contact info and visual elements
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Text layout and positioning
+% This package + command aligns custom item bullets
+% See https://tex.stackexchange.com/a/231791/256294 for more details
+\usepackage{enumitem}                    % Customizable list formatting
+\SetLabelAlign{center}{\clap{#1}}        % Center-align custom bullet points
+
+\usepackage[absolute,overlay]{textpos}   % Absolute positioning for text blocks
+\usepackage[parfill]{parskip}            % Paragraph spacing without indentation
+\usepackage{changepage}                  % Margin adjustment within document
+
+% Table and multi-column layouts
+\usepackage{vwcol, paracol, array, longtable}  % Multi-column formatting and long tables
+\usepackage{adjustbox}                   % Box size adjustment utilities
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Control flow and iteration
+\usepackage{pgffor}                      % For-loop constructs (used in \linkbar command)   

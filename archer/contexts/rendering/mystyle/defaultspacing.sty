@@ -1,0 +1,78 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% defaultspacing.sty - Default Spacing Parameters
+%
+% This file defines all default spacing and layout dimensions for ARCHER resumes.
+% Individual resumes can override these values to adjust content density.
+%
+% Note: This file uses \deflen (defined in gencommands.sty) as a shorthand for
+% \newlength + \setlength combined into a single command.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Page margins
+\setlength{\leftmargin}{0.4in}              % Left page margin
+\setlength{\rightmargin}{0.4in}             % Right page margin
+\deflen{aboveheader}{10pt}                  % Space above header
+\deflen{bottommargin}{0.3in}                % Bottom page margin
+\deflen{topbarheight}{0pt}                  % Height of top color bar (set dynamically)
+\setlength{\voffset}{0in}                   % Vertical page offset
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Two-column layout dimensions
+\deflen{leftbarwidth}{0.25\paperwidth}      % Width of left sidebar (for two-column layouts)
+\deflen{sidecolwidth}{\leftbarwidth-1.5\leftmargin}  % Content width in sidebar
+\deflen{doublecolsep}{1\leftmargin}         % Separation between columns
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Header spacing
+\def\nlinesPP{2}                            % Number of lines in Professional Profile
+\setlength{\headheight}{60pt}               % Height of header region
+\deflen{headervskip}{20pt}                  % Vertical spacing around header
+\deflen{contactinfoshift}{-6pt}             % Fine-tune vertical position of contact info
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Vertical space between sections
+\deflen{sectionsep}{15pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Main content list spacing
+\deflen{headericonsep}{10pt}                % Space between header icons and text
+\deflen{firstlistindent}{20pt}              % Left indent for primary bullet lists
+\deflen{firstlistlabelsep}{15pt}            % Width of primary bullet label
+\deflen{firstlistvsep}{15pt}                % Vertical space between primary list items
+\deflen{projlistvsep}{10pt}                 % Vertical space between project items
+\deflen{keyprojvsep}{0pt}                   % Extra space before key project subsections
+\deflen{seclistindent}{15pt}                % Left indent for nested bullet lists
+\deflen{seclistlabelsep}{13.5pt}            % Width of nested bullet label
+\deflen{seclistitemsep}{-2pt}               % Vertical space between nested list items
+\deflen{seclisttopsepmeta}{-2pt}            % Space above nested list (metadata)
+\deflen{seclisttopsepcontent}{-2pt}         % Space above nested list (content)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Specialized list spacing
+% LL: Compact lists for left sidebar skills
+% CT: Chronological tables
+\deflen{LLmargin}{1pt}                      % Left margin for sidebar lists
+\deflen{LLitmsep}{-4pt}                     % Item separation in sidebar lists
+\deflen{LLtopsep}{-15pt}                    % Space above sidebar lists
+\deflen{LLlabelwid}{6pt}                    % Label width for sidebar lists
+\deflen{LLlabelsep}{0pt}                    % Label separation for sidebar lists
+\deflen{CTinnermargin}{5pt}                 % Inner margin for chronological tables
+\deflen{CTlinewidth}{0pt}                   % Vertical rule width in chronological tables
+
+% List spacing used in other list environments
+\deflen{highlightindent}{100pt}             % Indent for highlighted text blocks
+\deflen{metadatasep}{10pt}                  % Space between metadata items
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Paragraph formatting
+\setlength{\parskip}{1.0ex}                 % Space between paragraphs
+\parindent=0pt                              % Paragraph indentation (disabled)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Miscellaneous spacing
+\deflen{rulethickness}{0.4pt}               % Thickness of horizontal rules
+\deflen{hlthickness}{4ex}                   % Height of text highlighting
+\renewcommand{\arraystretch}{1.2}           % Vertical stretch factor for tables
+\righthyphenmin=5                           % Min characters before hyphenation at line end
+\lefthyphenmin=5                            % Min characters after hyphenation at line start

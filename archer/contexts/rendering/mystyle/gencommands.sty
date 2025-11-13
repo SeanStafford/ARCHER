@@ -1,0 +1,146 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% gencommands.sty - General Purpose Commands and Utilities
+%
+% This file defines general-purpose LaTeX commands used throughout ARCHER resumes, including:
+% - Branding and metadata variables
+% - Text formatting utilities
+% - Link and hyperref configuration
+% - Section formatting
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Branding variables (overridden per-resume)
+\newcommand{\brand}{[ --- TITLE HERE --- ]}
+\newcommand{\ProfessionalProfile}{[ --- Professional Profile here --- ]}
+\newcommand{\topbarcolor}{white}
+\newcommand{\leftbarcolor}{white}
+\newcommand{\emphcolor}{red}
+\newcommand{\brandcolor}{lightgray}
+\newcommand{\namecolor}{white}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section formatting
+% Sections display as bold, large text with horizontal rule below
+\usepackage[explicit]{titlesec}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0pt}{\vspace*{-13pt}#1}[\columnhrule\vspace{-6pt}\addcontentsline{toc}{section}{#1}]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Length definition utility
+% Combines \newlength and \setlength into a single command for cleaner code
+% https://tex.stackexchange.com/a/172235/256294
+\newcommand{\deflen}[2]{%
+    \expandafter\newlength\csname #1\endcsname
+    \expandafter\setlength\csname #1\endcsname{#2}%
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Colored emphasis (bold + emphasis color)
+\newcommand{\coloremph}[1]{\textbf{\color{\emphcolor}#1}}
+
+% Text formatting shortcuts
+\newcommand{\ts}{\textsuperscript}           % Superscript shorthand
+\newcommand{\bk}{\color{black}}              % Reset to black color
+
+% Small caps wrapper (redefines \sc for cleaner syntax)
+\let\sc\relax
+\newcommand{\sc}[1]{{\scshape#1}}
+
+% Underlined links with extended underline (for visual consistency)
+\newlength{\linkundovershoot}
+\setlength{\linkundovershoot}{2pt}
+\newcommand{\WideUnderline}[1]{\colorlet{currentcolor}{.} {\color{lightgray}\hspace{-\linkundovershoot}\underline{\color{currentcolor}\hspace{\linkundovershoot}\smash{#1}\hspace{\linkundovershoot}}\hspace{-\linkundovershoot}}}
+
+% Emphasized hyperlink with underline
+\newcommand{\linkemph}[2]{\colorlet{currentcolor}{.}\color{\emphcolor}\href{#1}{\hspace{-\linkundovershoot}\underline{\hspace{\linkundovershoot}\smash{#2}\hspace{\linkundovershoot}}\hspace{-\linkundovershoot}}\color{currentcolor}}
+
+% Paragraph with custom hyphenation tolerance
+\newenvironment{stricterborder}[2]{{\par \setlength{\tolerance}{#1} #2 \par }}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Highlighting customization
+% https://tex.stackexchange.com/a/203436/256294
+% Modifies soul package's \hl command to use custom thickness
+% makeatletter/makeatother: Allows access to internal LaTeX commands with @ in their names
+\makeatletter
+ \def\SOUL@hlpreamble{%
+ \setul{}{\hlthickness}%         % Use custom \hlthickness instead of default 2.5ex
+ \let\SOUL@stcolor\SOUL@hlcolor
+ \SOUL@stpreamble
+ }
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Font size query
+% https://tex.stackexchange.com/a/409993/256294
+% Returns current font size as a dimension (e.g., "11pt")
+\makeatletter
+\newcommand*\fsize{\the\dimexpr \f@size pt\relax}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Hyperlink with custom icon
+% Usage: \booklink{url} displays book icon, \booklink[icon]{url} displays custom icon
+\makeatletter
+\def\booklink{\@ifnextchar[{\@with}{\@without}}
+\def\@with[#1]#2{\href{#2}{#1}}
+\def\@without#1{\href{#1}{\faBook}}
+\makeatother
+
+% Link bar: Displays multiple links with custom icon
+% Usage: \linkbar[icon]{url1, url2, url3}
+\NewDocumentCommand{\linkbar}{ O{\faSquareFull} m}{%}>
+    \foreach \x in {#2}{%
+        \booklink[#1]{\x}%
+    }%
+}%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PDF metadata defaults (should be overridden in individual resume files)
+\newcommand{\pdfkeywords}{Sean Stafford, Resume, Physics, Computation, Machine Learning }
+\newcommand{\myname}{Sean Stafford}
+\newcommand{\mydate}{2025}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Horizontal rules
+\newcommand{\columnhrule}{ \vspace{-16.25pt} \makebox[\columnwidth]{\rule{\columnwidth}{\rulethickness}} \vspace{-18pt} }
+\newcommand{\pagehrule}{ \vspace{-16.25pt} \makebox[\paperwidth]{\rule{\paperwidth}{\rulethickness}} \vspace{-18pt} }
+\newcommand{\texthrule}{ \vspace{-16.25pt} \makebox[\textwidth]{\rule{\textwidth}{\rulethickness}} \vspace{-18pt} }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PDF hyperlink and metadata configuration
+% Arguments: #1 = name, #2 = date, #3 = keywords
+\newcommand{\setuphyperandmeta}[3]{
+    \hypersetup{
+        unicode=false, pdftoolbar=true, pdfmenubar=true, % Adobe Acrobat setting
+        pdffitwindow=true, pdfstartview={FitH},          % window open settings
+        pdftitle={#1 Resume},                 % title
+        pdfauthor={#1},                       % author
+        pdfsubject={#2 Resume},                % subject
+        % pdfcreator={Latex},                      % creator
+        pdfkeywords={#3},
+        pdfnewwindow=true,                               % links in new window
+        % link styles
+        % colorlinks=true,       % false: boxed links; true: colored links
+        % linkcolor=verygray,          % color of internal links
+        % urlcolor=lightgray,           % color of external links
+    }
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Revision suggestions toggle
+% Text wrapped in \suggest{} only displays when viewsuggestions toggle is true
+\newtoggle{viewsuggestions}
+\newcommand{\suggest}[1]{
+    \iftoggle{viewsuggestions}{{\color{suggestions}#1}}{}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Lorem ipsum iterator (for testing and layout prototyping)
+\usepackage{lipsum}
+\newcounter{lipsumcounter}
+\setcounter{lipsumcounter}{0}
+\newcommand{\lipsumiterator}[1]{
+    \lipsum[-][\arabic{lipsumcounter}+1-\arabic{lipsumcounter}+#1]
+    \addtocounter{lipsumcounter}{#1}
+    % max value is 2191
+}

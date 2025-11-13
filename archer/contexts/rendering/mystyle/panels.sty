@@ -1,0 +1,107 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% panels.sty - Background Panel and Color Bar Utilities
+%
+% This file defines commands for adding colored panels and gradients to page backgrounds.
+% These are used for visual branding elements (header bars, sidebar panels, etc.).
+%
+% All commands use absolute positioning via the eso-pic package.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Vertical side panels
+
+% Left sidebar color bar
+% Arguments: #1=width, #2=starting y, #3=ending y, #4=color
+\newcommand{\leftbar}[4]{
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \raisebox{\dimexpr #2 - \paperheight \relax}{%
+                \color{#4}\rule{#1}{\dimexpr #3 - #2 \relax}%
+            }
+        }
+    }
+}
+
+% Right sidebar color bar
+% Arguments: #1=width, #2=starting y, #3=ending y, #4=color
+\newcommand{\rightbar}[4]{
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \hspace{\dimexpr \paperwidth - #1 \relax}\raisebox{\dimexpr #2 - \paperheight \relax}{%
+                \color{#4}\rule{#1}{\dimexpr #3 - #2 \relax}%
+            }
+        }
+    }
+}
+
+% Left sidebar with vertical gradient
+% Arguments: #1=width, #2=starting y, #3=ending y, #4=top color, #5=bottom color
+\newcommand{\leftgrad}[5]{
+    \backgroundsetup{contents={}}
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \raisebox{#2-\paperheight}{%
+                \begin{tikzpicture}
+                    \path [top color =#4, bottom color = #5] (0,0)rectangle (#1, #3 -#2);
+                \end{tikzpicture}%
+            }
+        }
+    }
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Horizontal top/bottom panels
+
+% Top header color bar
+% Arguments: #1=height, #2=starting x, #3=ending x, #4=color
+\newcommand{\topbar}[4]{
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \hspace{#2}\raisebox{\dimexpr -#1 \relax}{%
+                \color{#4}\rule{\dimexpr #3 - #2 \relax}{#1}%
+            }
+        }
+    }
+}
+
+% Top header with horizontal two-color gradient
+% Arguments: #1=height, #2=starting x, #3=ending x, #4=left color, #5=right color
+\newcommand{\topgrad}[5]{
+    \backgroundsetup{contents={}}
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \hspace{#2}\raisebox{-#1}{%
+                \begin{tikzpicture}
+                    \path [left color =#4, right color = #5] (0,0)rectangle (#3 - #2, #1);
+                \end{tikzpicture}%
+            }
+        }
+    }
+}
+
+% Top header with horizontal three-color gradient
+% Arguments: #1=height, #2=starting x, #3=ending x, #4=left color, #5=middle color, #6=right color
+\newcommand{\topgradtri}[6]{
+    \backgroundsetup{contents={}}
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \hspace{#2}\raisebox{-#1}{%
+                \begin{tikzpicture}
+                    \path [left color =#4, right color = #6, middle color = #5] (0,0)rectangle (#3 - #2, #1);
+                \end{tikzpicture}%
+            }
+        }
+    }
+}
+
+% Bottom footer color bar
+% Arguments: #1=height, #2=starting x, #3=ending x, #4=color
+\newcommand{\bottombar}[4]{
+    \AddToShipoutPictureBG{
+        \AtPageUpperLeft{%
+            \hspace{#2}\raisebox{\dimexpr -\paperheight \relax}{%
+                \color{#4}\rule{\dimexpr #3 - #2 \relax}{#1}%
+            }
+        }
+    }
+}

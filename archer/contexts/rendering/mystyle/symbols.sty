@@ -1,0 +1,59 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% symbols.sty - Custom Icon and Symbol Definitions
+%
+% This file defines custom commands for inline icons and symbols used in resumes, including:
+% - Academic/research icons (Google Scholar, ORCID, ADS, telescopes, supernovae)
+% - Technical icons (Kubernetes, GPU, neural networks, compilers)
+% - Miscellaneous decorative symbols
+%
+% Each command includes \raisebox adjustments for proper vertical alignment with text.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{marvosym}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Research publication platforms
+\newcommand{\googlescholar}{\raisebox{-3pt}{\includegraphics[width=2.3ex]{google_scholar_icon_gray.pdf}}}
+\newcommand{\ORCID}{\raisebox{-4pt}{\includegraphics[width=3ex]{ORCID_grayicon.pdf}}}
+\newcommand{\ADS}{\raisebox{-4pt}{\includegraphics[width=3.5ex]{ads_logo_gray.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Astronomy and astrophysics
+\newcommand{\FIRE}{\raisebox{-4pt}{\includegraphics[width=0.8em]{fire_black.pdf}}}
+\newcommand{\IRTF}{\raisebox{-1.5pt}{\includegraphics[width=1.3em]{IRTF.pdf}}}
+\newcommand{\JWST}{\raisebox{-4pt}{\includegraphics[width=1.2em]{jwst.pdf}}}
+\newcommand{\supernova}{\raisebox{-4.5pt}{\includegraphics[width=1.8em]{supernova_simple.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Physics and quantum computing
+\newcommand{\molecules}{\rotatebox[origin=c]{30}{$\water$}\rotatebox[origin=c]{60}{$\water$}}
+\newcommand{\ket}{\raisebox{-2.5pt}{\includegraphics[width=1.2em]{ket.png}}}
+\newcommand{\quantum}{\raisebox{-1.8pt}{\includegraphics[width=1.3em]{quantum.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Machine learning and AI
+\newcommand{\neuralnet}{\raisebox{-3pt}{\includegraphics[width=1.1em]{neuralnet.pdf}}}
+\newcommand{\chatgpt}{\raisebox{-3pt}{\includegraphics[width=1.1em]{Figs/ChatGPT.pdf}}}
+\newcommand{\nlp}{\raisebox{-3pt}{\includegraphics[width=1.2em]{Figs/nlp.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Systems programming and HPC
+\newcommand{\compiler}{\raisebox{-3pt}{\includegraphics[width=1.4em]{Figs/compiler.pdf}}}
+\newcommand{\parallelcomputing}{\raisebox{-3pt}{\includegraphics[width=1.2em]{Figs/parallel_computing_4.pdf}}}
+\newcommand{\gpu}{\raisebox{-3pt}{\includegraphics[width=1.2em]{gpu.pdf}}}
+\newcommand{\binaryfilled}{\raisebox{-1pt}{\includegraphics[width=1.2em]{Figs/binary1.pdf}}}
+\newcommand{\binaryunfilled}{\raisebox{0.5pt}{\includegraphics[width=1.1em]{Figs/binary2.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DevOps and infrastructure
+\newcommand{\kubernetes}{\raisebox{-1.8pt}{\includegraphics[width=1.2em]{Kubernetes_logo.pdf}}}
+\newcommand{\DevOps}{\raisebox{-3.5pt}{\includegraphics[width=1.4em]{Figs/automation.pdf}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Miscellaneous symbols
+\newcommand{\meditate}{\raisebox{-2pt}{\includegraphics[width=1.0em]{Figs/meditate.pdf}}}
+\newcommand{\blackbelt}{\raisebox{-2pt}{\includegraphics[width=1.2em]{Figs/blackbelt.pdf}}}
+\newcommand{\masterfighterA}{\raisebox{-2pt}{\includegraphics[width=.9em]{Figs/master.pdf}}}
+\newcommand{\yoda}{\raisebox{-1.5pt}{\includegraphics[width=.8em]{Figs/jedi.pdf}}}
+\newcommand{\masterfighterB}{\raisebox{-2pt}{\includegraphics[width=1.05em]{Figs/master2.pdf}}}
+\newcommand{\HammerAnvil}{\raisebox{-1pt}{\includegraphics[width=1.2em]{Figs/hammer_anvil.pdf}}}
