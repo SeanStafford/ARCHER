@@ -22,6 +22,8 @@ Usage:
 
 import csv
 import os
+import shutil
+import tempfile
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -155,11 +157,21 @@ def update_resume_status(
                 updated[resume_name] = True
             rows.append(row)
 
-    # Write back all entries
-    with open(REGISTRY_FILE, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=REGISTRY_COLUMNS)
-        writer.writeheader()
-        writer.writerows(rows)
+    # Write to temp file first (atomic write pattern)
+    temp_fd, temp_path = tempfile.mkstemp(suffix='.csv', text=True)
+    try:
+        with os.fdopen(temp_fd, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=REGISTRY_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        # Only overwrite original if write succeeded
+        shutil.move(temp_path, REGISTRY_FILE)
+    except Exception:
+        # Clean up temp file if write failed
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
 
     # Log status_change events for each successful update
     for resume_name, was_updated in updated.items():
