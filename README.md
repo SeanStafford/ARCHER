@@ -252,6 +252,12 @@ ARCHER/
 
 ---
 
+## Resume Registry
+
+ARCHER maintains a master registry (`outs/logs/resume_registry.csv`) tracking all resumes and their pipeline status. This CSV serves as the authoritative source for resume names and enables cross-context status tracking.
+
+---
+
 ## Development
 
 ### Useful Commands
