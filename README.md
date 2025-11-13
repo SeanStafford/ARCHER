@@ -178,6 +178,13 @@ cp .env.example .env
 # Edit .env to customize paths if needed
 ```
 
+#### Verifying System Dependencies
+
+ARCHER automatically checks all required system packages (LaTeX, SQLite, etc.) across all contexts:
+```bash
+make check-deps
+```
+
 ---
 
 ## LaTeX Template System

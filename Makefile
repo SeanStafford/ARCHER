@@ -41,15 +41,10 @@ install-embeddings: venv
 	pip install -e ".[embeddings]"
 	@echo ">>> Embeddings dependencies installed (sentence-transformers, UMAP, HDBSCAN)"
 
-## Verify system dependencies (LaTeX)
+## Verify system dependencies
 .PHONY: check-deps
 check-deps:
-	@echo "Checking system dependencies..."
-	@command -v pdflatex >/dev/null 2>&1 || \
-		(echo "ERROR: pdflatex not found. Please install a LaTeX distribution." && \
-		 echo "See README.md for installation instructions." && exit 1)
-	@pdflatex --version | head -n 1
-	@echo ">>> All system dependencies satisfied"
+	@bash scripts/check_dependencies.sh archer/
 
 #################################################################################
 # CODE HYGIENE COMMANDS                                                         #

@@ -1,0 +1,15 @@
+# System Dependencies for ARCHER Rendering Context
+#
+# This file lists Debian/Ubuntu packages required for PDF compilation
+
+# LaTeX binaries - provides pdflatex command for compiling .tex files to PDF
+texlive-binaries
+
+# NOTICE
+# List ONLY package names (as used with apt-get install), not command names
+# To find which package provides a command:
+#   dpkg -S $(which command-name)
+#   OR: apt-file search command-name
+#
+# Installation (Ubuntu/Debian):
+#   sudo apt-get install $(grep -v '^#' dependencies.txt | xargs)

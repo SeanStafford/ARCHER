@@ -1,0 +1,24 @@
+# LaTeX Package Dependencies for ARCHER Resume Rendering
+#
+# This file lists the required TeX Live packages for compiling resumes with a custom mystyle system.
+# These packages provide the fonts and LaTeX packages referenced in mystyle/*.sty files
+
+# Core LaTeX distribution (usually already installed)
+texlive-latex-base
+texlive-latex-recommended
+
+# Extended fonts including EB Garamond (used in packages.sty line 11)
+# This is required for the \usepackage{ebgaramond} directive
+texlive-fonts-extra
+     
+# Additional packages for custom symbols (fontawesome5, svrsymbols)
+texlive-fonts-recommended
+
+# NOTICE
+# List ONLY package names (as used with apt-get install), not command names
+# To find which package provides a command:
+#   dpkg -S $(which command-name)
+#   OR: apt-file search command-name
+#
+# Installation (Ubuntu/Debian):
+#   sudo apt-get install $(grep -v '^#' dependencies.txt | xargs)
