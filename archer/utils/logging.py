@@ -114,3 +114,56 @@ def log_status_change(
         **extra_fields
     )
 
+
+def get_recent_events(
+    n: int = 10,
+    resume_name: Optional[str] = None,
+    event_type: Optional[str] = None
+) -> list[dict]:
+    """
+    Get the last n events from the pipeline log, optionally filtered.
+
+    Args:
+        n: Number of recent events to return (default: 10)
+        resume_name: Filter to only events for this resume (optional)
+        event_type: Filter to only events of this type (optional)
+
+    Returns:
+        List of event dicts (most recent last)
+
+    Example:
+        # Last 10 events
+        events = get_recent_events(10)
+
+        # Last 20 status changes
+        events = get_recent_events(20, event_type="status_change")
+
+        # Last 5 events for specific resume
+        events = get_recent_events(5, resume_name="Res202511")
+
+        # Last 10 status changes for specific resume
+        events = get_recent_events(10, resume_name="Res202511", event_type="status_change")
+    """
+    if not PIPELINE_EVENTS_FILE.exists():
+        return []
+
+    # Read all events from file
+    events = []
+    with open(PIPELINE_EVENTS_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                event = json.loads(line.strip())
+                events.append(event)
+            except json.JSONDecodeError:
+                # Skip malformed lines
+                continue
+
+    # Apply filters
+    if resume_name:
+        events = [e for e in events if e.get("resume_name") == resume_name]
+
+    if event_type:
+        events = [e for e in events if e.get("event_type") == event_type]
+
+    # Return last n events
+    return events[-n:] if len(events) > n else events

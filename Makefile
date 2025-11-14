@@ -169,6 +169,26 @@ registry-list:
 registry-init:
 	$(PYTHON_INTERPRETER) scripts/manage_registry.py init
 
+## View recent pipeline events (JSON output)
+## Usage: make logs [RESUME=resume_name]
+.PHONY: logs
+logs:
+ifdef RESUME
+	@$(PYTHON_INTERPRETER) scripts/tail_log.py -c -r $(RESUME) | jq
+else
+	@$(PYTHON_INTERPRETER) scripts/tail_log.py -c -n 5 | jq
+endif
+
+## Track status history for a resume (requires RESUME variable)
+## Usage: make track RESUME=resume_name
+.PHONY: track
+track:
+ifndef RESUME
+	@echo "Error: RESUME variable required. Usage: make track RESUME=resume_name"
+	@exit 1
+endif
+	@$(PYTHON_INTERPRETER) scripts/tail_log.py track $(RESUME) -r
+
 #################################################################################
 # UTILITY COMMANDS                                                              #
 #################################################################################
