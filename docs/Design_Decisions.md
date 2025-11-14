@@ -372,3 +372,68 @@ This asymmetry made parsing patterns invisible and difficult to maintain. Change
 **Trade-offs**: Slight API complexity (mode parameter), but benefit of use-case optimization outweighs cost. Alternative of separate classes (`MarkdownResumeDocument`, `PlaintextResumeDocument`) would duplicate significant logic.
 
 ---
+
+## Design Decision 16: SQLite Database for Resume Content Queries
+
+**Date**: Nov 9, 2025
+
+**Decision**: Implement `ResumeDatabase` class using SQLite to enable fast cross-resume queries, complementing `ResumeDocumentArchive`'s structured access.
+
+**Issue**: After YAML standardization work (Nov 7-8), the `get_items()` and `get_items_by_section()` methods in `ResumeDocument` became disappointingly complex. The object-oriented approach required type-specific branching and iteration logic to extract content items. For the targeting context's use case—querying "give me all bullets mentioning machine learning" or "find all skills from these 3 resumes"—OOP was suboptimal.
+
+**Rationale**:
+- **Natural fit** - Relational database queries (`WHERE`, `LIKE`, `IN`) more natural than nested object iteration for content filtering
+- **Persistent storage** - SQLite provides memory-persistent queries without re-parsing 56+ YAML files
+- **Lightweight** - No heavyweight database server; single-file database committed to repo
+- **SQL power** - Complex queries (multi-field filters, pattern matching) become one-liners
+- **Complementary design** - Works alongside `ResumeDocumentArchive`, not replacing it:
+  - Archive: Preserves structure, supports markdown/plaintext modes, section-level access
+  - Database: Flat item table, fast queries, cross-resume search
+- **One-line API** - Targeting context gets simple interface: `db.get_all_skills()`, `db.query("SELECT...")`
+
+**Implementation**:
+- `ResumeDatabase` class in `archer/contexts/templating/resume_database.py` (~300 lines)
+- Schema: Single `items` table with columns: `resume_name`, `path`, `section_name`, `section_type`, `subsection_name`, `subsection_type`, `item_text`, `item_order`, `company`, `job_title`, `dates`, `project_name`
+- Build once: `ResumeDatabase.from_documents(docs, db_path)` extracts all items from `ResumeDocument` objects
+- Load later: `ResumeDatabase(db_path)` connects to existing database (fast, no parsing)
+- Query methods: `query()` (raw SQL), `get_all_skills()`, `get_all_bullets()`, `get_items_by_section_type()`
+- Incremental `row_fields` pattern: Build up metadata dict as traversing section → subsection → item hierarchy
+- Single iteration point: `_add_items()` method consolidates all `for idx, item in enumerate()` logic
+
+**Architecture Pattern**:
+```
+YAML files → ResumeDocumentArchive → ResumeDatabase
+                     ↓                      ↓
+              (structure preserved)   (items flattened)
+                     ↓                      ↓
+              Analysis/iteration      SQL queries/search
+```
+
+**Trade-offs**:
+- **Lost hierarchy** - Flat table doesn't preserve section nesting; must reconstruct from metadata columns
+- **No formatting modes** - Database stores text as-is from `ResumeDocument` (depends on mode used during build)
+- **One-time build cost** - Must rebuild database when YAMLs change (but fast: ~56 resumes in <1 second)
+- **Benefits outweigh costs** - Query performance and SQL expressiveness worth the architectural complexity
+
+**Design Note**: This decision removed `get_items()` methods from `ResumeDocument` (they were migrated to database). `ResumeDocument` now focuses on structured semantic access; database handles querying/filtering.
+
+---
+
+## Design Decision 17: Declarative Dependency Management
+
+**Date**: Nov 13, 2025
+
+**Decision**: System dependencies are declared in `dependencies.txt` files within each context/module, validated by a generalized recursive checking script.
+
+**Issue**: System package requirements (LaTeX, SQLite) were hardcoded in Makefile targets and scattered across documentation. No automated way to verify all dependencies across contexts.
+
+**Rationale**:
+- Declarative approach keeps dependency lists separate from validation logic
+- Context-specific dependencies are declared where they're used (rendering, templating, utils)
+- `scripts/check_dependencies.sh` recursively finds and validates all `dependencies.txt` files
+- Packages can be marked optional (e.g., `jq  # optional`) for development tools
+- Exit code distinguishes required failures from optional suggestions
+
+**Implementation**: Each context with system dependencies has a `dependencies.txt` file listing Debian/Ubuntu package names. `make check-deps` validates all dependencies under `archer/`.
+
+---
