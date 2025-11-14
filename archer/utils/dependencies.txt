@@ -1,0 +1,14 @@
+# System Dependencies for ARCHER Utilities
+#
+# This file lists packages that provide useful utilities for ARCHER development and debugging
+
+jq  # optional - useful for inspecting JSON Lines log files
+
+# NOTICE
+# List ONLY package names (as used with apt-get install), not command names
+# To find which package provides a command:
+#   dpkg -S $(which command-name)
+#   OR: apt-file search command-name
+#
+# Installation (Ubuntu/Debian):
+#   sudo apt-get install $(grep -v '^#' dependencies.txt | xargs)

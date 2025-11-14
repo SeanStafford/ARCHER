@@ -180,7 +180,7 @@ cp .env.example .env
 
 #### Verifying System Dependencies
 
-ARCHER automatically checks all required system packages (LaTeX, SQLite, etc.) across all contexts:
+ARCHER automatically checks all system dependencies (LaTeX, SQLite, etc.) across all of the archer module:
 ```bash
 make check-deps
 ```
