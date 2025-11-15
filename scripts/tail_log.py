@@ -16,7 +16,7 @@ import typer
 # Add archer package to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from archer.utils.logging import get_recent_events
+from archer.utils.event_logging import get_recent_events
 from archer.utils.timestamp import format_timestamp
 from archer.utils.resume_registry import get_resume_status
 

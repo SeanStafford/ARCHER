@@ -1,15 +1,13 @@
 """
-Centralized logging utilities for ARCHER.
+Pipeline event logging utilities for ARCHER (Tier 2 logging).
 
-Provides uniform logging interfaces for:
-- Status changes (registry + event log)
-- Pipeline events
-- Cross-context coordination
+Provides uniform interfaces for logging pipeline events to resume_pipeline_events.log.
+This is for cross-context coordination via JSON Lines event log.
 
-All logging goes through this module to ensure consistency.
+For detailed within-context logging (Tier 1), use archer.utils.logger instead.
 
 Usage:
-    from archer.utils.logging import log_status_change, log_pipeline_event
+    from archer.utils.event_logging import log_status_change, log_pipeline_event
 
     # Update status with automatic event logging
     log_status_change(

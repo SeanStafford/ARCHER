@@ -30,7 +30,7 @@ from typing import Optional, List, Dict
 
 from dotenv import load_dotenv
 
-from archer.utils.logging import log_pipeline_event, log_status_change
+from archer.utils.event_logging import log_pipeline_event, log_status_change
 from archer.utils.timestamp import now_exact
 
 load_dotenv()
