@@ -6,6 +6,7 @@ Handles compilation of .tex files to PDF using pdflatex.
 
 import os
 import re
+import time
 import shutil
 import subprocess
 import warnings as warnings_module
@@ -14,6 +15,16 @@ from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
+
+from archer.utils.resume_registry import update_resume_status, resume_is_registered
+from archer.utils.timestamp import now, today
+from archer.contexts.rendering.logger import (
+    setup_rendering_logger,
+    log_compilation_start,
+    log_compilation_result,
+    _log_info,
+    _log_debug
+)
 
 load_dotenv()
 
@@ -234,3 +245,140 @@ def compile_latex(
         warnings=warnings,
     )
 
+
+def compile_resume(
+    tex_file: Path,
+    output_dir: Optional[Path] = None,
+    num_passes: int = 2,
+) -> CompilationResult:
+    """
+    Compile a resume LaTeX file with registry tracking and organized output management.
+
+    Orchestration function that wraps compile_latex() with ARCHER-specific
+    resume tracking via the registry system. Logs status changes to the
+    pipeline event log (Tier 2 logging).
+
+    On success:
+        - Moves PDF to outs/results/YYYY-MM-DD/
+        - Creates symlink in log directory pointing to PDF
+        - Saves minimal render.log
+        - Deletes all artifacts
+
+    On failure:
+        - Keeps all artifacts in log directory for debugging
+        - Saves detailed render.log with full stdout/stderr
+
+    Args:
+        tex_file: Path to the resume .tex file to compile
+        output_dir: Directory for output files (default: None, uses timestamped log directory)
+        num_passes: Number of pdflatex passes (default: 2 for cross-references)
+        keep_artifacts: Keep intermediate files (default: from KEEP_LATEX_ARTIFACTS env)
+
+    Returns:
+        CompilationResult with success status and diagnostic information
+    """
+
+    tex_file = Path(tex_file).resolve()
+    # Early validation before any registry updates
+    if not tex_file.exists():
+        return CompilationResult(
+            success=False, errors=[f"TeX file not found: {tex_file}"]
+        )
+
+    # Extract resume name for registry lookup (registry uses file stem)
+    resume_name = tex_file.stem
+    # Verify resume is registered in the tracking system
+    if not resume_is_registered(resume_name):
+        return CompilationResult(
+            success=False, errors=[f"Resume not registered: {resume_name}"]
+        )
+
+    # Create timestamped log directory for this compilation
+    timestamp = now()
+    log_dir = LOGS_PATH / f"render_{timestamp}"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    if output_dir is None:
+        output_dir = log_dir
+    else:
+        output_dir = Path(output_dir).resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Setup loguru logger with provenance
+    setup_rendering_logger(log_dir)
+
+    # Log start of compilation (Tier 1)
+    log_compilation_start(resume_name, tex_file, num_passes)
+
+    # Log start of rendering to pipeline events by setting status to 'rendering' (Tier 2)
+    update_resume_status(
+        updates={resume_name: "rendering"},
+        source="rendering"
+    )
+
+    start_time = time.time()
+
+    # Actually compile the LaTeX file
+    result = compile_latex(
+        tex_file=tex_file,
+        compile_dir=output_dir,
+        num_passes=num_passes,
+        keep_artifacts=True  # Always keep initially, we'll clean up based on success
+    )
+
+    compilation_time_s = time.time() - start_time
+
+    # Log compilation result (Tier 1)
+    log_compilation_result(
+        resume_name=resume_name,
+        result=result,
+        elapsed_time=compilation_time_s
+    )
+
+    # Handle success vs failure
+    if result.success:
+        # Move PDF to dated results directory
+        results_dir = RESULTS_PATH / today()
+        results_dir.mkdir(parents=True, exist_ok=True)
+
+        final_pdf = results_dir / f"{resume_name}.pdf"
+        shutil.move(result.pdf_path, final_pdf)
+        _log_info(f"PDF saved to: {final_pdf}")
+
+        # Create symlink in log directory pointing to final PDF
+        pdf_symlink = log_dir / f"{resume_name}.pdf"
+        pdf_symlink.symlink_to(final_pdf)
+
+        # Clean up all artifacts from wherever compilation happened
+        for ext in LATEX_ARTIFACTS:
+            artifact = output_dir / f"{resume_name}{ext}"
+            if artifact.exists():
+                artifact.unlink()
+        _log_debug("Cleaned up LaTeX artifacts.")
+
+        # Update result with new PDF path
+        result.pdf_path = final_pdf
+
+        # Log success to pipeline events (Tier 2)
+        update_resume_status(
+            updates={resume_name: "rendering_completed"},
+            source="rendering",
+            compilation_time_s=round(compilation_time_s, 2),
+            warning_count=len(result.warnings),
+            num_passes=num_passes,
+            pdf_path=str(final_pdf)
+        )
+    else: # Compilation failed
+        # Keep artifacts for debugging on failure
+        _log_debug(f"Keeping artifacts: compilation failed")
+
+        # Log failure to pipeline events (Tier 2)
+        update_resume_status(
+            updates={resume_name: "rendering_failed"},
+            source="rendering",
+            compilation_time_s=round(compilation_time_s, 2),
+            error_count=len(result.errors),
+            errors=result.errors[:5] if result.errors else []
+        )
+
+    return result
