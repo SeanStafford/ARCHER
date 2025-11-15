@@ -136,10 +136,11 @@ def remove_inline_comment(line: str, comment_types: Set[str]) -> str:
     # Check for inline descriptive pattern: % text (without dashes)
     if CommentType.DESCRIPTIVE in comment_types:
         # Remove inline descriptive comments like: \command % BETWEEN SECTION SPACING
-        # Pattern: % followed by space and text (not dashes, not just whitespace)
+        # Pattern: unescaped % followed by space and text (not dashes, not just whitespace)
         # This won't match line-ending % which is preserved by should_preserve_line()
-        if re.search(r"%\s*[^-\s]", line):
-            line = re.sub(r"\s*%\s*[^-].*$", "", line)
+        # Use negative lookbehind (?<!\\) to skip escaped \% characters
+        if re.search(r"(?<!\\)%\s*[^-\s]", line):
+            line = re.sub(r"\s*(?<!\\)%\s*[^-].*$", "", line)
 
     return line
 
