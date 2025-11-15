@@ -96,12 +96,13 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 
 ### 3. Templating Context
 **Responsibility**: Resume structure and LaTeX template management
-- Converts between LaTeX (.tex) files and structured data representations
-- Manages resume document structure (fields, sections, content organization)
-- Populates templates with targeted content
-- Handles LaTeX style system and formatting decisions
+- **Bidirectional conversion** between LaTeX (.tex) and structured YAML
+- Template-based LaTeX generation using Jinja2
+- Config-driven parsing with operation-based system
+- Manages ~10 content types with individual templates and parse configs
+- ResumeDocument class for semantic access to resume content
 
-**Owns**: LaTeX template system, resume structure representation, tex ↔ structured data conversion
+**Owns**: LaTeX↔YAML conversion, template system, resume structure representation
 **Never**: Makes content prioritization decisions
 
 ### 4. Rendering Context
@@ -115,9 +116,10 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 
 ### Context Communication
 
+Contexts communicate through well-defined APIs with explicit data structures:
 
 ```
-Intake → Targeting → Templating → Rendering → (PDF)
+Intake → (normalized job) → Targeting → (content selections) → Templating → (.tex file) → Rendering → (PDF)
 ```
 
 
@@ -189,31 +191,20 @@ make check-deps
 
 ## LaTeX Template System
 
-ARCHER's resume styling is implemented through a modular LaTeX package system 
+ARCHER's resume styling is implemented through a modular LaTeX package system in `archer/contexts/rendering/mystyle/`:
 
 - **`packages.sty`** - Core LaTeX package imports
 - **`gencommands.sty`** - General-purpose commands and metadata
 - **`pagestyles.sty`** - Header/footer configuration with professional profile
 - **`tables.sty`** - Custom list environments 
 
-### Design Philosophy
-
-All styling is centralized in `.sty` files. 
-### Custom LaTeX Environments
-
-Resume content is structured using custom environments (defined in `tables.sty`):
-
-**Experience Entries**:
-- `\begin{itemizeAcademic}{Company}{Title}{Location}{Dates}` - Job position header
-- `\itemi` - Top-level achievement bullet
-- `\itemii` - Second-level bullet within projects
 
 
 ---
 
 ## Historical Resume Archive
 
-ARCHER leverages manually-created production resumes as a content library. After cleaning, these are processed and stored in `data/resume_archive/`:
+ARCHER leverages manually-created resumes as a content library. These are processed and stored in `data/resume_archive/structured/` as YAML files:
 
 **Purpose**:
 - **Content extraction source** - Experience bullets, project descriptions, skill lists
@@ -221,7 +212,6 @@ ARCHER leverages manually-created production resumes as a content library. After
 - **Customization examples** - Variation in branding, spacing, section selection
 - **Quality reference** - Well-crafted quantified achievements
 
-**Naming convention**: `ResYYYYMM_Position_Company.tex`
 
 When generating a new resume, ARCHER analyzes relevant historical resumes to:
 1. Identify which content is most relevant to the target job
@@ -235,19 +225,27 @@ When generating a new resume, ARCHER analyzes relevant historical resumes to:
 
 ```
 ARCHER/
-├── archer/                 
+├── archer/
 │   ├── contexts/
 │   │   ├── intake/         # Job description parsing
 │   │   ├── targeting/      # Content prioritization
-│   │   ├── templating/     # LaTeX template management
+│   │   │   └── historical/ # Analysis of previous resumes
+│   │   ├── templating/     # LaTeX ↔ YAML conversion (complete)
 │   │   └── rendering/      # PDF compilation
-│   └── utils/              # Shared utilities (latex_cleaner, etc.)
-├── data/                   
-│   └── resume_archive/     # Cleaned, processed resume content
-├── scripts/                # Python CLI utilities
+│   │       └── mystyle/    # LaTeX style files
+│   └── utils/              # Shared utilities
+├── data/
+│   └── resume_archive/     # Normalized LaTeX resumes
+│       ├── raw/            # Raw LaTeX resumes
+│       ├── structured/     # YAML resumes
+│       └── fixtures/       # Test fixtures
+├── docs/                   # Design documentation
+├── scripts/                # CLI utilities
+├── tests/                  # Test suite
 ├── outs/
-│   └── resumes/            # Generated resumes
-└── pyproject.toml          # Project setup and config
+│   ├── results/            # Final generated resumes
+│   └── logs/               # Script execution logs
+└── pyproject.toml          # Package configuration
 ```
 
 ---
@@ -319,9 +317,23 @@ pytest tests/integration/test_two_page.py  # Specific test file
 
 ---
 
-## Future Work
+## Current Progress
 
-- Resume compilation preview workflow
-- Content extraction algorithms for historical resume mining
+**Completed**:
+- ✅ Bidirectional LaTeX ↔ YAML conversion system
+- ✅ Template-based LaTeX generation with Jinja2
+- ✅ Config-driven parsing with 11 content types
+- ✅ ResumeDocument API for semantic resume access
+- ✅ 100% YAML roundtrip fidelity
+- ✅ 98% LaTeX roundtrip fidelity
+
+**In Progress**:
+- Rendering context integration with templating
+- Resume pattern analysis tools
+
+**Planned**:
+- Job description parser (Intake context)
+- Content relevance scoring (Targeting context)
 - Automated section selection based on job type
-- LLM integration for sophisticated job description analysis
+- Full pipeline integration (Intake → Targeting → Templating → Rendering)
+- LLM integration for job description analysis
