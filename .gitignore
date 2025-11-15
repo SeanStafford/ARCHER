@@ -103,4 +103,4 @@ data/**/*.db
 data/resume_archive/**/*.tex
 data/resume_archive/**/*.yaml
 !data/resume_archive/fixures
-# data/figs/ will be committed (needed for LaTeX compilation)
+data/figs/
