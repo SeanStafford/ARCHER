@@ -233,8 +233,17 @@ track-notebooks:
 .PHONY: git-undo
 git-undo:
 	@n=$${N:-1}; \
+	echo "Undoing last $$n commit(s). Messages (newest first):"; \
+	echo "============================================================"; \
+	for i in $$(seq 0 $$((n-1))); do \
+		echo ""; \
+		git log --format="%h %B" -n 1 HEAD~$$i; \
+		echo "------------------------------------------------------------"; \
+	done; \
+	echo "============================================================"; \
 	git reset --soft HEAD~$$n && \
-	echo ">>> Undid last $$n commit(s), changes remain staged"
+	echo ">>> Undid last $$n commit(s), changes remain staged" && \
+	echo ">>> To recover: git reflog (commits are at HEAD@{1}, HEAD@{2}, etc.)"
 
 #################################################################################
 # Self Documenting Boilerplate                                                  #
