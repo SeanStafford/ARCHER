@@ -7,9 +7,9 @@ data/resume_archive/structured/ for use by the Targeting context.
 """
 
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
+from datetime import datetime
 
 import typer
 from dotenv import load_dotenv
@@ -18,6 +18,7 @@ from omegaconf import OmegaConf
 from archer.contexts.templating import latex_to_yaml, yaml_to_latex
 from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.text_processing import get_meaningful_diff
+from archer.utils.timestamp import now
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
@@ -299,7 +300,7 @@ def convert_command(
     typer.echo(f"Validation thresholds: LaTeX ≤{max_latex_diffs}, YAML ≤{max_yaml_diffs}")
 
     # Create log directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now()
     work_dir = LOGS_PATH / f"convert_{timestamp}"
     work_dir.mkdir(exist_ok=True, parents=True)
 
@@ -452,7 +453,7 @@ def batch_command(
         raise typer.Exit(code=1)
 
     # Create log directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now()
     log_dir = LOGS_PATH / f"convert_{timestamp}"
     log_dir.mkdir(exist_ok=True, parents=True)
 

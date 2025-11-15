@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from archer.contexts.templating import latex_to_yaml, yaml_to_latex
 from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.text_processing import get_meaningful_diff
+from archer.utils.timestamp import now
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
@@ -268,7 +269,7 @@ def test_command(
         raise typer.Exit(code=1)
 
     # Create log directory (files go directly here, not in subdirectory)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now()
     work_dir = LOGS_PATH / f"test_{timestamp}"
     work_dir.mkdir(exist_ok=True, parents=True)
 
@@ -421,7 +422,7 @@ def batch_command(
         raise typer.Exit(code=1)
 
     # Create log directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now()
     log_dir = LOGS_PATH / f"test_{timestamp}"
     log_dir.mkdir(exist_ok=True, parents=True)
 

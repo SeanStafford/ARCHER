@@ -25,13 +25,13 @@ import os
 import shutil
 import tempfile
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
 
 from dotenv import load_dotenv
 
 from archer.utils.logging import log_pipeline_event, log_status_change
+from archer.utils.timestamp import now_exact
 
 load_dotenv()
 REGISTRY_FILE = Path(os.getenv("RESUME_REGISTRY"))
@@ -84,7 +84,7 @@ def register_resume(
         raise ValueError(f"Resume '{resume_name}' already registered")
 
     # Append new entry with current timestamp
-    timestamp = datetime.now().isoformat()
+    timestamp = now_exact()
     with open(REGISTRY_FILE, 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow([resume_name, resume_type, status, timestamp])
@@ -142,7 +142,7 @@ def update_resume_status(
     """
     # Read all entries and track old statuses
     rows = []
-    timestamp = datetime.now().isoformat()
+    timestamp = now_exact()
     updated = {resume_name: False for resume_name in updates}
     old_statuses = {}
 

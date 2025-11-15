@@ -3,6 +3,21 @@
 from datetime import datetime, timedelta
 
 
+def now_exact() -> str:
+    """Get current timestamp in ISO 8601 format."""
+    return datetime.now().isoformat()
+
+
+def now() -> str:
+    """Get current timestamp in filesystem-safe detailed format."""
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def today() -> str:
+    """Get current date in filesystem-safe format (YYYYMMDD)."""
+    return datetime.now().strftime("%Y%m%d")
+
+
 def format_timestamp(iso_timestamp: str, relative: bool = False) -> str:
     """
     Format ISO 8601 timestamp to readable format.

@@ -29,11 +29,12 @@ Usage:
 
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
+
+from archer.utils.timestamp import now_exact
 
 
 load_dotenv()
@@ -73,7 +74,7 @@ def log_pipeline_event(
     LOGS_PATH.mkdir(parents=True, exist_ok=True)
 
     event = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": now_exact(),
         "event_type": event_type,
         "resume_name": resume_name,
         "source": source,
