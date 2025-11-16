@@ -70,18 +70,44 @@ def register_resume(
     """
     Register a new resume in the registry and log the event.
 
+    For manual registrations (source="manual"), prompts for an optional reason
+    that will be included in the registration event log.
+
     Args:
         resume_name: Unique identifier (e.g., "Res202510")
         resume_type: Resume category ("historical", "generated", or "test")
-        source: Event source (e.g., "cli", "templating")
+        source: Event source (e.g., "cli", "templating", "manual")
         status: Initial status (default: "raw")
 
     Raises:
         ValueError: If resume_name already exists
+        KeyboardInterrupt: If user aborts during manual registration prompt
     """
     # Check if resume already exists
     if resume_is_registered(resume_name):
         raise ValueError(f"Resume '{resume_name}' already registered")
+
+    # Log registration event (include reason if provided)
+    event_data = {
+        "event_type": "registration",
+        "resume_name": resume_name,
+        "source": source,
+        "resume_type": resume_type,
+        "status": status
+    }
+
+    # Interactive prompt for manual registrations
+    reason = None
+    if source == "manual":
+        try:
+            reason_input = input(
+                "Reason for manual registration (press Enter to skip, Ctrl+C to abort): "
+            ).strip()
+            if reason_input:
+                event_data["reason"] = reason_input
+        except KeyboardInterrupt:
+            print("\n✗ Registration aborted by user")
+            raise
 
     # Append new entry with current timestamp
     timestamp = now_exact()
@@ -89,14 +115,7 @@ def register_resume(
         writer = csv.writer(f)
         writer.writerow([resume_name, resume_type, status, timestamp])
 
-    # Log registration event
-    log_pipeline_event(
-        event_type="registration",
-        resume_name=resume_name,
-        source=source,
-        resume_type=resume_type,
-        status=status
-    )
+    log_pipeline_event(**event_data)
 
 
 def update_resume_status(

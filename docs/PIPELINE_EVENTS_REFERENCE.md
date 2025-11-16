@@ -32,8 +32,13 @@ Every event logged to `resume_pipeline_events.log` contains these fields:
 **Additional fields**:
 - `resume_type` (str): Must be `"historical"`, `"generated"`, or `"test"`
 - `status` (str)
+- `reason` (str, optional): Explanation for manual registration (only when `source="manual"`)
 
-**Example**:
+**Interactive prompt**: When `source="manual"`, `register_resume()` prompts for an optional reason that will be included in the event log. Press Enter to skip or Ctrl+C to abort.
+
+**Examples**:
+
+Automated registration (CLI bulk import):
 ```json
 {
   "timestamp": "2025-11-13T18:27:45.123456",
@@ -42,6 +47,19 @@ Every event logged to `resume_pipeline_events.log` contains these fields:
   "source": "cli",
   "resume_type": "historical",
   "status": "parsed"
+}
+```
+
+Manual registration with reason:
+```json
+{
+  "timestamp": "2025-11-16T02:44:50.154954",
+  "event_type": "registration",
+  "resume_name": "_test_Res202511_Fry_MomCorp",
+  "source": "manual",
+  "resume_type": "test",
+  "status": "parsed",
+  "reason": "Manually registering test resume to enable exact testing of the registry and event logging systems without cluttering logs for real resumes."
 }
 ```
 
