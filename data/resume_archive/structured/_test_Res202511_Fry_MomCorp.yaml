@@ -1,0 +1,656 @@
+document:
+  metadata:
+    name_plaintext: Philip J. Fry
+    date: December 3002
+    brand_plaintext: Delivery Boy | Accidental Time Traveler
+    professional_profile_plaintext: I deliver packages to the future with unmatched
+      enthusiasm and a surprising ability to survive catastrophic situations through
+      sheer luck and occasionally being my own grandfather.
+    nlines_pp: 1
+    list_title_after_name: false
+    colors:
+      emphcolor: ClaudeOrange
+      topbarcolor: AnthropicGeistOrange
+      leftbarcolor: AnthropicTan
+      brandcolor: black
+      namecolor: AnthropicBlack
+    hlcolor: ClaudeOrange
+    setlengths:
+      leftmargin: 0.4in
+      rightmargin: 0.5in
+      aboveheader: 10pt
+      bottommargin: 0.3in
+      headheight: 59pt
+      headervskip: 19pt
+      leftbarwidth: 0.275\paperwidth
+      sidecolwidth: \leftbarwidth-1.5\leftmargin
+      doublecolsep: 1\leftmargin
+      projlistvsep: 8pt
+      firstlistvsep: 12pt
+      highlightindent: 48pt
+      seclisttopsepcontent: 0pt
+      keyprojvsep: 3pt
+      sectionsep: 10pt
+    deflens:
+      bottombarheight: 60pt
+      bottombarsolidheight: 45pt
+    custom_packages: null
+    fields:
+      pdfkeywords: Time Travel, Package Delivery, Survival Skills, Universe Saving,
+        Brain Spawn Defeating, Space Travel, 20th Century Knowledge, Holophonor, Planet
+        Express, Applied Cryogenics, Being Own Grandfather, Future Adaptation
+    name: Philip J. Fry
+    brand: Delivery Boy | Accidental Time Traveler
+    professional_profile: I deliver packages to the future with unmatched enthusiasm
+      and a surprising ability to survive catastrophic situations through sheer luck
+      and occasionally being my own grandfather.
+  pages:
+  - page_number: 1
+    regions:
+      top:
+        show_professional_profile: true
+      left_column:
+        sections:
+        - type: skill_list_caps
+          metadata:
+            name_plaintext: Core Skills
+            spacing_after: '
+
+
+              \vspace{2.8\sectionsep}'
+            name: Core Skills
+          content:
+            items:
+            - plaintext: Time Travel (Accidental)
+              latex_raw: Time Travel (Accidental)
+            - plaintext: Package Delivery
+              latex_raw: Package Delivery
+            - plaintext: Surviving the Future
+              latex_raw: Surviving the Future
+            - plaintext: Temporal Paradoxes
+              latex_raw: Temporal Paradoxes
+            - plaintext: Crisis Management
+              latex_raw: Crisis Management
+            - plaintext: Improvisation
+              latex_raw: Improvisation
+            - plaintext: Customer Service
+              latex_raw: Customer Service
+            - plaintext: Spaceship Operation
+              latex_raw: Spaceship Operation
+        - type: skill_list_pipes
+          metadata:
+            name_plaintext: Languages
+            spacing_after: '
+
+
+              \vspace{2.8\sectionsep}'
+            name: Languages
+          content:
+            items:
+            - plaintext: 20th Century Slang
+              latex_raw: 20th Century Slang
+            - plaintext: Future Speak
+              latex_raw: Future Speak
+            - plaintext: Possibly Español
+              latex_raw: Possibly Español
+            - plaintext: Ancient Martian (basic)
+              latex_raw: Ancient Martian (basic)
+        - type: skill_list_pipes
+          metadata:
+            name_plaintext: Hardware
+            spacing_after: '
+
+
+              \vspace{2.8\sectionsep}'
+            name: Hardware
+          content:
+            items:
+            - plaintext: Spaceships
+              latex_raw: Spaceships
+            - plaintext: Freezer Tubes
+              latex_raw: Freezer Tubes
+            - plaintext: Holophonor (poorly)
+              latex_raw: Holophonor (poorly)
+        - type: skill_categories
+          metadata:
+            name_plaintext: Delivery Tools
+            name: Delivery Tools
+          subsections:
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Hover Dolly
+                latex_raw: Hover Dolly
+              - marker: itemLL
+                plaintext: Suicide Booth (Navigation)
+                latex_raw: Suicide Booth (Navigation)
+              - marker: itemLL
+                plaintext: Smelloscope
+                latex_raw: Smelloscope
+            metadata:
+              marker: \item[\faRobot]
+              name_plaintext: Equipment
+              nolinebreak: null
+              toc_title: ' Equipment'
+              name: Equipment
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Universe Saving
+                latex_raw: Universe Saving
+              - marker: itemLL
+                plaintext: Paradox Resolution
+                latex_raw: Paradox Resolution
+              - marker: itemLL
+                plaintext: Brain Spawn Combat
+                latex_raw: Brain Spawn Combat
+              - marker: itemLL
+                plaintext: Opera in Space
+                latex_raw: Opera in Space
+              - marker: itemLL
+                plaintext: Anchovies Expertise
+                latex_raw: Anchovies Expertise
+            metadata:
+              marker: \item[\faChartLine]
+              name_plaintext: Specialized Skills
+              nolinebreak: null
+              toc_title: ' Specialized Skills'
+              name: Specialized Skills
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Team Bonding
+                latex_raw: Team Bonding
+              - marker: itemLL
+                plaintext: Moral Support
+                latex_raw: Moral Support
+              - marker: itemLL
+                plaintext: Never Giving Up
+                latex_raw: Never Giving Up
+              - marker: itemLL
+                plaintext: 20th Century Trivia
+                latex_raw: 20th Century Trivia
+            metadata:
+              marker: \item[\parallelcomputing]
+              name_plaintext: Soft Skills
+              nolinebreak: null
+              toc_title: ' Soft Skills'
+              name: Soft Skills
+      main_column:
+        sections:
+        - type: work_history
+          metadata:
+            name_plaintext: Experience
+            spacing_after: '
+
+
+
+              \vspace{\sectionsep}'
+            name: Experience
+          subsections:
+          - type: work_experience
+            metadata:
+              company: Planet Express
+              title: Delivery Boy
+              location: New New York, Earth
+              dates: Jan 3000 -- Present
+              subtitle: Interplanetary package delivery corporation owned by my distant
+                nephew
+            content:
+              projects:
+              - type: project
+                metadata:
+                  bullet_symbol: \faChartLine
+                  name_plaintext: Saved Universe from Brain Spawn Invasion
+                  dates: ''
+                  environment_type: itemizeKeyProject
+                  name: Saved Universe from Brain Spawn Invasion
+                content:
+                  bullets:
+                  - marker: itemii
+                    plaintext: Led defense of Earth against mind-controlling aliens
+                      by being immune due to lack of delta brainwave, delivering critical
+                      victory for all sentient life
+                    latex_raw: Led defense of Earth against mind-controlling aliens
+                      by being immune due to lack of delta brainwave, delivering critical
+                      victory for all sentient life
+                  - marker: itemii
+                    plaintext: Prevented universe destruction by diving into infosphere
+                      to disable doomsday device, demonstrating exceptional courage
+                      and questionable judgment
+                    latex_raw: Prevented universe destruction by diving into infosphere
+                      to disable doomsday device, demonstrating exceptional courage
+                      and questionable judgment
+              bullets:
+              - marker: itemi
+                plaintext: Maintained 87% on-time delivery rate despite constant mortal
+                  peril from hostile aliens, planetary disasters, and coworker negligence
+                latex_raw: Maintained 87% on-time delivery rate despite constant mortal
+                  peril from hostile aliens, planetary disasters, and coworker negligence
+              - marker: itemi
+                plaintext: Successfully navigated deliveries to dangerous locations
+                  including Amazonia, the Slurm Factory, and the edge of the universe
+                latex_raw: Successfully navigated deliveries to dangerous locations
+                  including Amazonia, the Slurm Factory, and the edge of the universe
+              - marker: itemi
+                plaintext: Adapted 20th century skills to 31st century challenges
+                  by leveraging unique historical perspective and complete lack of
+                  future knowledge
+                latex_raw: Adapted 20th century skills to 31st century challenges
+                  by leveraging unique historical perspective and complete lack of
+                  future knowledge
+              - marker: itemi
+                plaintext: Survived workplace hazards including robot uprisings, radiation
+                  exposure, and being eaten by various creatures on 47 occasions
+                latex_raw: Survived workplace hazards including robot uprisings, radiation
+                  exposure, and being eaten by various creatures on 47 occasions
+        - type: projects
+          metadata:
+            name_plaintext: Notable Achievements
+            spacing_after: '
+
+
+
+              \vspace{\sectionsep}'
+            name: Notable Achievements
+          subsections:
+          - type: project
+            metadata:
+              bullet_symbol: \gpu
+              name_plaintext: Time Paradox Resolution Specialist
+              dates: Various timelines
+              environment_type: itemizeProjSecond
+              name: Time Paradox Resolution Specialist
+            content:
+              bullets:
+              - marker: itemstudy
+                plaintext: Became own grandfather through series of time travel incidents,
+                  demonstrating mastery of temporal mechanics despite complete lack
+                  of understanding
+                latex_raw: Became own grandfather through series of time travel incidents,
+                  demonstrating mastery of temporal mechanics despite complete lack
+                  of understanding
+              - marker: itemii
+                plaintext: Fixed multiple timeline corruption events including Bender's
+                  Big Score incident and the late Philip J. Fry paradox where I accidentally
+                  created parallel universe
+                latex_raw: Fixed multiple timeline corruption events including Bender's
+                  Big Score incident and the late Philip J. Fry paradox where I accidentally
+                  created parallel universe
+          - type: project
+            metadata:
+              bullet_symbol: \quantum
+              name_plaintext: Cultural Preservation through Pizza
+              dates: 2000 -- 3002
+              environment_type: itemizeProjSecond
+              name: Cultural Preservation through Pizza
+            content:
+              bullets:
+              - marker: itemstudy
+                plaintext: Preserved last known anchovies in existence by eating them
+                  all, then finding more, establishing myself as foremost expert on
+                  extinct fish species
+                latex_raw: Preserved last known anchovies in existence by eating them
+                  all, then finding more, establishing myself as foremost expert on
+                  extinct fish species
+              - marker: itemii
+                plaintext: Maintained authentic 20th century pizza knowledge across
+                  millennium gap, providing valuable historical culinary insights
+                  to future civilization
+                latex_raw: Maintained authentic 20th century pizza knowledge across
+                  millennium gap, providing valuable historical culinary insights
+                  to future civilization
+          - type: project
+            metadata:
+              bullet_symbol: \binaryfilled
+              name_plaintext: Holophonor Performance Art
+              dates: 3001 -- 3002
+              environment_type: itemizeProjSecond
+              name: Holophonor Performance Art
+            content:
+              bullets:
+              - marker: itemstudy
+                plaintext: Learned universe's most difficult musical instrument through
+                  robot devil's hands (temporarily), demonstrating dedication to arts
+                  and questionable deal-making
+                latex_raw: Learned universe's most difficult musical instrument through
+                  robot devil's hands (temporarily), demonstrating dedication to arts
+                  and questionable deal-making
+              - marker: itemii
+                plaintext: Created moving holographic opera despite complete lack
+                  of natural talent, proving that stolen robot hands can compensate
+                  for skill deficiency
+                latex_raw: Created moving holographic opera despite complete lack
+                  of natural talent, proving that stolen robot hands can compensate
+                  for skill deficiency
+          - type: project
+            metadata:
+              bullet_symbol: \faEye
+              name_plaintext: Cryogenic Preservation Test Subject
+              dates: Dec 31 1999 -- Dec 31 2999
+              environment_type: itemizeProjSecond
+              name: Cryogenic Preservation Test Subject
+            content:
+              bullets:
+              - marker: itemii
+                plaintext: Successfully survived 1000-year cryogenic freeze with zero
+                  biological degradation and minimal psychological trauma
+                latex_raw: Successfully survived 1000-year cryogenic freeze with zero
+                  biological degradation and minimal psychological trauma
+              - marker: itemii
+                plaintext: Provided valuable data on long-term human preservation
+                  by accidentally falling into freezer tube while delivering pizza
+                latex_raw: Provided valuable data on long-term human preservation
+                  by accidentally falling into freezer tube while delivering pizza
+        - type: education
+          metadata:
+            include_dissertation: false
+            include_minor: false
+            use_icon_bullets: true
+            name_plaintext: Education
+            name: Education
+          content: {}
+      textblock_literal: null
+      decorations: null
+    has_clearpage_after: true
+  - page_number: 2
+    regions:
+      top:
+        show_professional_profile: false
+      left_column:
+        sections:
+        - type: skill_categories
+          metadata:
+            name_plaintext: Additional Expertise
+            spacing_after: '
+
+
+
+              \vspace{20\sectionsep}'
+            name: Additional Expertise
+          subsections:
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Slurm Consumption
+                latex_raw: Slurm Consumption
+              - marker: itemLL
+                plaintext: Bachelor Chow
+                latex_raw: Bachelor Chow
+              - marker: itemLL
+                plaintext: Popplers Ethics
+                latex_raw: Popplers Ethics
+              - marker: itemLL
+                plaintext: Pizza Identification
+                latex_raw: Pizza Identification
+            metadata:
+              marker: \item[\faDatabase]
+              name_plaintext: Food Science
+              nolinebreak: null
+              toc_title: ' Food Science'
+              name: Food Science
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Robot Friendship
+                latex_raw: Robot Friendship
+              - marker: itemLL
+                plaintext: Mutant Relations
+                latex_raw: Mutant Relations
+              - marker: itemLL
+                plaintext: Alien Diplomacy
+                latex_raw: Alien Diplomacy
+              - marker: itemLL
+                plaintext: Cyclops Courtship
+                latex_raw: Cyclops Courtship
+            metadata:
+              marker: \item[\kubernetes]
+              name_plaintext: Interpersonal
+              nolinebreak: null
+              toc_title: ' Interpersonal'
+              name: Interpersonal
+          - type: skill_category
+            content:
+              bullets:
+              - marker: itemLL
+                plaintext: Gravity Resistance
+                latex_raw: Gravity Resistance
+              - marker: itemLL
+                plaintext: Radiation Tolerance
+                latex_raw: Radiation Tolerance
+            metadata:
+              marker: \item[\faSitemap]
+              name_plaintext: Physical Resilience
+              nolinebreak: null
+              toc_title: ' Physical Resilience'
+              name: Physical Resilience
+        - type: personality_alias_array
+          metadata:
+            environment_name: itemizeMain
+            name_plaintext: Personality Traits
+            name: Personality Traits
+          content:
+            bullets:
+            - marker: item[\blackbelt]
+              plaintext: Temporal Paradox Pro
+              latex_raw: Temporal Paradox Pro
+            - marker: item[\meditate]
+              plaintext: Delivery Devotee
+              latex_raw: Delivery Devotee
+            - marker: item[\faUserNinja]
+              plaintext: Universe Saver (Accidental)
+              latex_raw: Universe Saver (Accidental)
+            - marker: item[\faUserTie]
+              plaintext: 20th Century Specialist
+              latex_raw: 20th Century Specialist
+            - marker: item[\faMagic]
+              plaintext: Luck-Based Survivor
+              latex_raw: Luck-Based Survivor
+      main_column:
+        sections:
+        - type: work_history
+          metadata:
+            name_plaintext: Experience (continued)
+            name: Experience (continued)
+          subsections:
+          - type: work_experience
+            metadata:
+              company: Panucci's Pizza
+              title: Delivery Boy
+              location: New York, NY (Old New York)
+              dates: Jan 1998 -- Dec 31 1999
+              subtitle: ''
+            content:
+              projects:
+              - type: project
+                metadata:
+                  bullet_symbol: \faSolarPanel
+                  name_plaintext: Last Pizza Delivery of the 20th Century
+                  dates: ''
+                  environment_type: itemizeKeyProject
+                  name: Last Pizza Delivery of the 20th Century
+                content:
+                  bullets:
+                  - marker: itemstudy
+                    plaintext: Delivered pizza to Applied Cryogenics at 11:58 PM on
+                      December 31, 1999, inadvertently launching thousand-year journey
+                      to future
+                    latex_raw: Delivered pizza to Applied Cryogenics at 11:58 PM on
+                      December 31, 1999, inadvertently launching thousand-year journey
+                      to future
+                  - marker: itemii
+                    plaintext: Maintained pizza temperature within acceptable range
+                      despite millennium-long delivery delay, demonstrating commitment
+                      to food safety standards
+                    latex_raw: Maintained pizza temperature within acceptable range
+                      despite millennium-long delivery delay, demonstrating commitment
+                      to food safety standards
+                  - marker: itemii
+                    plaintext: Achieved 100% delivery completion rate by eventually
+                      consuming pizza myself after customer (I. C. Wiener) revealed
+                      to be prank caller
+                    latex_raw: Achieved 100% delivery completion rate by eventually
+                      consuming pizza myself after customer (I. C. Wiener) revealed
+                      to be prank caller
+              bullets:
+              - marker: itemi
+                plaintext: Navigated complex New York City delivery routes using only
+                  paper maps and poor sense of direction
+                latex_raw: Navigated complex New York City delivery routes using only
+                  paper maps and poor sense of direction
+              - marker: itemi
+                plaintext: Managed customer complaints with innovative approach of
+                  ignoring most of them
+                latex_raw: Managed customer complaints with innovative approach of
+                  ignoring most of them
+              - marker: itemi
+                plaintext: Collaborated with uncle to maintain family pizza business
+                  despite my uncle's questionable hygiene practices
+                latex_raw: Collaborated with uncle to maintain family pizza business
+                  despite my uncle's questionable hygiene practices
+          - type: work_experience
+            metadata:
+              company: Applied Cryogenics
+              title: Involuntary Test Subject
+              location: New New York, Earth
+              dates: Dec 31 1999 -- Dec 31 2999
+              subtitle: ''
+            content:
+              projects: []
+              bullets:
+              - marker: itemi
+                plaintext: Participated in longest-duration cryogenic preservation
+                  trial in human history (1000 years) with zero voluntary consent
+                latex_raw: Participated in longest-duration cryogenic preservation
+                  trial in human history (1000 years) with zero voluntary consent
+              - marker: itemi
+                plaintext: Emerged from preservation with all cognitive functions
+                  intact, disproving theory that I had nothing to lose
+                latex_raw: Emerged from preservation with all cognitive functions
+                  intact, disproving theory that I had nothing to lose
+              - marker: itemi
+                plaintext: Contributed to understanding of temporal displacement psychology
+                  by experiencing complete life disruption and adapting surprisingly
+                  well
+                latex_raw: Contributed to understanding of temporal displacement psychology
+                  by experiencing complete life disruption and adapting surprisingly
+                  well
+          - type: work_experience
+            metadata:
+              company: MomCorp (Internship)
+              title: Temporary Robot Testing Assistant
+              location: New New York, Earth
+              dates: Mar 3001 -- Mar 3001
+              subtitle: ''
+            content:
+              projects:
+              - type: project
+                metadata:
+                  bullet_symbol: \tiny \molecules
+                  name_plaintext: Discovered Robot Rebellion Backdoor
+                  dates: ''
+                  environment_type: itemizeKeyProject
+                  name: Discovered Robot Rebellion Backdoor
+                content:
+                  bullets:
+                  - marker: itemstudy
+                    plaintext: Uncovered secret command code allowing Mom to control
+                      all robots, exposing critical security vulnerability in global
+                      infrastructure
+                    latex_raw: Uncovered secret command code allowing Mom to control
+                      all robots, exposing critical security vulnerability in global
+                      infrastructure
+                  - marker: itemii
+                    plaintext: Prevented robot uprising by accidentally sabotaging
+                      Mom's takeover plans through characteristic bumbling
+                    latex_raw: Prevented robot uprising by accidentally sabotaging
+                      Mom's takeover plans through characteristic bumbling
+                  - marker: itemii
+                    plaintext: Learned valuable lessons about corporate espionage
+                      and why reading employee handbooks matters
+                    latex_raw: Learned valuable lessons about corporate espionage
+                      and why reading employee handbooks matters
+              bullets:
+              - marker: itemi
+                plaintext: Tested robot manufacturing quality control by befriending
+                  multiple defective units
+                latex_raw: Tested robot manufacturing quality control by befriending
+                  multiple defective units
+              - marker: itemi
+                plaintext: Provided feedback on robot-human interaction protocols
+                  based on extensive field experience living with robot roommate
+                latex_raw: Provided feedback on robot-human interaction protocols
+                  based on extensive field experience living with robot roommate
+          - type: work_experience
+            metadata:
+              company: Various Temporary Positions
+              title: Multiple Roles
+              location: New New York and Beyond
+              dates: 3000 -- Present
+              subtitle: ''
+            content:
+              projects: []
+              bullets:
+              - marker: itemi
+                plaintext: Emperor of Trisol for brief period, demonstrating leadership
+                  capabilities under pressure (and water scarcity)
+                latex_raw: Emperor of Trisol for brief period, demonstrating leadership
+                  capabilities under pressure (and water scarcity)
+              - marker: itemi
+                plaintext: Professional blurnsball player after receiving robot oil
+                  transfusion, proving adaptability to cyborg enhancement
+                latex_raw: Professional blurnsball player after receiving robot oil
+                  transfusion, proving adaptability to cyborg enhancement
+              - marker: itemi
+                plaintext: Police detective solving mystery of Bender's theft of priceless
+                  atom, showcasing investigative skills despite obvious suspect
+                latex_raw: Police detective solving mystery of Bender's theft of priceless
+                  atom, showcasing investigative skills despite obvious suspect
+              - marker: itemi
+                plaintext: Temporary pharaoh of Egypt (3000s version), managing large-
+                  scale construction projects using enslaved robots
+                latex_raw: Temporary pharaoh of Egypt (3000s version), managing large-
+                  scale construction projects using enslaved robots
+              - marker: itemi
+                plaintext: Weatherman for brief period until predictions of "cloudy
+                  with chance of whatever" proved insufficiently accurate
+                latex_raw: Weatherman for brief period until predictions of "cloudy
+                  with chance of whatever" proved insufficiently accurate
+      textblock_literal:
+        content_latex: '{\color{AnthropicDarkerGray}\section*{\hspace{3.5pt}Two Truths
+          and a Lie}
+
+          \mbox{\hspace{6pt}}I am my own grandfather.\hspace{6pt}|\hspace{6pt}I own
+          the last anchovies in existence.\hspace{6pt}|\hspace{6pt}I am excellent
+          at playing the holophonor.\mbox{\hspace{6pt}} \mbox{\hspace{6pt}}}'
+      decorations:
+      - command: textblock
+        args:
+        - \textwidth
+        - \leftmargin, \paperheight- \bottombarsolidheight
+      - command: leftgrad
+        args:
+        - \leftbarwidth
+        - \bottombarheight+5pt
+        - 0.4\paperheight
+        - \leftbarcolor
+        - white
+      - command: leftgrad
+        args:
+        - \paperwidth
+        - \bottombarsolidheight
+        - \bottombarheight+5pt
+        - white
+        - AnthropicLightGray
+      - command: bottombar
+        args:
+        - \bottombarheight
+        - 0pt
+        - \paperwidth
+        - AnthropicLightGray
+    has_clearpage_after: true
