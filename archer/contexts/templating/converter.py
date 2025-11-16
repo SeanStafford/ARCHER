@@ -142,7 +142,7 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
                 "    yaml_dict = clean_yaml(yaml_dict)\n"
                 "    yaml_to_latex(yaml_path, output_path)\n\n"
                 "Or use the CLI:\n"
-                "    python scripts/latex_to_yaml.py clean <yaml_file>"
+                "    python scripts/convert_template.py clean <yaml_file>"
             ) from e
         else:
             # Generic structural error

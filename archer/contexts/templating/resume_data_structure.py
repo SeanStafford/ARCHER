@@ -292,7 +292,7 @@ class ResumeDocument:
         except Exception as e:
             warnings.warn(
                 f"Failed to convert {tex_path.name}: {str(e)}\n"
-                f"Consider using scripts/latex_to_yaml.py which saves intermediate files for debugging.",
+                f"Consider using scripts/convert_template.py which saves intermediate files for debugging.",
                 UserWarning
             )
             raise ValueError(f"Failed to parse {tex_path}: {str(e)}") from e
@@ -601,7 +601,7 @@ class ResumeDocumentArchive:
         if not self.structured_path.exists():
             warnings.warn(
                 f"Structured directory not found: {self.structured_path}\n"
-                f"Run scripts/latex_to_yaml.py batch to convert resumes.",
+                f"Run scripts/convert_template.py batch to convert resumes.",
                 UserWarning
             )
             return []
@@ -660,7 +660,7 @@ class ResumeDocumentArchive:
 
             warnings.warn(
                 f"Failed to load {len(errors)}/{len(tex_files)} resume(s):\n{error_summary}\n\n"
-                f"Consider using scripts/latex_to_yaml.py batch to convert all resumes with validation.",
+                f"Consider using scripts/convert_template.py batch to convert all resumes with validation.",
                 UserWarning
             )
 

@@ -147,7 +147,7 @@ normalize-archive:
 ## Convert all LaTeX resumes to structured YAML (archive/ → structured/)
 .PHONY: generate-yaml-archive
 generate-yaml-archive:
-	$(PYTHON_INTERPRETER) scripts/latex_to_yaml.py batch
+	$(PYTHON_INTERPRETER) scripts/convert_template.py batch
 	@echo ">>> YAML archive generated in resume_archive/structured/"
 
 #################################################################################
