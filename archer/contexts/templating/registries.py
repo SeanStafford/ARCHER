@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from dotenv import load_dotenv
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound, StrictUndefined
 from omegaconf import OmegaConf
 
 load_dotenv()
@@ -43,6 +43,8 @@ class TemplateRegistry:
         # Create Jinja2 environment with custom delimiters to avoid LaTeX conflicts
         self.env = Environment(
             loader=FileSystemLoader(str(types_base_path)),
+            # Catches silent failures
+            undefined=StrictUndefined,
             # Custom delimiters to avoid LaTeX brace conflicts
             variable_start_string="<<<",
             variable_end_string=">>>",

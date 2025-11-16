@@ -26,14 +26,12 @@
 <%% endif %%>
 <%% for section in page.regions.left_column.sections %%>
 <<< section >>>
-<%% if section.spacing_after %%><<< section.spacing_after >>><%% endif %%>
 
 <%% endfor %%>
 \switchcolumn
 
 <%% for section in page.regions.main_column.sections %%>
 <<< section >>>
-<%% if section.spacing_after %%><<< section.spacing_after >>><%% endif %%>
 
 <%% endfor %%>
 <%% if not loop.last %%>\switchcolumn
