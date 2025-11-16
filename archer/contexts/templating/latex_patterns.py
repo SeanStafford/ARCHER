@@ -286,4 +286,4 @@ class ContentPatterns:
 
     These are literal strings (not regex) used to identify section types.
     """
-    EDUCATION_UNIVERSITY: str = 'Bachelor'  # All Education sections contain Bachelor degree
+    EDUCATION_UNIVERSITY: str = 'Bachelor of Arts in Physics'  # All Education sections contain this degree

@@ -1106,8 +1106,8 @@ class LaTeXToYAMLConverter:
                 "content": parsed.get("content", {})
             }
 
-        elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content) and re.search(EnvironmentPatterns.ITEM_BRACKET, content) and FormattingPatterns.SCSHAPE in content:
-            # skill_categories
+        elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content) and re.search(EnvironmentPatterns.ITEM_BRACKET, content) and re.search(EnvironmentPatterns.BEGIN_ITEMIZE_LL, content):
+            # skill_categories - outer itemize with \item[icon]Name + nested itemizeLL
             parsed = self.parse_skill_categories(content)
             return {
                 "type": "skill_categories",
