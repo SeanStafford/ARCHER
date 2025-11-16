@@ -15,7 +15,7 @@ import typer
 from dotenv import load_dotenv
 from omegaconf import OmegaConf
 
-from archer.contexts.templating import latex_to_yaml, yaml_to_latex
+from archer.contexts.templating import latex_to_yaml, yaml_to_latex, clean_yaml
 from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.text_processing import get_meaningful_diff
 from archer.utils.timestamp import now
@@ -239,6 +239,92 @@ def list_command():
 
     typer.echo(f"\nConverted: {converted_count}/{len(tex_files)}")
     typer.echo(f"Pending: {len(tex_files) - converted_count}/{len(tex_files)}")
+
+
+@app.command("clean")
+def clean_command(
+    yaml_file: Path = typer.Argument(
+        ...,
+        help="Path to .yaml file to clean",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+    ),
+    output: Path = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output path (if not specified, modifies in-place)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be done without modifying files",
+    ),
+):
+    """
+    Normalize YAML resume data for LaTeX generation.
+
+    Applies normalization rules to ensure YAML structure is compatible with
+    the LaTeX generator. Currently fills missing LaTeX-formatted fields from
+    plaintext equivalents.
+
+    Examples:\n
+
+        $ python scripts/latex_to_yaml.py clean test.yaml                        # Clean in-place
+
+        $ python scripts/latex_to_yaml.py clean test.yaml -o test_cleaned.yaml   # Save to new file
+
+        $ python scripts/latex_to_yaml.py clean test.yaml --dry-run              # Preview changes
+    """
+    # Validate file extension
+    if yaml_file.suffix != ".yaml":
+        typer.secho(
+            f"Error: File must have .yaml extension: {yaml_file}",
+            fg=typer.colors.RED,
+            err=True
+        )
+        raise typer.Exit(code=1)
+
+    # Determine output path
+    output_path = output if output else yaml_file
+
+    typer.secho(f"\nCleaning: {yaml_file.name}", fg=typer.colors.BLUE, bold=True)
+    if output:
+        typer.echo(f"Output: {output_path}")
+    else:
+        typer.echo("Mode: In-place modification")
+
+    if dry_run:
+        typer.echo("DRY RUN (no files will be modified)\n")
+
+    try:
+        # Load YAML
+        yaml_data = OmegaConf.load(yaml_file)
+        yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
+
+        # Clean YAML and count changes
+        cleaned_dict, changes = clean_yaml(yaml_dict, return_count=True)
+
+        typer.echo(f"Fields normalized: {changes}")
+
+        if not dry_run:
+            # Save cleaned YAML
+            conf = OmegaConf.create(cleaned_dict)
+            OmegaConf.save(conf, output_path)
+
+            # Strip trailing blank lines for consistency
+            content = output_path.read_text()
+            output_path.write_text(content.rstrip() + '\n')
+
+            typer.secho(f"\n✓ Success! Cleaned YAML saved to: {output_path}", fg=typer.colors.GREEN)
+        else:
+            typer.echo("\nDry run complete. Run without --dry-run to apply changes.")
+
+    except Exception as e:
+        typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
 
 @app.command("convert")
