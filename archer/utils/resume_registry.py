@@ -6,7 +6,7 @@ Registry stored as CSV at outs/logs/resume_registry.csv.
 
 Schema:
     resume_name (str): Unique identifier (PRIMARY KEY)
-    resume_type (str): Category ("historical" or "generated")
+    resume_type (str): Category ("historical", "generated", or "test")
     status (str): Pipeline status ("targeting", "templating", "rendering", "completed", "failed")
     last_updated (str): ISO 8601 timestamp of last modification
 
@@ -72,7 +72,7 @@ def register_resume(
 
     Args:
         resume_name: Unique identifier (e.g., "Res202510")
-        resume_type: Resume category ("historical" or "generated")
+        resume_type: Resume category ("historical", "generated", or "test")
         source: Event source (e.g., "cli", "templating")
         status: Initial status (default: "raw")
 

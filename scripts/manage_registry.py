@@ -85,7 +85,7 @@ def init_command(
     """
     Initialize registry with historical resumes from archive.
 
-    Scans data/resume_archive/ for .tex files and registers each as
+    Scans data/resume_archive/raw/ for .tex files and registers each as
     resume_type="historical" with status determined by file existence.
 
     Examples:
@@ -207,7 +207,7 @@ def list_command(
         None,
         "--type",
         "-t",
-        help="Filter by type (historical or generated)"
+        help="Filter by type (historical, generated, or test)"
     )
 ):
     """

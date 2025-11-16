@@ -30,7 +30,7 @@ Every event logged to `resume_pipeline_events.log` contains these fields:
 **Standard fields**: Yes
 
 **Additional fields**:
-- `resume_type` (str): Must be `"historical"` or `"generated"`
+- `resume_type` (str): Must be `"historical"`, `"generated"`, or `"test"`
 - `status` (str)
 
 **Example**:

@@ -6,6 +6,16 @@ Each status represents the most recent state of a resume in the ARCHER pipeline.
 
 ---
 
+## Resume Types
+
+ARCHER tracks three types of resumes:
+
+- **`historical`**: Original resumes from archive used as content source for targeting
+- **`generated`**: New resumes created by ARCHER pipeline (targeting → templating → rendering)
+- **`test`**: Resumes created for testing and development (not part of normal pipeline)
+
+---
+
 ## Historical Resume Statuses
 
 Historical resumes progress through processing stages to make them available for analysis and content extraction.
@@ -61,6 +71,20 @@ PDF compilation succeeded. Resume PDF generated successfully.
 ### `approved`
 Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `rendering_completed`.
 
+---
+
+## Cross-Cutting Statuses
+
+Statuses applicable to both historical and generated resumes in special circumstances.
+
+### `review`
+Awaiting manual inspection or approval. Automatic processing paused pending human decision.
+
+### `archived`
+No longer active in pipeline. Resume exists for historical reference but is not currently being processed or used.
+
+### `cancelled`
+Processing aborted by user or system before completion. Distinguished from `failed` (system error) vs explicit cancellation.
 
 ---
 
@@ -84,15 +108,28 @@ raw → normalized → parsed
 pending → targeting ↔ ❌targeting_failed
 ```
 
+### Manual Interventions
+Any status can transition to:
+- `review` (pause for inspection)
+- `cancelled` (abort processing)
+- `archived` (deactivate)
+
 ---
 
 ## Usage Guidelines
+
+**When setting status:**
+1. Use the most specific status available (e.g., `parsing_failed` not `failed`)
+2. Update status immediately when state changes (don't batch updates)
+3. Always specify `source` when logging status changes (identifies which context/script made the change)
 
 **Status naming pattern:**
 - **Active states**: `{context}` (e.g., `targeting`, `rendering`)
 - **Completion states**: `{context}_completed` (e.g., `targeting_completed`, `rendering_completed`)
 - **Failure states**: `{context}_failed` (e.g., `targeting_failed`, `parsing_failed`)
 - **Terminal states**: No context prefix (e.g., `approved`, `archived`, `cancelled`)
+
+**Context boundary rule**: Each context can only set statuses for its own operations. Rendering context sets `rendering`, `rendering_completed`, or `rendering_failed` — never `completed` or statuses from other contexts.
 
 **Adding new statuses:**
 - Add to this document first
