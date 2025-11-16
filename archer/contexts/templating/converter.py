@@ -10,11 +10,14 @@ This module exports:
 """
 
 import re
+import copy
 from pathlib import Path
 from typing import Any, Dict
 
+from jinja2.exceptions import UndefinedError as JinjaUndefinedError
 from omegaconf import OmegaConf
 
+from archer.contexts.templating.exceptions import InvalidYAMLStructureError
 from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
 from archer.contexts.templating.latex_generator import YAMLToLaTeXConverter
 from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
@@ -28,7 +31,7 @@ ENFORCED_PAIRS = [
     ('brand', 'brand_plaintext'),
     ('professional_profile', 'professional_profile_plaintext'),
 ]
-
+ALL_ENFORCED_FIELDS = [field for pair in ENFORCED_PAIRS for field in pair]
 
 def count_new_fields(original: Any, cleaned: Any, field_pairs: list) -> int:
     """
@@ -72,7 +75,6 @@ def clean_yaml(data: Any, return_count: bool = False) -> Any | tuple[Any, int]:
         If return_count=False: Normalized data with LaTeX fields populated
         If return_count=True: Tuple of (normalized_data, num_fields_added)
     """
-    import copy
 
     # Keep original if we need to count changes
     original_data = copy.deepcopy(data) if return_count else None
@@ -111,21 +113,42 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
 
     Returns:
         Generated LaTeX string
+
+    Raises:
+        ValueError: If YAML contains only plaintext fields without LaTeX-formatted equivalents
     """
     yaml_data = OmegaConf.load(yaml_path)
     yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
     converter = YAMLToLaTeXConverter()
 
-    # Handle different YAML structures
-    if "document" in yaml_dict:
-        # Full document
+    # Validate YAML structure and generate LaTeX
+    try:
+        if "document" not in yaml_dict:
+            raise ValueError("YAML must contain 'document' key at root level")
+
         latex = converter.generate_document(yaml_dict)
-    elif "subsection" in yaml_dict:
-        # Single subsection (for testing)
-        latex = converter.convert_work_experience(yaml_dict["subsection"])
-    else:
-        raise ValueError("YAML must contain either 'document' or 'subsection' key")
+    except (KeyError, Exception, JinjaUndefinedError) as e:
+
+        # Check if any enforced field appears in the error message
+        is_enforced_field_error = any(f"'{field}'" in str(e) for field in ALL_ENFORCED_FIELDS)
+
+        if is_enforced_field_error:
+            # This is a plaintext → latex_raw issue - suggest clean_yaml()
+            raise InvalidYAMLStructureError(
+                "This YAML file appears to be missing some required fields.\n\n"
+                "Try cleaning it:\n"
+                "    from archer.contexts.templating.converter import clean_yaml\n"
+                "    yaml_dict = clean_yaml(yaml_dict)\n"
+                "    yaml_to_latex(yaml_path, output_path)\n\n"
+                "Or use the CLI:\n"
+                "    python scripts/latex_to_yaml.py clean <yaml_file>"
+            ) from e
+        else:
+            # Generic structural error
+            raise InvalidYAMLStructureError(
+                "The YAML file is missing required structural fields or has incorrect formatting."
+            ) from e
 
     if output_path:
         output_path.write_text(latex, encoding="utf-8")

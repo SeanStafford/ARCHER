@@ -76,3 +76,14 @@ class TemplateRenderError(Exception):
             parts.append(f"\nOriginal error: {str(original_error)}")
 
         super().__init__("\n".join(parts))
+
+
+class InvalidYAMLStructureError(ValueError):
+    """
+    Exception raised when YAML resume structure is invalid or missing required fields.
+
+    This is raised when the YAML file doesn't conform to the expected resume document
+    schema (e.g., missing structural fields like 'pages', 'regions', etc.).
+    """
+
+    pass
