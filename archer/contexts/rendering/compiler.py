@@ -31,6 +31,7 @@ load_dotenv()
 LATEX_COMPILER = os.getenv("LATEX_COMPILER")
 LOGS_PATH = Path(os.getenv("LOGS_PATH"))
 RESULTS_PATH = Path(os.getenv("RESULTS_PATH"))
+FIGS_PATH = Path(os.getenv("FIGS_PATH"))
 KEEP_LATEX_ARTIFACTS = os.getenv("KEEP_LATEX_ARTIFACTS").lower() == "true"
 
 # LaTeX intermediate files created during compilation
@@ -126,6 +127,7 @@ def compile_latex(
     compile_dir: Optional[Path] = None,
     num_passes: int = 2,
     keep_artifacts: bool = KEEP_LATEX_ARTIFACTS,
+    fig_dir: Optional[Path] = FIGS_PATH,
 ) -> CompilationResult:
     """
     Compile a LaTeX file to PDF using pdflatex.
@@ -166,6 +168,18 @@ def compile_latex(
         # pdflatex runs in compile_dir so mystyle/ can be found via TEXINPUTS
         tex_file = compile_dir / tex_file.name
         shutil.copy2(original_tex_file, tex_file)
+
+    # Create symlink to figures directory so LaTeX can find them via \graphicspath
+    # Resume .tex files use \graphicspath{{./}{Figs/}} which looks for Figs/ in cwd
+    figs_symlink = compile_dir / "Figs"
+    if fig_dir is not None:
+        if not fig_dir.exists():
+            return CompilationResult(
+                success=False,
+                errors=[f"Figures directory not found: {fig_dir}"]
+            )
+        if not figs_symlink.exists():
+            figs_symlink.symlink_to(fig_dir)
 
     # Clean any existing output files to ensure unambiguous success detection
     # Missing log file → compilation failed; existing PDF → compilation succeeded
@@ -235,6 +249,11 @@ def compile_latex(
     # Remove copied tex file (keep compile_dir clean, source remains untouched)
     if original_tex_file != tex_file and tex_file.exists():
         tex_file.unlink()
+
+    # Remove Figs symlink (keep compile_dir clean)
+    figs_symlink = compile_dir / "Figs"
+    if figs_symlink.exists() and figs_symlink.is_symlink():
+        figs_symlink.unlink()
 
     return CompilationResult(
         success=success,
