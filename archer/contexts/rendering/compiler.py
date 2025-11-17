@@ -208,6 +208,8 @@ def compile_latex(
             cwd=compile_dir,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',  # Replace invalid UTF-8 bytes instead of crashing
         )
 
         all_stdout.append(result.stdout)
@@ -228,7 +230,8 @@ def compile_latex(
     warnings = []
 
     if log_file.exists():
-        log_content = log_file.read_text()
+        # pdflatex writes log files in latin-1 encoding (font metadata contains non-UTF-8)
+        log_content = log_file.read_text(encoding='latin-1')
         errors, warnings = _parse_latex_log(log_content)
 
     # Check if PDF was generated
