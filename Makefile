@@ -141,7 +141,7 @@ test-roundtrip-all:
 ## Clean and normalize all historical resumes (raw/ → processed/)
 .PHONY: normalize-archive
 normalize-archive:
-	$(PYTHON_INTERPRETER) scripts/process_all_resumes.py
+	$(PYTHON_INTERPRETER) scripts/normalize_latex.py batch
 	@echo ">>> Resume archive normalized"
 
 ## Convert all LaTeX resumes to structured YAML (archive/ → structured/)
