@@ -228,8 +228,9 @@ document:
               - marker: itemi
                 plaintext: Maintained 87% on-time delivery rate despite constant mortal
                   peril from hostile aliens, planetary disasters, and coworker negligence
-                latex_raw: Maintained 87% on-time delivery rate despite constant mortal
-                  peril from hostile aliens, planetary disasters, and coworker negligence
+                latex_raw: Maintained 87\% on-time delivery rate despite constant
+                  mortal peril from hostile aliens, planetary disasters, and coworker
+                  negligence
               - marker: itemi
                 plaintext: Successfully navigated deliveries to dangerous locations
                   including Amazonia, the Slurm Factory, and the edge of the universe
@@ -494,7 +495,7 @@ document:
                     plaintext: Achieved 100% delivery completion rate by eventually
                       consuming pizza myself after customer (I. C. Wiener) revealed
                       to be prank caller
-                    latex_raw: Achieved 100% delivery completion rate by eventually
+                    latex_raw: Achieved 100\% delivery completion rate by eventually
                       consuming pizza myself after customer (I. C. Wiener) revealed
                       to be prank caller
               bullets:

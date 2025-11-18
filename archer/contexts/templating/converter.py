@@ -21,6 +21,7 @@ from archer.contexts.templating.exceptions import InvalidYAMLStructureError
 from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
 from archer.contexts.templating.latex_generator import YAMLToLaTeXConverter
 from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
+from archer.utils.latex_parsing_tools import to_latex
 
 
 # Field pairs: (LaTeX-formatted field, plaintext field)
@@ -64,8 +65,8 @@ def clean_yaml(data: Any, return_count: bool = False) -> Any | tuple[Any, int]:
     Normalize YAML resume data for LaTeX generation.
 
     Applies normalization rules defined in ENFORCED_PAIRS to ensure YAML structure
-    is compatible with the LaTeX generator. Currently fills missing LaTeX-formatted
-    fields from plaintext equivalents.
+    is compatible with the LaTeX generator. Fills missing LaTeX-formatted fields
+    from plaintext equivalents, escaping special LaTeX characters in the process.
 
     Args:
         data: YAML data structure (dict, list, or primitive)
@@ -84,7 +85,13 @@ def clean_yaml(data: Any, return_count: bool = False) -> Any | tuple[Any, int]:
         # Copy plaintext to LaTeX-formatted fields if LaTeX version is missing
         for latex_field, plaintext_field in ENFORCED_PAIRS:
             if plaintext_field in data and latex_field not in data:
-                data[latex_field] = data[plaintext_field]
+                # Escape special LaTeX characters when copying from plaintext
+                plaintext_value = data[plaintext_field]
+                if isinstance(plaintext_value, str):
+                    data[latex_field] = to_latex(plaintext_value)
+                else:
+                    # Non-string values (e.g., None, int) pass through unchanged
+                    data[latex_field] = plaintext_value
 
         # Recursively clean nested structures
         for key, value in data.items():

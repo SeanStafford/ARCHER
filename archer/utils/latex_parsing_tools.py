@@ -780,25 +780,21 @@ def to_latex(plaintext_str: str) -> str:
     """
     Convert plaintext to LaTeX by escaping special characters.
 
-    STUB IMPLEMENTATION: Currently only handles ampersand escaping.
-    Will be expanded as needed to handle other LaTeX special characters
-    and formatting requirements for reverse conversion.
+    Escapes LaTeX special characters that have syntactic meaning. This is used
+    when converting plaintext content (e.g., from targeting context) to LaTeX-safe
+    format for template generation.
 
-    Current conversions:
-    - & → \\&
-
-    Future conversions (to be implemented as needed):
+    Conversions:
+    - \\ → \\textbackslash{} (backslash, must be first to avoid double-escaping)
     - % → \\%
     - $ → \\$
-    - # → \\#
+    - & → \\&
     - _ → \\_
+    - # → \\#
     - { → \\{
     - } → \\}
-    - ~ → \\textasciitilde or \\~{}
-    - ^ → \\textasciicircum or \\^{}
-    - \\ → \\textbackslash
-    - Line breaks and spacing
-    - Text formatting (bold, italic, etc.)
+    - ~ → \\textasciitilde{}
+    - ^ → \\textasciicircum{}
 
     Args:
         plaintext_str: Plain text string
@@ -809,18 +805,26 @@ def to_latex(plaintext_str: str) -> str:
     Example:
         >>> to_latex("AI & Machine Learning")
         'AI \\\\& Machine Learning'
+        >>> to_latex("87% on-time delivery")
+        '87\\\\% on-time delivery'
     """
     if not plaintext_str:
         return ''
 
     result = plaintext_str
 
-    # Escape ampersand
+    # Escape special LaTeX characters
+    # Note: Order matters - backslash must be first to avoid double-escaping
+    result = result.replace('\\', r'\textbackslash{}')
+    result = result.replace('%', r'\%')
+    result = result.replace('$', r'\$')
     result = result.replace('&', r'\&')
-
-    # TODO: Add other special character escaping as needed
-    # TODO: Add text formatting conversion (e.g., **bold** → \\textbf{bold})
-    # TODO: Add line break handling
+    result = result.replace('_', r'\_')
+    result = result.replace('#', r'\#')
+    result = result.replace('{', r'\{')
+    result = result.replace('}', r'\}')
+    result = result.replace('~', r'\textasciitilde{}')
+    result = result.replace('^', r'\textasciicircum{}')
 
     return result
 
