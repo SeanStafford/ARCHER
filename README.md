@@ -99,8 +99,8 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 - **Bidirectional conversion** between LaTeX (.tex) and structured YAML
 - Template-based LaTeX generation using Jinja2
 - Config-driven parsing with operation-based system
-- Manages ~10 content types with individual templates and parse configs
-- ResumeDocument class for semantic access to resume content
+- ~10 content types with individual templates and parse configs
+- ResumeDocument class for easier access to resume content, with dual-mode output (markdown/plaintext)
 
 **Owns**: LaTeX↔YAML conversion, template system, resume structure representation
 **Never**: Makes content prioritization decisions
@@ -254,6 +254,20 @@ ARCHER/
 
 ARCHER maintains a master registry (`outs/logs/resume_registry.csv`) tracking all resumes and their pipeline status. This CSV serves as the authoritative source for resume names and enables cross-context status tracking.
 
+Manage the registry using `scripts/manage_registry.py`:
+```bash
+# Initialize with historical resumes
+python scripts/manage_registry.py init
+
+# View statistics
+python scripts/manage_registry.py stats
+
+# List all resumes
+python scripts/manage_registry.py list
+```
+
+See `docs/RESUME_STATUS_REFERENCE.md` for status definitions.
+
 ---
 
 ## Development
@@ -315,25 +329,72 @@ pytest tests/integration/test_two_page.py  # Specific test file
 
 **Configuration**: Test settings are defined in `pyproject.toml` under `[tool.pytest.ini_options]`. By default, tests run with verbose output, short tracebacks, and slow tests excluded.
 
+### Logging
+
+ARCHER uses a two-tier logging system designed for both debugging and pipeline coordination:
+
+**Detailed Execution Logs** (`outs/logs/{context}_TIMESTAMP/`):
+- Comprehensive execution traces using loguru
+- Provenance tracking (script, command, working directory, Python version)
+- Context-specific prefixes (`[render]`, `[template]`, etc.)
+- One timestamped directory per execution session
+
+**Pipeline Events** (`outs/logs/resume_pipeline_events.log`):
+- Lightweight JSON Lines format for status tracking
+- Cross-context coordination and resume state transitions
+- Automatic logging via registry updates (`update_resume_status()`)
+
+**View logs:**
+```bash
+make logs                    # Last 10 pipeline events
+make logs RESUME=Res202511   # Events for specific resume
+make track RESUME=Res202511  # Status timeline for resume
+```
+
+See `docs/LOGGING_ARCHITECTURE.md` for complete documentation.
+
 ---
 
 ## Current Progress
 
-**Completed**:
-- ✅ Bidirectional LaTeX ↔ YAML conversion system
-- ✅ Template-based LaTeX generation with Jinja2
-- ✅ Config-driven parsing with 11 content types
-- ✅ ResumeDocument API for semantic resume access
-- ✅ 100% YAML roundtrip fidelity
-- ✅ 98% LaTeX roundtrip fidelity
+### ✅ Completed Contexts
 
-**In Progress**:
-- Rendering context integration with templating
-- Resume pattern analysis tools
+**Templating Context**:
+- Bidirectional LaTeX ↔ YAML conversion system
+- Template-based LaTeX generation using Jinja2 with custom delimiters
+- Config-driven parsing with operation-based system
+- ResumeDocument API with dual-mode output (markdown/plaintext)
+- Resume SQL database for bullets
+- 100% YAML roundtrip fidelity
+- 98% LaTeX roundtrip fidelity
 
-**Planned**:
-- Job description parser (Intake context)
-- Content relevance scoring (Targeting context)
-- Automated section selection based on job type
-- Full pipeline integration (Intake → Targeting → Templating → Rendering)
-- LLM integration for job description analysis
+**Rendering Context**:
+- LaTeX compilation with error detection
+- Success-based artifact cleanup
+- Output management with dated results directories
+- LaTeX formatting system in `rendering/mystyle/`
+
+**Infrastructure**:
+- Two-tier logging architecture (detailed logs + pipeline events)
+- Resume registry with status tracking
+
+### ⏳ In Progress
+
+**Targeting Context**:
+- Historical resume analyzer (statistical pattern analysis)
+- Content relevance selection
+- Relevance scoring
+- Semantic bullet point clustering
+
+**Rendering Context**:
+- Additional test coverage
+
+### 📋 Planned
+
+**Intake Context**:
+- Job description parser and normalizer
+- Multi-source ingestion (text, URLs, structured data)
+
+**Full Pipeline Integration**:
+- End-to-end orchestration (Intake → Targeting → Templating → Rendering)
+- LLM integration
