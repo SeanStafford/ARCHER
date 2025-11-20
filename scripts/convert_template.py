@@ -363,15 +363,13 @@ def convert_command(
     On success, saves YAML to data/resume_archive/structured/.
     On failure, saves artifacts to outs/logs/convert_TIMESTAMP/.
 
-    Examples:
-        # Convert specific file
-        $ python scripts/convert_template.py convert data/resume_archive/Res202507_Anthropic.tex
+    Examples:\n
 
-        # Strict validation (0 diffs for both)
-        $ python scripts/convert_template.py convert Res202507_Anthropic.tex -l 0 -y 0
+        $ python scripts/convert_template.py convert path/to/resume.tex            # Convert specific file
 
-        # Verbose output
-        $ python scripts/convert_template.py convert Res202507_Anthropic.tex -v
+        $ python scripts/convert_template.py convert path/to/resume.tex -l 0 -y 0  # Strict validation (0 diffs for both)
+
+        $ python scripts/convert_template.py convert path/to/resume.tex -v         # Verbose output
     """
     # Validate file extension
     if tex_file.suffix != ".tex":
@@ -514,18 +512,15 @@ def batch_command(
     Failed conversions keep artifacts in outs/logs/convert_TIMESTAMP/.
     Generates summary.txt and convert.log in the log directory.
 
-    Examples:
-        # Convert all resumes
-        $ python scripts/convert_template.py batch
+    Examples:\n
 
-        # Convert specific pattern
-        $ python scripts/convert_template.py batch --pattern "Res2025*.tex"
+        $ python scripts/convert_template.py batch                           # Convert all resumes
 
-        # Strict validation
-        $ python scripts/convert_template.py batch -l 0 -y 0
+        $ python scripts/convert_template.py batch --pattern "Res2025*.tex"  # Convert specific pattern
 
-        # Quiet mode
-        $ python scripts/convert_template.py batch -q
+        $ python scripts/convert_template.py batch -l 0 -y 0                 # Strict validation
+
+        $ python scripts/convert_template.py batch -q                        # Quiet mode
     """
     # Find matching files
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob(pattern))
