@@ -205,6 +205,42 @@ clean-tmp:
 	@rm -rf /tmp/archer/*
 	@echo ">>> Cleaned /tmp/archer/"
 
+## Clean old log directories, keeping last N of each type (default N=2)
+## Usage: make clean-logs [N=3] [TYPE=render]
+.PHONY: clean-logs
+clean-logs:
+	@N=$${N:-2}; \
+	TYPE=$${TYPE:-all}; \
+	LOGS_DIR="outs/logs"; \
+	if [ "$$TYPE" = "all" ]; then \
+		LOG_TYPES="convert render roundtrip test"; \
+	else \
+		LOG_TYPES="$$TYPE"; \
+	fi; \
+	echo "Cleaning log directories (keeping last $$N of each type)..."; \
+	echo ""; \
+	for log_type in $$LOG_TYPES; do \
+		dirs=$$(find $$LOGS_DIR -maxdepth 1 -type d -name "$${log_type}_*" | sort); \
+		total=$$(echo "$$dirs" | grep -c "^" 2>/dev/null || echo 0); \
+		if [ $$total -eq 0 ]; then \
+			echo "  $$log_type: No directories found"; \
+			continue; \
+		fi; \
+		to_keep=$$N; \
+		to_delete=$$((total - to_keep)); \
+		if [ $$to_delete -le 0 ]; then \
+			echo "  $$log_type: $$total directories (keeping all)"; \
+		else \
+			echo "  $$log_type: $$total directories → deleting $$to_delete, keeping $$to_keep"; \
+			echo "$$dirs" | head -n $$to_delete | while read dir; do \
+				echo "    - Removing: $$(basename $$dir)"; \
+				rm -rf "$$dir"; \
+			done; \
+		fi; \
+	done; \
+	echo ""; \
+	echo ">>> Log cleanup complete"
+
 ## Show frequency of conventional commit types
 .PHONY: commit-stats
 commit-stats:
