@@ -209,7 +209,7 @@ def list_command():
     and which are pending conversion.
 
     Example:
-        $ python scripts/latex_to_yaml.py list
+        $ python scripts/convert_template.py list
     """
     # Get all .tex files from archive
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob("*.tex"))
@@ -272,11 +272,11 @@ def clean_command(
 
     Examples:\n
 
-        $ python scripts/latex_to_yaml.py clean test.yaml                        # Clean in-place
+        $ python scripts/convert_template.py clean test.yaml                        # Clean in-place
 
-        $ python scripts/latex_to_yaml.py clean test.yaml -o test_cleaned.yaml   # Save to new file
+        $ python scripts/convert_template.py clean test.yaml -o test_cleaned.yaml   # Save to new file
 
-        $ python scripts/latex_to_yaml.py clean test.yaml --dry-run              # Preview changes
+        $ python scripts/convert_template.py clean test.yaml --dry-run              # Preview changes
     """
     # Validate file extension
     if yaml_file.suffix != ".yaml":
@@ -365,13 +365,13 @@ def convert_command(
 
     Examples:
         # Convert specific file
-        $ python scripts/latex_to_yaml.py convert data/resume_archive/Res202507_Anthropic.tex
+        $ python scripts/convert_template.py convert data/resume_archive/Res202507_Anthropic.tex
 
         # Strict validation (0 diffs for both)
-        $ python scripts/latex_to_yaml.py convert Res202507_Anthropic.tex -l 0 -y 0
+        $ python scripts/convert_template.py convert Res202507_Anthropic.tex -l 0 -y 0
 
         # Verbose output
-        $ python scripts/latex_to_yaml.py convert Res202507_Anthropic.tex -v
+        $ python scripts/convert_template.py convert Res202507_Anthropic.tex -v
     """
     # Validate file extension
     if tex_file.suffix != ".tex":
@@ -516,16 +516,16 @@ def batch_command(
 
     Examples:
         # Convert all resumes
-        $ python scripts/latex_to_yaml.py batch
+        $ python scripts/convert_template.py batch
 
         # Convert specific pattern
-        $ python scripts/latex_to_yaml.py batch --pattern "Res2025*.tex"
+        $ python scripts/convert_template.py batch --pattern "Res2025*.tex"
 
         # Strict validation
-        $ python scripts/latex_to_yaml.py batch -l 0 -y 0
+        $ python scripts/convert_template.py batch -l 0 -y 0
 
         # Quiet mode
-        $ python scripts/latex_to_yaml.py batch -q
+        $ python scripts/convert_template.py batch -q
     """
     # Find matching files
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob(pattern))
