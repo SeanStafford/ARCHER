@@ -272,6 +272,8 @@ def compile_resume(
     tex_file: Path,
     output_dir: Optional[Path] = None,
     num_passes: int = 2,
+    verbose: bool = False,
+    keep_artifacts_on_success: bool = False,
 ) -> CompilationResult:
     """
     Compile a resume LaTeX file with registry tracking and organized output management.
@@ -283,8 +285,8 @@ def compile_resume(
     On success:
         - Moves PDF to outs/results/YYYY-MM-DD/
         - Creates symlink in log directory pointing to PDF
-        - Saves minimal render.log
-        - Deletes all artifacts
+        - Saves minimal render.log (or detailed if verbose=True)
+        - Deletes artifacts (unless keep_artifacts_on_success=True)
 
     On failure:
         - Keeps all artifacts in log directory for debugging
@@ -294,7 +296,8 @@ def compile_resume(
         tex_file: Path to the resume .tex file to compile
         output_dir: Directory for output files (default: None, uses timestamped log directory)
         num_passes: Number of pdflatex passes (default: 2 for cross-references)
-        keep_artifacts: Keep intermediate files (default: from KEEP_LATEX_ARTIFACTS env)
+        verbose: Show detailed warnings/errors in logs (default: False)
+        keep_artifacts_on_success: Keep LaTeX artifacts (.aux, .log, etc.) on success (default: False)
 
     Returns:
         CompilationResult with success status and diagnostic information
@@ -330,7 +333,7 @@ def compile_resume(
     setup_rendering_logger(log_dir)
 
     # Log start of compilation (Tier 1)
-    log_compilation_start(resume_name, tex_file, num_passes)
+    log_compilation_start(resume_name, tex_file, num_passes, log_dir)
 
     # Log start of rendering to pipeline events by setting status to 'rendering' (Tier 2)
     update_resume_status(
@@ -354,7 +357,8 @@ def compile_resume(
     log_compilation_result(
         resume_name=resume_name,
         result=result,
-        elapsed_time=compilation_time_s
+        elapsed_time=compilation_time_s,
+        verbose=verbose
     )
 
     # Handle success vs failure
@@ -371,12 +375,15 @@ def compile_resume(
         pdf_symlink = log_dir / f"{resume_name}.pdf"
         pdf_symlink.symlink_to(final_pdf)
 
-        # Clean up all artifacts from wherever compilation happened
-        for ext in LATEX_ARTIFACTS:
-            artifact = output_dir / f"{resume_name}{ext}"
-            if artifact.exists():
-                artifact.unlink()
-        _log_debug("Cleaned up LaTeX artifacts.")
+        # Clean up artifacts on success (unless keep_artifacts_on_success=True)
+        if not keep_artifacts_on_success:
+            for ext in LATEX_ARTIFACTS:
+                artifact = output_dir / f"{resume_name}{ext}"
+                if artifact.exists():
+                    artifact.unlink()
+            _log_debug("Cleaned up LaTeX artifacts.")
+        else:
+            _log_debug("Keeping LaTeX artifacts (keep_artifacts_on_success=True).")
 
         # Update result with new PDF path
         result.pdf_path = final_pdf

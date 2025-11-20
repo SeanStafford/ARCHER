@@ -71,9 +71,10 @@ def _log_debug(message: str) -> None:
 
 # High-level rendering-specific logging helpers
 
-def log_compilation_start(resume_name: str, tex_file: Path, num_passes: int) -> None:
+def log_compilation_start(resume_name: str, tex_file: Path, num_passes: int, working_dir: Path) -> None:
     """Log start of compilation with context."""
     _log_info(f"Starting compilation: {resume_name}")
+    _log_info(f"Compiling in {working_dir}")
     _log_debug(f"  Source: {tex_file}")
     _log_debug(f"  Passes: {num_passes}")
 
@@ -81,7 +82,8 @@ def log_compilation_start(resume_name: str, tex_file: Path, num_passes: int) -> 
 def log_compilation_result(
     resume_name: str,
     result,  # CompilationResult
-    elapsed_time: float
+    elapsed_time: float,
+    verbose: bool = False
 ) -> None:
     """
     Log compilation result with diagnostics.
@@ -90,6 +92,7 @@ def log_compilation_result(
         resume_name: Resume identifier
         result: CompilationResult from compile_latex()
         elapsed_time: Time taken to compile
+        verbose: Show detailed warnings/errors (default: False)
     """
     if result.success:
         _log_success("Compilation succeeded.")
@@ -105,14 +108,25 @@ def log_compilation_result(
             f"{resume_name}: "
             f"{len(result.errors)} errors ({elapsed_time:.2f}s)"
         )
-        for i, err in enumerate(result.errors[:5], 1):
+        error_limit = 10 if verbose else 5
+        for i, err in enumerate(result.errors[:error_limit], 1):
             _log_error(f"  Error {i}: {err}")
-        if len(result.errors) > 5:
-            _log_error(f"  ... and {len(result.errors) - 5} more errors")
+        if len(result.errors) > error_limit:
+            _log_error(f"  ... and {len(result.errors) - error_limit} more errors")
 
-        # On failure, log full stdout/stderr for debugging
-        # Use opt(raw=True) to bypass format template and preserve original formatting
-        # This prevents loguru from adding timestamp/level to every line of multi-line output
+    # Log warnings at debug level (can be verbose)
+    if result.warnings:
+        _log_warning(f"{len(result.warnings)} warnings detected")
+        warning_limit = 10 if verbose else 3
+        for i, warn in enumerate(result.warnings[:warning_limit], 1):
+            _log_debug(f"  Warning {i}: {warn}")
+        if len(result.warnings) > warning_limit:
+            _log_debug(f"  ... and {len(result.warnings) - warning_limit} more warnings")
+
+    # Log full pdflatex output in verbose mode (or always on failure)
+    # Use opt(raw=True) to bypass format template and preserve original formatting
+    # This prevents loguru from adding timestamp/level to every line of multi-line output
+    if verbose or not result.success:
         if result.stdout:
             logger.opt(raw=True).debug(
                 f"\n{'=' * 80}\n"
@@ -127,11 +141,3 @@ def log_compilation_result(
                 f"{'=' * 80}\n"
                 f"{result.stderr}\n"
             )
-
-    # Log warnings at debug level (can be verbose)
-    if result.warnings:
-        _log_warning(f"{len(result.warnings)} warnings detected")
-        for i, warn in enumerate(result.warnings[:3], 1):
-            _log_debug(f"  Warning {i}: {warn}")
-        if len(result.warnings) > 3:
-            _log_debug(f"  ... and {len(result.warnings) - 3} more warnings")
