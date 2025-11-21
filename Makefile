@@ -65,18 +65,22 @@ clean:
 	@echo ">>> Cleaned Python cache files and LaTeX artifacts"
 
 ## Lint code using ruff (use `make format` to auto-fix)
+## Usage: make lint [DIR=path/to/dir]
 .PHONY: lint
 lint:
-	ruff check archer
-	ruff format --check archer
-	@echo ">>> Linting complete"
+	@DIR=$${DIR:-archer}; \
+	ruff check $$DIR; \
+	ruff format --check $$DIR; \
+	echo ">>> Linting complete ($$DIR)"
 
 ## Format source code with ruff
+## Usage: make format [DIR=path/to/dir]
 .PHONY: format
 format:
-	ruff check --select I --fix archer  # Fix import sorting
-	ruff format archer
-	@echo ">>> Code formatted"
+	@DIR=$${DIR:-archer}; \
+	ruff check --select I --fix $$DIR; \
+	ruff format $$DIR; \
+	echo ">>> Code formatted ($$DIR)"
 
 #################################################################################
 # TESTING COMMANDS                                                              #
@@ -194,9 +198,11 @@ endif
 #################################################################################
 
 ## Show recently modified files (like tree + ls -ltr)
+## Usage: make recent [DIR=path/to/dir]
 .PHONY: recent
 recent:
-	@find . -type f -not -path '*/\.*' -not -path '*/__pycache__/*' -not -path '*/venv/*' -not -path '*/.venv/*' -printf '%T@ %p\n' | sort -n | tail -20 | perl -MTime::Piece -MTime::Seconds -nE 'chomp; ($$t, $$f) = split / /, $$_, 2; $$now = time; $$diff = $$now - int($$t); if ($$diff < 60) { $$ago = sprintf "%ds ago", $$diff } elsif ($$diff < 3600) { $$ago = sprintf "%dm ago", $$diff/60 } elsif ($$diff < 86400) { $$ago = sprintf "%dh ago", $$diff/3600 } else { $$ago = sprintf "%dd ago", $$diff/86400 } printf "%-12s %s\n", $$ago, $$f'
+	@DIR=$${DIR:-.}; \
+	find $$DIR -type f -not -path '*/\.*' -not -path '*/__pycache__/*' -not -path '*/venv/*' -not -path '*/.venv/*' -printf '%T@ %p\n' | sort -n | tail -20 | perl -MTime::Piece -MTime::Seconds -nE 'chomp; ($$t, $$f) = split / /, $$_, 2; $$now = time; $$diff = $$now - int($$t); if ($$diff < 60) { $$ago = sprintf "%ds ago", $$diff } elsif ($$diff < 3600) { $$ago = sprintf "%dm ago", $$diff/60 } elsif ($$diff < 86400) { $$ago = sprintf "%dh ago", $$diff/3600 } else { $$ago = sprintf "%dd ago", $$diff/86400 } printf "%-12s %s\n", $$ago, $$f'
 
 ## Clean up ARCHER temporary files in /tmp/archer/
 .PHONY: clean-tmp
@@ -273,7 +279,9 @@ git-undo:
 	echo "============================================================"; \
 	for i in $$(seq 0 $$((n-1))); do \
 		echo ""; \
-		git log --format="%h %B" -n 1 HEAD~$$i; \
+		hash=$$(git log --format="%h" -n 1 HEAD~$$i); \
+		msg=$$(git log --format="%B" -n 1 HEAD~$$i); \
+		printf "%s \033[33m%s\033[0m\n\n" "$$hash" "$$msg"; \
 		echo "------------------------------------------------------------"; \
 	done; \
 	echo "============================================================"; \
