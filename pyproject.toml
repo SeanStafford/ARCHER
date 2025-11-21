@@ -82,7 +82,7 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = ["E731", "E501"]  # E731: lambda assignment, E501: line too long
+ignore = ["E731", "E501", "W605"]  # E731: lambda assignment, E501: line too long, W605: invalid escape in docstrings
 fixable = ["ALL"]
 unfixable = []
 
