@@ -84,12 +84,11 @@ def init_command(
     Scans data/resume_archive/raw/ for .tex files and registers each as
     resume_type="historical" with status determined by file existence.
 
-    Examples:
-        # Dry run to preview
-        python scripts/manage_registry.py init --dry-run
+    Examples:\n
 
-        # Initialize registry
-        python scripts/manage_registry.py init
+        $ python scripts/manage_registry.py init --dry-run  # Dry run to preview
+
+        $ python scripts/manage_registry.py init            # Initialize registry
     """
 
     # Get all .tex files from archive
@@ -189,15 +188,13 @@ def list_command(
     """
     List resumes in the registry.
 
-    Examples:
-        # List all resumes
-        python scripts/manage_registry.py list
+    Examples:\n
 
-        # List only parsed resumes
-        python scripts/manage_registry.py list --status parsed
+        $ python scripts/manage_registry.py list                    # List all resumes
 
-        # List only historical resumes
-        python scripts/manage_registry.py list --type historical
+        $ python scripts/manage_registry.py list --status parsed    # List only parsed resumes
+
+        $ python scripts/manage_registry.py list --type historical  # List only historical resumes
     """
     if status:
         resumes = list_resumes_by_status(status)
@@ -230,8 +227,9 @@ def stats_command():
     """
     Show registry statistics.
 
-    Examples:
-        python scripts/manage_registry.py stats
+    Examples:\n
+
+        $ python scripts/manage_registry.py stats
     """
     counts = count_resumes()
 
@@ -253,8 +251,9 @@ def status_command(resume_name: str = typer.Argument(..., help="Resume name (e.g
     """
     Get status of a specific resume.
 
-    Examples:
-        python scripts/manage_registry.py status Res202510
+    Examples:\n
+
+        $ python scripts/manage_registry.py status Res202510
     """
     entry = get_resume_status(resume_name)
 
@@ -280,12 +279,11 @@ def update_command(
 
     This logs the update as a status change event with source="manual".
 
-    Examples:
-        # Mark resume as completed
-        python scripts/manage_registry.py update Res202510 completed
+    Examples:\n
 
-        # Mark as failed with reason
-        python scripts/manage_registry.py update Res202511 failed --reason "LaTeX errors"
+        $ python scripts/manage_registry.py update Res202510 completed                    # Mark resume as completed
+
+        $ python scripts/manage_registry.py update Res202511 failed --reason "LaTeX errors"  # Mark as failed with reason
     """
     if not resume_is_registered(resume_name):
         typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)

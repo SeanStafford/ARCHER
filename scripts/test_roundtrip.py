@@ -249,15 +249,13 @@ def test_command(
     Saves intermediate files to outs/logs/test_TIMESTAMP/ for inspection.
     On success, cleans up intermediate files and keeps only the log.
 
-    Examples:
-        # Test with default thresholds (LaTeX: 6, YAML: 0)
-        $ python scripts/test_roundtrip.py test data/resume_archive/Res202507_Anthropic.tex
+    Examples:\n
 
-        # Strict validation (0 diffs for both)
-        $ python scripts/test_roundtrip.py test data/resume_archive/Res202507_Anthropic.tex -l 0 -y 0
+        $ python scripts/test_roundtrip.py test path/to/resume.tex           # Test with default thresholds (LaTeX: 6, YAML: 0)
 
-        # Verbose output
-        $ python scripts/test_roundtrip.py test data/resume_archive/Res202507_Anthropic.tex -v
+        $ python scripts/test_roundtrip.py test path/to/resume.tex -l 0 -y 0 # Strict validation (0 diffs for both)
+
+        $ python scripts/test_roundtrip.py test path/to/resume.tex -v        # Verbose output
     """
     # Validate file extension
     if tex_file.suffix != ".tex":
@@ -397,18 +395,15 @@ def batch_command(
     Saves artifacts for failed conversions in outs/logs/test_TIMESTAMP/ResumeName/.
     Generates summary.txt and test.log in the log directory.
 
-    Examples:
-        # Test all resumes
-        $ python scripts/test_roundtrip.py batch
+    Examples:\n
 
-        # Test specific pattern
-        $ python scripts/test_roundtrip.py batch --pattern "Res2025*.tex"
+        $ python scripts/test_roundtrip.py batch                         # Test all resumes
 
-        # Strict validation
-        $ python scripts/test_roundtrip.py batch -l 0 -y 0
+        $ python scripts/test_roundtrip.py batch --pattern "Res2025*.tex" # Test specific pattern
 
-        # Quiet mode
-        $ python scripts/test_roundtrip.py batch -q
+        $ python scripts/test_roundtrip.py batch -l 0 -y 0               # Strict validation
+
+        $ python scripts/test_roundtrip.py batch -q                      # Quiet mode
     """
     # Find matching files
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob(pattern))

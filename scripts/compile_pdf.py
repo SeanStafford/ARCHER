@@ -8,13 +8,11 @@ Commands:
     compile - Compile a single LaTeX file to PDF
     batch   - Compile multiple resumes (not yet implemented)
 
-Examples:
-    # Compile single resume
-    compile_pdf.py compile data/resume_archive/Res202506.tex
-    compile_pdf.py compile _test_Res202511_Fry_MomCorp.tex
+Examples:\n
 
-    # Verbose output
-    compile_pdf.py compile Res202506.tex --verbose
+    compile_pdf.py compile data/resume_archive/Res202506.tex  # Compile single resume
+
+    compile_pdf.py compile Res202506.tex --verbose            # Verbose output
 """
 
 import os
@@ -101,13 +99,13 @@ def compile(
     Requires the resume to be registered in the registry. Uses the rendering
     context's compile_resume() function with full tracking and logging.
 
-    Examples:
+    Examples:\n
 
-        $ compile_pdf.py compile data/resume_archive/Res202506.tex
+        $ compile_pdf.py compile path/to/resume.tex            # Compile single resume
 
-        $ compile_pdf.py compile _test_Res202511_Fry_MomCorp.tex --verbose
+        $ compile_pdf.py compile path/to/resume.tex --verbose  # Verbose output
 
-        $ compile_pdf.py compile Res202506.tex --passes 3
+        $ compile_pdf.py compile path/to/resume.tex --passes 3 # Three compilation passes
     """
     # Validate file extension
     if tex_file.suffix != ".tex":
@@ -190,13 +188,13 @@ def batch(
     - Summary statistics (X/Y succeeded, total time)
     - Filter by resume type or glob pattern
 
-    Examples (when implemented):
+    Examples (when implemented):\n
 
-        $ compile_pdf.py batch --type test
+        $ compile_pdf.py batch --type test         # Compile all test resumes
 
-        $ compile_pdf.py batch "Res2025*.tex"
+        $ compile_pdf.py batch "Res2025*.tex"      # Compile by pattern
 
-        $ compile_pdf.py batch --type historical
+        $ compile_pdf.py batch --type historical   # Compile all historical resumes
     """
     typer.secho("\nBatch compilation not yet implemented.", fg=typer.colors.YELLOW, bold=True)
     typer.echo("This feature is planned for future development.")

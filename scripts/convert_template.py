@@ -194,7 +194,8 @@ def list_command():
     Shows which resumes have been converted to YAML (in structured/)
     and which are pending conversion.
 
-    Example:
+    Example:\n
+
         $ python scripts/convert_template.py list
     """
     # Get all .tex files from archive

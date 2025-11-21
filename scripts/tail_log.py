@@ -54,18 +54,18 @@ def main(
 ):
     """
     Show the last n events from the pipeline log.
-    
-    Examples:
 
-        python scripts/tail_log.py                     # Last 10 events
+    Examples:\n
 
-        python scripts/tail_log.py --num 20            # Last 20 events
+        $ python scripts/tail_log.py                      # Last 10 events
 
-        python scripts/tail_log.py -e status_change    # Last 10 status 
+        $ python scripts/tail_log.py --num 20             # Last 20 events
 
-        python scripts/tail_log.py -n 5 -r Res202511   # Last 5 events for specified resume 
+        $ python scripts/tail_log.py -e status_change     # Last 10 status changes
 
-        python scripts/tail_log.py -n 20 --compact     # Compact output (one line per event)
+        $ python scripts/tail_log.py -n 5 -r Res202511    # Last 5 events for specified resume
+
+        $ python scripts/tail_log.py -n 20 --compact      # Compact output (one line per event)
     """
     # Check if resume exists in registry when filtering by resume
     if resume and not get_resume_status(resume):
@@ -128,15 +128,13 @@ def track(
 
     Displays a vertical timeline of status changes, from oldest to current.
 
-    Examples:
-        # Full history
-        python scripts/tail_log.py track Res202506_SenMathLibEng_NVIDIA
+    Examples:\n
 
-        # Last 5 status changes
-        python scripts/tail_log.py track Res202506_SenMathLibEng_NVIDIA -n 5
+        $ python scripts/tail_log.py track Res202506                # Full history
 
-        # With relative timestamps
-        python scripts/tail_log.py track Res202506_SenMathLibEng_NVIDIA --relative
+        $ python scripts/tail_log.py track Res202506 -n 5           # Last 5 status changes
+
+        $ python scripts/tail_log.py track Res202506 --relative     # With relative timestamps
     """
     # Check if resume exists in registry
     if not get_resume_status(resume_name):
