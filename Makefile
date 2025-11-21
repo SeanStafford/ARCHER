@@ -259,7 +259,7 @@ ignore-notebooks:
 	@git ls-files 'notebooks/*.ipynb' | xargs -r git update-index --assume-unchanged
 	@echo ">>> Notebooks marked as unchanged (local changes will be ignored)"
 	@echo ">>> Ignored files:"
-	@git ls-files -v | grep '^h'
+	@git ls-files notebooks/ -v | grep '^h'
 
 ## Resume tracking changes to notebooks
 .PHONY: track-notebooks
@@ -267,7 +267,7 @@ track-notebooks:
 	@git ls-files 'notebooks/*.ipynb' | xargs -r git update-index --no-assume-unchanged
 	@echo ">>> Notebooks tracking resumed"
 	@echo ">>> Currently ignored files:"
-	@git ls-files -v | grep '^h' || echo "(none)"
+	@git ls-files notebooks/ -v | grep '^h' || echo "(none)"
 
 ## Undo last N commits (default 1), keeping changes staged
 # Usage: make git-undo
