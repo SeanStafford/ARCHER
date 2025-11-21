@@ -51,6 +51,19 @@ Capture detailed execution traces for debugging within a single context. Include
 2025-11-14 12:34:59 | SUCCESS | [render] Res202511_Role_CompanyA: 3 warnings (3.2s)
 ```
 
+### When to Use Tier 1
+
+✅ **Use for:**
+- Complex operations needing debug traces
+- Operations with multiple steps
+- Capturing stdout/stderr from external tools
+- Provenance tracking (reproducibility)
+
+❌ **Don't use for:**
+- Simple single-step operations
+- Cross-context coordination
+- Analytics/monitoring
+
 ---
 
 ## Tier 2: Pipeline Event Logging (JSON Lines)
@@ -67,6 +80,27 @@ Track resume state transitions across the pipeline. Provides audit trail and ena
 - **Lifetime**: Append-only, archived periodically
 - **Scope**: Entire pipeline, all contexts, all resumes
 - **Audience**: System monitoring, analytics, orchestration
+
+### Example Events
+
+```json
+{"timestamp": "2025-11-14T12:34:56.123456", "event_type": "registration", "resume_name": "Res202511", "source": "cli", "resume_type": "historical", "status": "parsed"}
+{"timestamp": "2025-11-14T12:35:10.789012", "event_type": "status_change", "resume_name": "Res202511", "source": "rendering", "old_status": "templating_completed", "new_status": "rendering", "compilation_time_s": 3.2}
+{"timestamp": "2025-11-14T12:35:14.345678", "event_type": "status_change", "resume_name": "Res202511", "source": "rendering", "old_status": "rendering", "new_status": "rendering_completed", "warning_count": 3}
+```
+
+### When to Use Tier 2
+
+✅ **Use for:**
+- All registry mutations (status changes, registrations)
+- State transitions between contexts
+- Lightweight coordination events
+- Analytics data
+
+❌ **Don't use for:**
+- Verbose debug output
+- Multi-line logs
+- Human-readable diagnostics
 
 ---
 
@@ -270,6 +304,34 @@ tail -n 20 outs/logs/resume_pipeline_events.log | jq
 
 ---
 
+## Design Decisions
+
+### Why Two Tiers?
+
+**Single tier insufficient:**
+- Detailed logs are too verbose for analytics
+- Event logs lack debugging detail
+
+**Separation of concerns:**
+- Debugging requires detail + provenance
+- Monitoring requires lightweight state tracking
+- Different audiences, different formats
+
+### Why Context Wrappers?
+
+**Benefits:**
+- Generic utils stay reusable
+- Automatic prefixes prevent mistakes
+- Easy pattern to copy
+- Context modules isolated from infrastructure
+
+**Pattern ensures:**
+- `[render]` prefix automatic in rendering context
+- `[template]` prefix automatic in templating context
+- Consistent format across all contexts
+
+---
+
 ## Reference Files
 
 **Implemented:**
@@ -279,3 +341,16 @@ tail -n 20 outs/logs/resume_pipeline_events.log | jq
 - `docs/RESUME_STATUS_REFERENCE.md` - Status definitions
 - `docs/PIPELINE_EVENTS_REFERENCE.md` - Event schema
 - `scripts/tail_log.py` - Shows how to read Tier 2 events
+
+---
+
+## Quick Reference
+
+**Need to log detailed execution?** → Tier 1 (loguru)
+**Need to track pipeline state?** → Tier 2 (events) - usually automatic via registry
+
+**Starting a new context?** → Copy `contexts/rendering/logger.py` pattern
+
+**Debugging?** → Check `outs/logs/{context}_TIMESTAMP/{context}.log`
+
+**Monitoring pipeline?** → Use `make logs` or `make track RESUME=...`

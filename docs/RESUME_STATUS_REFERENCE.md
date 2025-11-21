@@ -10,10 +10,70 @@ Each status represents the most recent state of a resume in the ARCHER pipeline.
 
 ARCHER tracks four types of resumes:
 
-- **`historical`**: Original resumes from archive used as content source for targeting
-- **`generated`**: New resumes created by full ARCHER pipeline (targeting → templating → rendering)
-- **`experimental`**: Resumes created manually using ARCHER tools but not automatically generated using full pipeline
-- **`test`**: Resumes created for testing and development (not part of normal pipeline)
+### Resume Types
+
+#### `experimental/` - Manually Crafted Resumes
+
+**Purpose**: Resumes created using ARCHER tools in a manual workflow (Day 0 approach).
+
+**Characteristics**:
+- Manual content selection (not algorithmic targeting)
+- Manual YAML editing
+- Uses ARCHER's rendering system for PDF compilation
+- Intermediate state between fully manual and fully automated
+
+**Example workflow**:
+- Select base resume from archive using `ResumeDocumentArchive`
+- Copy and edit YAML in `experimental/structured/`
+- Convert YAML → LaTeX (templating context)
+- Compile LaTeX → PDF (rendering context)
+
+**Registry type**: `experimental`
+
+#### `generated/` - Full Pipeline Outputs
+
+**Purpose**: Resumes produced by the complete automated ARCHER pipeline (future).
+
+**Characteristics**:
+- Automatic job analysis (intake context)
+- Algorithmic content selection (targeting context)
+- Template-based generation (templating context)
+- Automated compilation (rendering context)
+- Minimal human intervention
+
+**Registry type**: `generated`
+
+**Status**: Not yet implemented (requires all four contexts complete)
+
+#### `historical/` - Archive Resumes
+
+**Purpose**: Original manually-written resumes from `.archive/Resumes/`.
+
+**Characteristics**:
+- Content library for targeting context
+- Structured YAML format for analysis
+- Indexed in `ResumeDatabase` for content queries
+- Read-only reference (not modified by ARCHER)
+
+**Registry type**: `historical`
+
+**Status**: Currently in `data/resume_archive/`, planned migration to `data/resumes/historical/`
+
+#### `test/` - Development Resumes
+
+**Purpose**: Test fixtures and validation resumes for ARCHER development.
+
+**Characteristics**:
+- Synthetic or simplified resumes for testing
+- Used in unit and integration tests
+- May have intentional errors or edge cases
+- Not for actual job applications
+
+**Registry type**: `test`
+
+**Naming**: Prefix with `_test_` (e.g., `_test_Res202501_Simple.yaml`)
+
+**Status**: Currently in `data/resume_archive/`, planned migration to `data/resumes/test/`
 
 ---
 
