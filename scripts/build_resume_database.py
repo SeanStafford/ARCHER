@@ -15,7 +15,7 @@ from pathlib import Path
 import typer
 from dotenv import load_dotenv
 
-from archer.contexts.templating import ResumeDocumentArchive, ResumeDatabase
+from archer.contexts.templating import ResumeDatabase, ResumeDocumentArchive
 
 # Load environment
 load_dotenv()
@@ -30,18 +30,8 @@ app = typer.Typer(add_completion=False)
 
 @app.command()
 def main(
-    output: Path = typer.Option(
-        DB_PATH,
-        "--output",
-        "-o",
-        help="Output database path"
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show detailed statistics"
-    ),
+    output: Path = typer.Option(DB_PATH, "--output", "-o", help="Output database path"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed statistics"),
 ):
     """Build database from resume archive."""
     typer.echo(f"Loading resume archive from: {RESUME_ARCHIVE_PATH}")

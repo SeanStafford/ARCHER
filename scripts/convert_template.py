@@ -614,7 +614,7 @@ def batch_command(
 
     if not quiet:
         typer.echo("=" * 80)
-        typer.echo(f"\nSummary:")
+        typer.echo("\nSummary:")
         typer.echo(f"  Total files:           {total}")
         typer.echo(f"  Passed:                {passed}/{total} ({100 * passed / total:.1f}%)")
         typer.echo(f"  Failed:                {failed}/{total}")

@@ -21,13 +21,14 @@ Examples:
 """
 
 import os
-import typer
 from pathlib import Path
 from typing import Optional
-from typing_extensions import Annotated
-from dotenv import load_dotenv
 
-from archer.contexts.templating.process_latex_archive import process_file, process_directory
+import typer
+from dotenv import load_dotenv
+from typing_extensions import Annotated
+
+from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.clean_latex import CommentType
 
 load_dotenv()
@@ -63,7 +64,7 @@ def parse_comment_types(comment_types_str: str) -> set:
         return set()
 
     types = set()
-    for t in comment_types_str.split(','):
+    for t in comment_types_str.split(","):
         t = t.strip().lower()
         if t:
             types.add(t)
@@ -100,7 +101,7 @@ def normalize(
             exists=True,
             dir_okay=False,
             resolve_path=True,
-        )
+        ),
     ],
     output_file: Annotated[
         Optional[Path],
@@ -108,15 +109,10 @@ def normalize(
             help="Output .tex file (required unless --in-place)",
             dir_okay=False,
             resolve_path=True,
-        )
+        ),
     ] = None,
     in_place: Annotated[
-        bool,
-        typer.Option(
-            "--in-place",
-            "-i",
-            help="Modify input file in-place"
-        )
+        bool, typer.Option("--in-place", "-i", help="Modify input file in-place")
     ] = False,
     comment_types: Annotated[
         str,
@@ -128,39 +124,27 @@ def normalize(
                 "Options: decorative, section_headers, descriptive, commented_code, "
                 "inline_annotations, inline_dates, all, none"
             ),
-        )
+        ),
     ] = "none",
     remove_suggest_blocks: Annotated[
         bool,
         typer.Option(
             "--remove-suggest-blocks",
             "-s",
-            help="Remove \\suggest{...} blocks from the LaTeX files"
-        )
+            help="Remove \\suggest{...} blocks from the LaTeX files",
+        ),
     ] = False,
     dry_run: Annotated[
-        bool,
-        typer.Option(
-            "--dry-run",
-            "-d",
-            help="Preview changes without writing files"
-        )
+        bool, typer.Option("--dry-run", "-d", help="Preview changes without writing files")
     ] = False,
     skip_normalization: Annotated[
         bool,
         typer.Option(
             "--no-normalize",
-            help="Skip formatting normalization (only clean comments/suggest blocks)"
-        )
+            help="Skip formatting normalization (only clean comments/suggest blocks)",
+        ),
     ] = False,
-    verbose: Annotated[
-        bool,
-        typer.Option(
-            "--verbose",
-            "-v",
-            help="Show detailed output"
-        )
-    ] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed output")] = False,
 ):
     """
     Normalize a single LaTeX resume file.
@@ -186,7 +170,7 @@ def normalize(
     if not in_place and output_file == input_file:
         typer.echo(
             "Error: Input and output files are the same. Use --in-place to confirm in-place modification.",
-            err=True
+            err=True,
         )
         raise typer.Exit(code=1)
 
@@ -207,15 +191,13 @@ def normalize(
     # When normalizing, automatically enable full cleaning
     if apply_normalization:
         # Check if user provided cleaning options
-        user_provided_cleaning_options = (
-            comment_types != "none" or remove_suggest_blocks
-        )
+        user_provided_cleaning_options = comment_types != "none" or remove_suggest_blocks
 
         if user_provided_cleaning_options:
             typer.echo(
                 "\nWarning: Normalization automatically enables full cleaning "
                 "(all comments + suggest blocks). Provided cleaning options will be ignored.",
-                err=True
+                err=True,
             )
             typer.echo()
 
@@ -225,7 +207,9 @@ def normalize(
 
     if verbose or dry_run:
         typer.echo("Configuration:")
-        typer.echo(f"  Comment types: {', '.join(sorted(comment_types_set)) if comment_types_set else 'none'}")
+        typer.echo(
+            f"  Comment types: {', '.join(sorted(comment_types_set)) if comment_types_set else 'none'}"
+        )
         typer.echo(f"  Remove suggest blocks: {remove_suggest_blocks}")
         typer.echo(f"  Normalize formatting: {apply_normalization}")
         typer.echo(f"  Dry run: {dry_run}")
@@ -244,7 +228,7 @@ def normalize(
         comment_types_set,
         remove_suggest_blocks,
         apply_normalization,
-        dry_run
+        dry_run,
     )
 
     if success:
@@ -264,7 +248,7 @@ def batch(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
-        )
+        ),
     ] = None,
     output_dir: Annotated[
         Optional[Path],
@@ -273,15 +257,10 @@ def batch(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
-        )
+        ),
     ] = None,
     in_place: Annotated[
-        bool,
-        typer.Option(
-            "--in-place",
-            "-i",
-            help="Modify files in input directory in-place"
-        )
+        bool, typer.Option("--in-place", "-i", help="Modify files in input directory in-place")
     ] = False,
     comment_types: Annotated[
         str,
@@ -293,38 +272,31 @@ def batch(
                 "Options: decorative, section_headers, descriptive, commented_code, "
                 "inline_annotations, inline_dates, all, none"
             ),
-        )
+        ),
     ] = "all",
     remove_suggest_blocks: Annotated[
         bool,
         typer.Option(
             "--remove-suggest-blocks",
             "-s",
-            help="Remove \\suggest{...} blocks from the LaTeX files"
-        )
+            help="Remove \\suggest{...} blocks from the LaTeX files",
+        ),
     ] = True,
     skip_normalization: Annotated[
         bool,
         typer.Option(
             "--no-normalize",
-            help="Skip formatting normalization (only clean comments/suggest blocks)"
-        )
+            help="Skip formatting normalization (only clean comments/suggest blocks)",
+        ),
     ] = False,
     suffix: Annotated[
         Optional[str],
         typer.Option(
             "--suffix",
-            help="Suffix to append to output filenames (e.g., 'Res123.tex' → 'Res123_suffix.tex')"
-        )
+            help="Suffix to append to output filenames (e.g., 'Res123.tex' → 'Res123_suffix.tex')",
+        ),
     ] = None,
-    verbose: Annotated[
-        bool,
-        typer.Option(
-            "--verbose",
-            "-v",
-            help="Show detailed output"
-        )
-    ] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed output")] = False,
 ):
     """
     Batch normalize LaTeX resume files.
@@ -346,7 +318,7 @@ def batch(
 
     """
     # Determine mode and validate arguments
-    pipeline_mode = (input_dir is None and output_dir is None)
+    pipeline_mode = input_dir is None and output_dir is None
 
     if pipeline_mode:
         # Pipeline mode: use hardcoded archive paths
@@ -355,8 +327,7 @@ def batch(
         typer.echo(f"Pipeline mode: {input_dir} → {output_dir}")
     elif input_dir and not output_dir and not in_place:
         typer.echo(
-            "Error: Must specify output_dir or use --in-place when providing input_dir",
-            err=True
+            "Error: Must specify output_dir or use --in-place when providing input_dir", err=True
         )
         raise typer.Exit(code=1)
     elif in_place:
@@ -392,7 +363,9 @@ def batch(
     if suffix:
         typer.echo(f"Output suffix: _{suffix}")
     if verbose:
-        typer.echo(f"Comment types: {', '.join(sorted(comment_types_set)) if comment_types_set else 'none'}")
+        typer.echo(
+            f"Comment types: {', '.join(sorted(comment_types_set)) if comment_types_set else 'none'}"
+        )
         typer.echo(f"Remove suggest blocks: {remove_suggest_blocks}")
         typer.echo(f"Normalize formatting: {apply_normalization}")
     typer.echo()

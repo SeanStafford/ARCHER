@@ -17,40 +17,27 @@ import typer
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from archer.utils.event_logging import get_recent_events
-from archer.utils.timestamp import format_timestamp
 from archer.utils.resume_registry import get_resume_status
+from archer.utils.timestamp import format_timestamp
 
 app = typer.Typer(
     add_completion=False,
     help="View recent pipeline events",
 )
 
+
 @app.command()
 def main(
-    n: int = typer.Option(
-        10,
-        "--num",
-        "-n",
-        help="Number of recent events to show"
-    ),
+    n: int = typer.Option(10, "--num", "-n", help="Number of recent events to show"),
     resume: Optional[str] = typer.Option(
-        None,
-        "--resume",
-        "-r",
-        help="Filter to events for this resume"
+        None, "--resume", "-r", help="Filter to events for this resume"
     ),
     event_type: Optional[str] = typer.Option(
-        None,
-        "--event-type",
-        "-e",
-        help="Filter to events of this type"
+        None, "--event-type", "-e", help="Filter to events of this type"
     ),
     compact: bool = typer.Option(
-        False,
-        "--compact",
-        "-c",
-        help="Print one event per line (no pretty formatting)"
-    )
+        False, "--compact", "-c", help="Print one event per line (no pretty formatting)"
+    ),
 ):
     """
     Show the last n events from the pipeline log.
@@ -89,7 +76,10 @@ def main(
             filters.append(f"type={event_type}")
 
         if filters:
-            typer.secho(f"\nShowing last {len(events)} event(s) [{', '.join(filters)}]:", fg=typer.colors.BLUE)
+            typer.secho(
+                f"\nShowing last {len(events)} event(s) [{', '.join(filters)}]:",
+                fg=typer.colors.BLUE,
+            )
         else:
             typer.secho(f"\nShowing last {len(events)} event(s):", fg=typer.colors.BLUE)
 
@@ -106,22 +96,13 @@ def main(
 
 @app.command()
 def track(
-    resume_name: str = typer.Argument(
-        ...,
-        help="Resume name to track"
-    ),
+    resume_name: str = typer.Argument(..., help="Resume name to track"),
     n: int = typer.Option(
-        None,
-        "--num",
-        "-n",
-        help="Maximum number of status changes to show (default: all)"
+        None, "--num", "-n", help="Maximum number of status changes to show (default: all)"
     ),
     relative: bool = typer.Option(
-        False,
-        "--relative",
-        "-r",
-        help="Show relative timestamps (e.g., '2 hours ago')"
-    )
+        False, "--relative", "-r", help="Show relative timestamps (e.g., '2 hours ago')"
+    ),
 ):
     """
     Show status history timeline for a resume.
@@ -145,7 +126,7 @@ def track(
     events = get_recent_events(
         n=n if n else 9999,  # Large number to get all if n not specified
         resume_name=resume_name,
-        event_type="status_change"
+        event_type="status_change",
     )
 
     if not events:
@@ -155,16 +136,22 @@ def track(
     # Validate status history continuity
     discontinuities = []
     for i in range(1, len(events)):
-        prev_new_status = events[i-1]['new_status']
-        curr_old_status = events[i]['old_status']
+        prev_new_status = events[i - 1]["new_status"]
+        curr_old_status = events[i]["old_status"]
         if prev_new_status != curr_old_status:
             discontinuities.append((i, prev_new_status, curr_old_status))
 
     # Show warning if discontinuities found
     if discontinuities:
-        typer.secho(f"\n⚠ Warning: Status history has {len(discontinuities)} discontinuity(ies)", fg=typer.colors.RED, bold=True)
+        typer.secho(
+            f"\n⚠ Warning: Status history has {len(discontinuities)} discontinuity(ies)",
+            fg=typer.colors.RED,
+            bold=True,
+        )
         for idx, prev, curr in discontinuities:
-            typer.secho(f"  Event {idx}: expected old_status='{prev}', found '{curr}'", fg=typer.colors.RED)
+            typer.secho(
+                f"  Event {idx}: expected old_status='{prev}', found '{curr}'", fg=typer.colors.RED
+            )
         typer.echo("")
 
     # Use minimum width of 30 for consistency across resumes
@@ -182,14 +169,16 @@ def track(
     # Display timeline (oldest first)
     for i, event in enumerate(events):
         # Show old status
-        typer.echo(event['old_status'].center(center_width))
+        typer.echo(event["old_status"].center(center_width))
 
         # Show arrow with timestamp (arrow centered)
-        typer.echo(f"{' ' * arrow_indent}↓ {format_timestamp(event['timestamp'], relative=relative)}")
+        typer.echo(
+            f"{' ' * arrow_indent}↓ {format_timestamp(event['timestamp'], relative=relative)}"
+        )
 
         # For final event, show new status and mark as current
         if i == len(events) - 1:
-            centered = event['new_status'].center(center_width)
+            centered = event["new_status"].center(center_width)
             # Trim trailing spaces and add suffix within the center_width
             trimmed = centered.rstrip()
             typer.secho(trimmed, nl=False)
@@ -201,6 +190,6 @@ def track(
 if __name__ == "__main__":
     # Default to 'main' command if no command specified
     # This allows: python tail_log.py -n 20 (instead of: python tail_log.py main -n 20)
-    if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith('-')):
-        sys.argv.insert(1, 'main')
+    if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith("-")):
+        sys.argv.insert(1, "main")
     app()

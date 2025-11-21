@@ -52,11 +52,7 @@ def main(ctx: typer.Context):
 def normalize_latex_file(input_path: Path, output_path: Path) -> tuple[bool, str]:
     """Normalize a LaTeX file (remove all comments, standardize format)."""
     success, message = process_file(
-        input_path,
-        output_path,
-        comment_types=set(),
-        normalize=True,
-        dry_run=False
+        input_path, output_path, comment_types=set(), normalize=True, dry_run=False
     )
     return success, message
 
@@ -86,17 +82,14 @@ def compare_yaml_structured(yaml1_path: Path, yaml2_path: Path) -> tuple[list[st
         "YAML structures differ",
         f"File 1: {yaml1_path.name}",
         f"File 2: {yaml2_path.name}",
-        "Run diff on the files for details"
+        "Run diff on the files for details",
     ]
 
     return diff_lines, 1
 
 
 def test_single_file(
-    tex_file: Path,
-    work_dir: Path,
-    max_latex_diffs: int,
-    max_yaml_diffs: int
+    tex_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
 ) -> Dict:
     """
     Test roundtrip conversion on a single LaTeX file.
@@ -113,12 +106,12 @@ def test_single_file(
     """
     start_time = datetime.now()
     result = {
-        'file': tex_file.name,
-        'latex_roundtrip': {'success': False, 'num_diffs': None},
-        'yaml_roundtrip': {'success': False, 'num_diffs': None},
-        'validation_passed': False,
-        'error': None,
-        'time_ms': 0.0
+        "file": tex_file.name,
+        "latex_roundtrip": {"success": False, "num_diffs": None},
+        "yaml_roundtrip": {"success": False, "num_diffs": None},
+        "validation_passed": False,
+        "error": None,
+        "time_ms": 0.0,
     }
 
     try:
@@ -128,7 +121,7 @@ def test_single_file(
         # Step 1: Normalize input
         normalized_input = work_dir / f"{file_stem}_normalized.tex"
         if not normalize_latex_file(tex_file, normalized_input)[0]:
-            result['error'] = "Failed to normalize input"
+            result["error"] = "Failed to normalize input"
             return result
 
         # Step 2: Parse LaTeX → YAML
@@ -136,7 +129,7 @@ def test_single_file(
         try:
             latex_to_yaml(normalized_input, parsed_yaml)
         except Exception as e:
-            result['error'] = f"Parse error: {str(e)}"
+            result["error"] = f"Parse error: {str(e)}"
             return result
 
         # Step 3: Generate YAML → LaTeX
@@ -144,28 +137,25 @@ def test_single_file(
         try:
             yaml_to_latex(parsed_yaml, generated_tex)
         except Exception as e:
-            result['error'] = f"Generation error: {str(e)}"
+            result["error"] = f"Generation error: {str(e)}"
             return result
 
         # Step 4: Normalize generated output
         normalized_output = work_dir / f"{file_stem}_generated_normalized.tex"
         if not normalize_latex_file(generated_tex, normalized_output)[0]:
-            result['error'] = "Failed to normalize output"
+            result["error"] = "Failed to normalize output"
             return result
 
         # Step 5: LaTeX Roundtrip Comparison
-        latex_diff_lines, latex_num_diffs = get_meaningful_diff(
-            normalized_input,
-            normalized_output
-        )
+        latex_diff_lines, latex_num_diffs = get_meaningful_diff(normalized_input, normalized_output)
 
         if latex_num_diffs > 0:
             latex_diff_file = work_dir / "latex_roundtrip.diff"
-            latex_diff_file.write_text('\n'.join(latex_diff_lines), encoding='utf-8')
+            latex_diff_file.write_text("\n".join(latex_diff_lines), encoding="utf-8")
 
-        result['latex_roundtrip'] = {
-            'success': (latex_num_diffs <= max_latex_diffs),
-            'num_diffs': latex_num_diffs
+        result["latex_roundtrip"] = {
+            "success": (latex_num_diffs <= max_latex_diffs),
+            "num_diffs": latex_num_diffs,
         }
 
         # Step 6: Re-parse generated LaTeX for YAML roundtrip
@@ -173,36 +163,32 @@ def test_single_file(
         try:
             latex_to_yaml(normalized_output, reparsed_yaml)
         except Exception as e:
-            result['error'] = f"Re-parse error: {str(e)}"
+            result["error"] = f"Re-parse error: {str(e)}"
             return result
 
         # Step 7: YAML Roundtrip Comparison
-        yaml_diff_lines, yaml_num_diffs = compare_yaml_structured(
-            parsed_yaml,
-            reparsed_yaml
-        )
+        yaml_diff_lines, yaml_num_diffs = compare_yaml_structured(parsed_yaml, reparsed_yaml)
 
         if yaml_num_diffs > 0:
             yaml_diff_file = work_dir / "yaml_roundtrip.diff"
-            yaml_diff_file.write_text('\n'.join(yaml_diff_lines), encoding='utf-8')
+            yaml_diff_file.write_text("\n".join(yaml_diff_lines), encoding="utf-8")
 
-        result['yaml_roundtrip'] = {
-            'success': (yaml_num_diffs <= max_yaml_diffs),
-            'num_diffs': yaml_num_diffs
+        result["yaml_roundtrip"] = {
+            "success": (yaml_num_diffs <= max_yaml_diffs),
+            "num_diffs": yaml_num_diffs,
         }
 
         # Determine if validation passed
-        result['validation_passed'] = (
-            result['latex_roundtrip']['success'] and
-            result['yaml_roundtrip']['success']
+        result["validation_passed"] = (
+            result["latex_roundtrip"]["success"] and result["yaml_roundtrip"]["success"]
         )
 
     except Exception as e:
-        result['error'] = f"Unexpected error: {str(e)}"
+        result["error"] = f"Unexpected error: {str(e)}"
 
     finally:
         end_time = datetime.now()
-        result['time_ms'] = (end_time - start_time).total_seconds() * 1000
+        result["time_ms"] = (end_time - start_time).total_seconds() * 1000
 
     return result
 
@@ -260,9 +246,7 @@ def test_command(
     # Validate file extension
     if tex_file.suffix != ".tex":
         typer.secho(
-            f"Error: File must have .tex extension: {tex_file}",
-            fg=typer.colors.RED,
-            err=True
+            f"Error: File must have .tex extension: {tex_file}", fg=typer.colors.RED, err=True
         )
         raise typer.Exit(code=1)
 
@@ -277,7 +261,7 @@ def test_command(
 
     # Open log file
     log_file = work_dir / "test.log"
-    with open(log_file, 'w', encoding='utf-8') as log:
+    with open(log_file, "w", encoding="utf-8") as log:
         log.write(f"Roundtrip Test - {timestamp}\n")
         log.write("=" * 80 + "\n")
         log.write(f"File: {tex_file.name}\n")
@@ -286,37 +270,36 @@ def test_command(
         log.write("=" * 80 + "\n\n")
 
         try:
-            result = test_single_file(
-                tex_file,
-                work_dir,
-                max_latex_diffs,
-                max_yaml_diffs
-            )
+            result = test_single_file(tex_file, work_dir, max_latex_diffs, max_yaml_diffs)
 
             # Log results
-            if result['error']:
+            if result["error"]:
                 log.write(f"ERROR: {result['error']}\n")
                 typer.secho(f"✗ Error: {result['error']}", fg=typer.colors.RED)
                 typer.echo(f"Artifacts saved to: {work_dir}")
                 raise typer.Exit(code=1)
 
-            latex_status = "✓" if result['latex_roundtrip']['success'] else "✗"
-            yaml_status = "✓" if result['yaml_roundtrip']['success'] else "✗"
-            latex_diffs = result['latex_roundtrip']['num_diffs']
-            yaml_diffs = result['yaml_roundtrip']['num_diffs']
+            latex_status = "✓" if result["latex_roundtrip"]["success"] else "✗"
+            yaml_status = "✓" if result["yaml_roundtrip"]["success"] else "✗"
+            latex_diffs = result["latex_roundtrip"]["num_diffs"]
+            yaml_diffs = result["yaml_roundtrip"]["num_diffs"]
 
-            log.write(f"LaTeX roundtrip: {'PASS' if result['latex_roundtrip']['success'] else 'FAIL'} ({latex_diffs} diffs)\n")
-            log.write(f"YAML roundtrip:  {'PASS' if result['yaml_roundtrip']['success'] else 'FAIL'} ({yaml_diffs} diffs)\n")
+            log.write(
+                f"LaTeX roundtrip: {'PASS' if result['latex_roundtrip']['success'] else 'FAIL'} ({latex_diffs} diffs)\n"
+            )
+            log.write(
+                f"YAML roundtrip:  {'PASS' if result['yaml_roundtrip']['success'] else 'FAIL'} ({yaml_diffs} diffs)\n"
+            )
             log.write(f"Time: {result['time_ms']:.0f}ms\n")
 
             typer.echo(f"LaTeX roundtrip: {latex_status} ({latex_diffs} diffs)")
             typer.echo(f"YAML roundtrip:  {yaml_status} ({yaml_diffs} diffs)")
             typer.echo(f"Time: {result['time_ms']:.0f}ms")
 
-            if result['validation_passed']:
-                log.write(f"\nValidation: PASSED\n")
+            if result["validation_passed"]:
+                log.write("\nValidation: PASSED\n")
 
-                typer.secho(f"\n✓ Success!", fg=typer.colors.GREEN)
+                typer.secho("\n✓ Success!", fg=typer.colors.GREEN)
 
                 # Clean up intermediate files but keep log (unless --keep-all)
                 if not keep_all:
@@ -332,12 +315,11 @@ def test_command(
                     typer.echo(f"Log saved to: {log_file}")
 
             else:
-                log.write(f"\nValidation: FAILED\n")
+                log.write("\nValidation: FAILED\n")
                 log.write(f"Artifacts kept in: {work_dir}\n")
 
                 typer.secho(
-                    f"\n✗ Validation failed. Artifacts saved to: {work_dir}",
-                    fg=typer.colors.RED
+                    f"\n✗ Validation failed. Artifacts saved to: {work_dir}", fg=typer.colors.RED
                 )
                 typer.echo(f"Log saved to: {log_file}")
                 raise typer.Exit(code=1)
@@ -412,7 +394,7 @@ def batch_command(
         typer.secho(
             f"No files found matching {pattern} in {RESUME_ARCHIVE_PATH}",
             fg=typer.colors.RED,
-            err=True
+            err=True,
         )
         raise typer.Exit(code=1)
 
@@ -429,7 +411,7 @@ def batch_command(
 
     # Open log file
     log_file = log_dir / "test.log"
-    with open(log_file, 'w', encoding='utf-8') as log:
+    with open(log_file, "w", encoding="utf-8") as log:
         log.write(f"Roundtrip Test - {timestamp}\n")
         log.write("=" * 80 + "\n")
         log.write(f"Pattern: {pattern}\n")
@@ -443,60 +425,59 @@ def batch_command(
         try:
             for i, tex_file in enumerate(tex_files, 1):
                 if not quiet:
-                    print(f"[{i}/{len(tex_files)}] {tex_file.name}...", end=' ', flush=True)
+                    print(f"[{i}/{len(tex_files)}] {tex_file.name}...", end=" ", flush=True)
 
                 log.write(f"[{i}/{len(tex_files)}] {tex_file.name}\n")
 
                 # Each file gets its own subdirectory
                 work_dir = log_dir / tex_file.stem
-                result = test_single_file(
-                    tex_file,
-                    work_dir,
-                    max_latex_diffs,
-                    max_yaml_diffs
-                )
+                result = test_single_file(tex_file, work_dir, max_latex_diffs, max_yaml_diffs)
                 results.append(result)
 
-                if result['error']:
+                if result["error"]:
                     if not quiet:
                         typer.secho(f"✗ ERROR: {result['error']}", fg=typer.colors.RED)
                     log.write(f"  ERROR: {result['error']}\n\n")
                 else:
-                    latex_status = "PASS" if result['latex_roundtrip']['success'] else "FAIL"
-                    yaml_status = "PASS" if result['yaml_roundtrip']['success'] else "FAIL"
+                    latex_status = "PASS" if result["latex_roundtrip"]["success"] else "FAIL"
+                    yaml_status = "PASS" if result["yaml_roundtrip"]["success"] else "FAIL"
 
-                    log.write(f"  LaTeX: {latex_status} ({result['latex_roundtrip']['num_diffs']} diffs)\n")
-                    log.write(f"  YAML: {yaml_status} ({result['yaml_roundtrip']['num_diffs']} diffs)\n")
+                    log.write(
+                        f"  LaTeX: {latex_status} ({result['latex_roundtrip']['num_diffs']} diffs)\n"
+                    )
+                    log.write(
+                        f"  YAML: {yaml_status} ({result['yaml_roundtrip']['num_diffs']} diffs)\n"
+                    )
                     log.write(f"  Time: {result['time_ms']:.0f}ms\n")
 
-                    if result['validation_passed']:
+                    if result["validation_passed"]:
                         # Check if perfect roundtrip (0 diffs in both)
                         perfect_roundtrip = (
-                            result['latex_roundtrip']['num_diffs'] == 0 and
-                            result['yaml_roundtrip']['num_diffs'] == 0
+                            result["latex_roundtrip"]["num_diffs"] == 0
+                            and result["yaml_roundtrip"]["num_diffs"] == 0
                         )
 
                         if not quiet:
                             typer.secho(f"✓ ({result['time_ms']:.0f}ms)", fg=typer.colors.GREEN)
 
-                        log.write(f"  Validation: PASSED\n")
+                        log.write("  Validation: PASSED\n")
 
                         # Clean up work directory only on perfect roundtrip (unless --keep-all)
                         if perfect_roundtrip and not keep_all:
                             shutil.rmtree(work_dir)
-                            log.write(f"  Perfect roundtrip - artifacts cleaned\n\n")
+                            log.write("  Perfect roundtrip - artifacts cleaned\n\n")
                         elif keep_all:
-                            log.write(f"  Artifacts kept (--keep-all flag)\n\n")
+                            log.write("  Artifacts kept (--keep-all flag)\n\n")
                         else:
-                            log.write(f"  Artifacts kept (has diffs within threshold)\n\n")
+                            log.write("  Artifacts kept (has diffs within threshold)\n\n")
                     else:
                         if not quiet:
                             typer.secho(
                                 f"✗ LaTeX:{result['latex_roundtrip']['num_diffs']} "
                                 f"YAML:{result['yaml_roundtrip']['num_diffs']}",
-                                fg=typer.colors.RED
+                                fg=typer.colors.RED,
                             )
-                        log.write(f"  Validation: FAILED - artifacts kept\n\n")
+                        log.write("  Validation: FAILED - artifacts kept\n\n")
 
         except KeyboardInterrupt:
             typer.secho("\n\nInterrupted by user", fg=typer.colors.YELLOW, err=True)
@@ -504,34 +485,35 @@ def batch_command(
             raise typer.Exit(code=130)
 
     # Generate summary
-    passed = sum(1 for r in results if r['validation_passed'])
-    failed = sum(1 for r in results if not r['validation_passed'])
-    errors = sum(1 for r in results if r['error'])
+    passed = sum(1 for r in results if r["validation_passed"])
+    failed = sum(1 for r in results if not r["validation_passed"])
+    errors = sum(1 for r in results if r["error"])
     perfect = sum(
-        1 for r in results
-        if r['validation_passed'] and
-        r['latex_roundtrip']['num_diffs'] == 0 and
-        r['yaml_roundtrip']['num_diffs'] == 0
+        1
+        for r in results
+        if r["validation_passed"]
+        and r["latex_roundtrip"]["num_diffs"] == 0
+        and r["yaml_roundtrip"]["num_diffs"] == 0
     )
     total = len(results)
 
     total_latex_diffs = sum(
-        r['latex_roundtrip']['num_diffs']
+        r["latex_roundtrip"]["num_diffs"]
         for r in results
-        if r['latex_roundtrip']['num_diffs'] is not None
+        if r["latex_roundtrip"]["num_diffs"] is not None
     )
     total_yaml_diffs = sum(
-        r['yaml_roundtrip']['num_diffs']
+        r["yaml_roundtrip"]["num_diffs"]
         for r in results
-        if r['yaml_roundtrip']['num_diffs'] is not None
+        if r["yaml_roundtrip"]["num_diffs"] is not None
     )
 
     if not quiet:
         typer.echo("=" * 80)
-        typer.echo(f"\nSummary:")
+        typer.echo("\nSummary:")
         typer.echo(f"  Total files:           {total}")
-        typer.echo(f"  Passed:                {passed}/{total} ({100*passed/total:.1f}%)")
-        typer.echo(f"  Perfect (0 diffs):     {perfect}/{total} ({100*perfect/total:.1f}%)")
+        typer.echo(f"  Passed:                {passed}/{total} ({100 * passed / total:.1f}%)")
+        typer.echo(f"  Perfect (0 diffs):     {perfect}/{total} ({100 * perfect / total:.1f}%)")
         typer.echo(f"  Failed:                {failed}/{total}")
         typer.echo(f"  Total LaTeX diffs:     {total_latex_diffs:,}")
         typer.echo(f"  Total YAML diffs:      {total_yaml_diffs:,}")
@@ -539,31 +521,39 @@ def batch_command(
 
     # Save summary.txt
     summary_file = log_dir / "summary.txt"
-    with open(summary_file, 'w', encoding='utf-8') as f:
+    with open(summary_file, "w", encoding="utf-8") as f:
         f.write(f"Roundtrip Test Summary - {timestamp}\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Total files:           {total}\n")
-        f.write(f"Passed:                {passed}/{total} ({100*passed/total:.1f}%)\n")
-        f.write(f"Perfect (0 diffs):     {perfect}/{total} ({100*perfect/total:.1f}%)\n")
+        f.write(f"Passed:                {passed}/{total} ({100 * passed / total:.1f}%)\n")
+        f.write(f"Perfect (0 diffs):     {perfect}/{total} ({100 * perfect / total:.1f}%)\n")
         f.write(f"Failed:                {failed}/{total}\n")
         f.write(f"Total LaTeX diffs:     {total_latex_diffs:,}\n")
         f.write(f"Total YAML diffs:      {total_yaml_diffs:,}\n")
         f.write(f"Errors:                {errors}\n\n")
 
         # Find longest filename for alignment
-        max_filename_len = max(len(r['file']) for r in results)
+        max_filename_len = max(len(r["file"]) for r in results)
 
         for r in results:
             # Calculate padding with dots
-            padding = '.' * (max_filename_len - len(r['file']))
+            padding = "." * (max_filename_len - len(r["file"]))
 
-            if r['error']:
+            if r["error"]:
                 f.write(f"{r['file']}{padding}: ERROR - {r['error']}\n")
             else:
                 # Always show diff counts, even when passing
-                latex_str = f"PASS ({r['latex_roundtrip']['num_diffs']})" if r['latex_roundtrip']['success'] else f"FAIL ({r['latex_roundtrip']['num_diffs']})"
-                yaml_str = f"PASS ({r['yaml_roundtrip']['num_diffs']})" if r['yaml_roundtrip']['success'] else f"FAIL ({r['yaml_roundtrip']['num_diffs']})"
-                status = "PASS" if r['validation_passed'] else "FAIL"
+                latex_str = (
+                    f"PASS ({r['latex_roundtrip']['num_diffs']})"
+                    if r["latex_roundtrip"]["success"]
+                    else f"FAIL ({r['latex_roundtrip']['num_diffs']})"
+                )
+                yaml_str = (
+                    f"PASS ({r['yaml_roundtrip']['num_diffs']})"
+                    if r["yaml_roundtrip"]["success"]
+                    else f"FAIL ({r['yaml_roundtrip']['num_diffs']})"
+                )
+                status = "PASS" if r["validation_passed"] else "FAIL"
                 f.write(f"{r['file']}{padding}: {status} - LaTeX={latex_str} YAML={yaml_str}\n")
 
     if not quiet:
