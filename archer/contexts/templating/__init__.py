@@ -15,6 +15,7 @@ Never: Makes content prioritization decisions
 from archer.contexts.templating.converter import (
     clean_yaml,
     latex_to_yaml,
+    validate_roundtrip_conversion,
     yaml_to_latex,
 )
 from archer.contexts.templating.resume_data_structure import (
@@ -27,6 +28,7 @@ __all__ = [
     "yaml_to_latex",
     "latex_to_yaml",
     "clean_yaml",
+    "validate_roundtrip_conversion",
     "ResumeDocument",
     "ResumeDocumentArchive",
     "ResumeDatabase",

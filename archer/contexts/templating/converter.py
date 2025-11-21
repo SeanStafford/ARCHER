@@ -11,6 +11,7 @@ This module exports:
 
 import copy
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -21,7 +22,9 @@ from archer.contexts.templating.exceptions import InvalidYAMLStructureError
 from archer.contexts.templating.latex_generator import YAMLToLaTeXConverter
 from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
 from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
+from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.latex_parsing_tools import to_latex
+from archer.utils.text_processing import get_meaningful_diff
 
 # Field pairs: (LaTeX-formatted field, plaintext field)
 # These pairs define which plaintext fields should be copied to LaTeX fields when missing
@@ -205,3 +208,158 @@ def latex_to_yaml(latex_path: Path, output_path: Path = None) -> Dict[str, Any]:
         output_path.write_text(content.rstrip() + "\n")
 
     return yaml_dict
+
+
+def compare_yaml_structured(yaml1_path: Path, yaml2_path: Path) -> tuple[list[str], int]:
+    """
+    Compare two YAML files using structured comparison.
+
+    Uses OmegaConf to load both YAMLs and compare as dictionaries,
+    ignoring formatting and key order differences.
+
+    Args:
+        yaml1_path: Path to first YAML file
+        yaml2_path: Path to second YAML file
+
+    Returns:
+        Tuple of (diff_lines, num_differences)
+    """
+    yaml1 = OmegaConf.load(yaml1_path)
+    yaml2 = OmegaConf.load(yaml2_path)
+
+    dict1 = OmegaConf.to_container(yaml1)
+    dict2 = OmegaConf.to_container(yaml2)
+
+    if dict1 == dict2:
+        return [], 0
+
+    diff_lines = [
+        "YAML structures differ",
+        f"File 1: {yaml1_path.name}",
+        f"File 2: {yaml2_path.name}",
+        "Run diff on the files for details",
+    ]
+
+    return diff_lines, 1
+
+
+def validate_roundtrip_conversion(
+    tex_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
+) -> Dict:
+    """
+    Validate LaTeX ↔ YAML roundtrip conversion fidelity.
+
+    Performs dual roundtrip testing:
+    - LaTeX roundtrip: LaTeX → YAML → LaTeX (tests parser + generator)
+    - YAML roundtrip: Compare parsed YAML vs re-parsed YAML (tests stability)
+
+    Args:
+        tex_file: Path to LaTeX file to test
+        work_dir: Directory for intermediate files
+        max_latex_diffs: Maximum allowed LaTeX differences
+        max_yaml_diffs: Maximum allowed YAML differences
+
+    Returns:
+        Dict with validation results: {
+            'file': filename,
+            'latex_roundtrip': {'success': bool, 'num_diffs': int},
+            'yaml_roundtrip': {'success': bool, 'num_diffs': int},
+            'validation_passed': bool,
+            'error': str or None,
+            'time_ms': float
+        }
+    """
+
+    start_time = datetime.now()
+    result = {
+        "file": tex_file.name,
+        "latex_roundtrip": {"success": False, "num_diffs": None},
+        "yaml_roundtrip": {"success": False, "num_diffs": None},
+        "validation_passed": False,
+        "error": None,
+        "time_ms": 0.0,
+    }
+
+    try:
+        file_stem = tex_file.stem
+        work_dir.mkdir(exist_ok=True, parents=True)
+
+        # Step 1: Normalize input
+        normalized_input = work_dir / f"{file_stem}_normalized.tex"
+        success, _ = process_file(
+            tex_file, normalized_input, comment_types=set(), normalize=True, dry_run=False
+        )
+        if not success:
+            result["error"] = "Failed to normalize input"
+            return result
+
+        # Step 2: Parse LaTeX → YAML
+        parsed_yaml = work_dir / f"{file_stem}_parsed.yaml"
+        try:
+            latex_to_yaml(normalized_input, parsed_yaml)
+        except Exception as e:
+            result["error"] = f"Parse error: {str(e)}"
+            return result
+
+        # Step 3: Generate YAML → LaTeX
+        generated_tex = work_dir / f"{file_stem}_generated.tex"
+        try:
+            yaml_to_latex(parsed_yaml, generated_tex)
+        except Exception as e:
+            result["error"] = f"Generation error: {str(e)}"
+            return result
+
+        # Step 4: Normalize generated output
+        normalized_output = work_dir / f"{file_stem}_generated_normalized.tex"
+        success, _ = process_file(
+            generated_tex, normalized_output, comment_types=set(), normalize=True, dry_run=False
+        )
+        if not success:
+            result["error"] = "Failed to normalize output"
+            return result
+
+        # Step 5: LaTeX Roundtrip Comparison
+        latex_diff_lines, latex_num_diffs = get_meaningful_diff(normalized_input, normalized_output)
+
+        if latex_num_diffs > 0:
+            latex_diff_file = work_dir / "latex_roundtrip.diff"
+            latex_diff_file.write_text("\n".join(latex_diff_lines), encoding="utf-8")
+
+        result["latex_roundtrip"] = {
+            "success": (latex_num_diffs <= max_latex_diffs),
+            "num_diffs": latex_num_diffs,
+        }
+
+        # Step 6: Re-parse generated LaTeX for YAML roundtrip
+        reparsed_yaml = work_dir / f"{file_stem}_reparsed.yaml"
+        try:
+            latex_to_yaml(normalized_output, reparsed_yaml)
+        except Exception as e:
+            result["error"] = f"Re-parse error: {str(e)}"
+            return result
+
+        # Step 7: YAML Roundtrip Comparison
+        yaml_diff_lines, yaml_num_diffs = compare_yaml_structured(parsed_yaml, reparsed_yaml)
+
+        if yaml_num_diffs > 0:
+            yaml_diff_file = work_dir / "yaml_roundtrip.diff"
+            yaml_diff_file.write_text("\n".join(yaml_diff_lines), encoding="utf-8")
+
+        result["yaml_roundtrip"] = {
+            "success": (yaml_num_diffs <= max_yaml_diffs),
+            "num_diffs": yaml_num_diffs,
+        }
+
+        # Determine if validation passed
+        result["validation_passed"] = (
+            result["latex_roundtrip"]["success"] and result["yaml_roundtrip"]["success"]
+        )
+
+    except Exception as e:
+        result["error"] = f"Unexpected error: {str(e)}"
+
+    finally:
+        end_time = datetime.now()
+        result["time_ms"] = (end_time - start_time).total_seconds() * 1000
+
+    return result
