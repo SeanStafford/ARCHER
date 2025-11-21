@@ -1,0 +1,21 @@
+2025-11-21 01:52:23 | INFO    | ================================================================================
+2025-11-21 01:52:23 | INFO    | Script: scripts/compile_pdf.py
+2025-11-21 01:52:23 | INFO    | Command: scripts/compile_pdf.py compile data/resume_archive/_test_Res202511_Fry_MomCorp_finetuned.tex
+2025-11-21 01:52:23 | INFO    | Working directory: /home/sean/ARCHER
+2025-11-21 01:52:23 | INFO    | Python: 3.10.9
+2025-11-21 01:52:23 | INFO    | LaTeX compiler: pdflatex
+2025-11-21 01:52:23 | INFO    | ================================================================================
+2025-11-21 01:52:23 | INFO    | [render] Starting compilation: _test_Res202511_Fry_MomCorp_finetuned
+2025-11-21 01:52:23 | INFO    | [render] Compiling in /home/sean/ARCHER/outs/logs/render_20251121_015223
+2025-11-21 01:52:23 | DEBUG   | [render]   Source: /home/sean/ARCHER/data/resume_archive/_test_Res202511_Fry_MomCorp_finetuned.tex
+2025-11-21 01:52:23 | DEBUG   | [render]   Passes: 2
+2025-11-21 01:52:24 | SUCCESS | [render] Compilation succeeded.
+2025-11-21 01:52:24 | SUCCESS | [render] _test_Res202511_Fry_MomCorp_finetuned: 89 warnings (1.06s)
+2025-11-21 01:52:24 | DEBUG   | [render]   PDF: /home/sean/ARCHER/outs/logs/render_20251121_015223/_test_Res202511_Fry_MomCorp_finetuned.pdf
+2025-11-21 01:52:24 | WARNING | [render] 89 warnings detected
+2025-11-21 01:52:24 | DEBUG   | [render]   Warning 1: Unused global option(s):
+2025-11-21 01:52:24 | DEBUG   | [render]   Warning 2: Functionality similar to this package has recently
+2025-11-21 01:52:24 | DEBUG   | [render]   Warning 3: You appear to be running a version of LaTeX
+2025-11-21 01:52:24 | DEBUG   | [render]   ... and 86 more warnings
+2025-11-21 01:52:24 | INFO    | [render] PDF saved to: /home/sean/ARCHER/outs/results/20251121/_test_Res202511_Fry_MomCorp_finetuned.pdf
+2025-11-21 01:52:24 | DEBUG   | [render] Cleaned up LaTeX artifacts.
