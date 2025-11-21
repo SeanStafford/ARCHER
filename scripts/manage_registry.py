@@ -182,7 +182,7 @@ def init_command(
 def list_command(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status"),
     resume_type: Optional[str] = typer.Option(
-        None, "--type", "-t", help="Filter by type (historical, generated, or test)"
+        None, "--type", "-t", help="Filter by type (historical, generated, experimental, or test)"
     ),
 ):
     """

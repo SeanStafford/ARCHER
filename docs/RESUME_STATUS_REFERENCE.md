@@ -8,10 +8,11 @@ Each status represents the most recent state of a resume in the ARCHER pipeline.
 
 ## Resume Types
 
-ARCHER tracks three types of resumes:
+ARCHER tracks four types of resumes:
 
 - **`historical`**: Original resumes from archive used as content source for targeting
-- **`generated`**: New resumes created by ARCHER pipeline (targeting → templating → rendering)
+- **`generated`**: New resumes created by full ARCHER pipeline (targeting → templating → rendering)
+- **`experimental`**: Resumes created manually using ARCHER tools but not automatically generated using full pipeline
 - **`test`**: Resumes created for testing and development (not part of normal pipeline)
 
 ---
@@ -70,6 +71,21 @@ PDF compilation succeeded. Resume PDF generated successfully.
 
 ### `approved`
 Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `rendering_completed`.
+
+---
+
+## Experimental Resume Statuses
+
+Experimental resumes are crafted using ARCHER tools, but not generated with full pipeline automation. They bypass the typical targeting context worfklow and share the same statuses as generated resumes from templating onward.
+
+### `drafting`
+YAML resume structure being manually crafted. Content selection done by human, not targeting context. Entry point for experimental resumes before templating.
+
+### `drafting_completed`
+YAML resume structure being manually crafted. Content selection done by human, not targeting context. Entry point for experimental resumes before templating.
+
+### Subsequent Statuses
+After `drafting_completed`, experimental resumes follow the same flow as generated resumes: `templating` → `templating_completed` → `rendering` → `rendering_completed` → `approved`. See "Generated Resume Statuses" section above for details.
 
 ---
 

@@ -6,15 +6,16 @@ Registry stored as CSV at outs/logs/resume_registry.csv.
 
 Schema:
     resume_name (str): Unique identifier (PRIMARY KEY)
-    resume_type (str): Category ("historical", "generated", or "test")
-    status (str): Pipeline status ("targeting", "templating", "rendering", "completed", "failed")
+    resume_type (str): Category ("historical", "generated", "experimental", or "test")
+    status (str): Pipeline status
     last_updated (str): ISO 8601 timestamp of last modification
 
 Usage:
     from archer.utils.resume_registry import register_resume, update_resume_status
 
     # Register new resume
-    register_resume("Res202510", resume_type="generated", status="targeting")
+    register_resume("Res202510", resume_type="generated", status="pending")
+    register_resume("Res202511_MLEng_Disney", resume_type="experimental", status="drafting")
 
     # Update status
     update_resume_status("Res202510", "completed")
@@ -70,7 +71,7 @@ def register_resume(resume_name: str, resume_type: str, source: str, status: str
 
     Args:
         resume_name: Unique identifier (e.g., "Res202510")
-        resume_type: Resume category ("historical", "generated", or "test")
+        resume_type: Resume category ("historical", "generated", "experimental", or "test")
         source: Event source (e.g., "cli", "templating", "manual")
         status: Initial status (default: "raw")
 
@@ -92,7 +93,6 @@ def register_resume(resume_name: str, resume_type: str, source: str, status: str
     }
 
     # Interactive prompt for manual registrations
-    reason = None
     if source == "manual":
         try:
             reason_input = input(
