@@ -4,44 +4,44 @@ LaTeX Parser
 Converts LaTeX to structured YAML format.
 """
 
-import re
-import os
 import copy
+import os
+import re
 import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from dotenv import load_dotenv
 
+from archer.contexts.templating.exceptions import TemplateParsingError
 from archer.contexts.templating.latex_patterns import (
-    regex_to_literal,
+    ColorFields,
+    ContentPatterns,
     DocumentRegex,
-    PageRegex,
-    SectionRegex,
     EnvironmentPatterns,
+    FormattingPatterns,
     MetadataPatterns,
     MetadataRegex,
-    ColorFields,
+    PageRegex,
     PreamblePatterns,
-    FormattingPatterns,
-    ContentPatterns,
+    SectionRegex,
+    regex_to_literal,
 )
-from archer.contexts.templating.registries import TemplateRegistry, ParseConfigRegistry
-from archer.contexts.templating.exceptions import TemplateParsingError
-from archer.utils.text_processing import (
-    extract_balanced_delimiters,
-    set_max_consecutive_blank_lines,
-    extract_regex_matches,
-)
+from archer.contexts.templating.registries import ParseConfigRegistry, TemplateRegistry
 from archer.utils.latex_parsing_tools import (
-    extract_brace_arguments,
-    extract_environment_content,
-    extract_environment,
     extract_all_environments,
+    extract_brace_arguments,
+    extract_environment,
+    extract_environment_content,
     parse_itemize_content,
     parse_itemize_with_complex_markers,
-    to_plaintext,
     skip_latex_arguments,
+    to_plaintext,
+)
+from archer.utils.text_processing import (
+    extract_balanced_delimiters,
+    extract_regex_matches,
+    set_max_consecutive_blank_lines,
 )
 
 load_dotenv()
@@ -60,7 +60,7 @@ def get_nested_field(data: Dict, field_path: str) -> Any:
     Returns:
         Value at the specified path, or None if path doesn't exist
     """
-    keys = field_path.split('.')
+    keys = field_path.split(".")
     current = data
     for key in keys:
         if isinstance(current, dict) and key in current:
@@ -69,10 +69,11 @@ def get_nested_field(data: Dict, field_path: str) -> Any:
             return None
     return current
 
+
 def get_content_to_parse(config, context, result, latex_str):
     """Get source content from context, result path, or default to latex_str."""
-    source = config.get('source')
-    source_path = config.get('source_path')
+    source = config.get("source")
+    source_path = config.get("source_path")
 
     if source:
         return context.get(source, latex_str)
@@ -80,6 +81,7 @@ def get_content_to_parse(config, context, result, latex_str):
         return get_nested_field(result, source_path)  # Already have this function!
     else:
         return latex_str
+
 
 def set_nested_field(data: Dict, field_path: str, value: Any):
     """
@@ -90,7 +92,7 @@ def set_nested_field(data: Dict, field_path: str, value: Any):
         field_path: Dot-separated path (e.g., 'content.list')
         value: Value to set at the path
     """
-    keys = field_path.split('.')
+    keys = field_path.split(".")
     current = data
     for key in keys[:-1]:
         if key not in current:
@@ -98,15 +100,18 @@ def set_nested_field(data: Dict, field_path: str, value: Any):
         current = current[key]
     current[keys[-1]] = value
 
+
 def set_output(value, config, context, result):
     """Store value in context and/or result based on config."""
-    if config.get('output_context'):
-        context[config['output_context']] = value
-    elif config.get('output_paths'):
+    if config.get("output_context"):
+        context[config["output_context"]] = value
+    elif config.get("output_paths"):
         # Map dict fields to multiple result paths
-        output_paths = config['output_paths']
+        output_paths = config["output_paths"]
         if isinstance(value, dict):
-            assert len(output_paths) == len(value.keys()), "the number of keys in value dict does not match number of output paths"
+            assert len(output_paths) == len(value.keys()), (
+                "the number of keys in value dict does not match number of output paths"
+            )
             # value is a dict, map each key to its output path
             for key, path in output_paths.items():
                 if key in value:
@@ -124,13 +129,14 @@ def set_output(value, config, context, result):
                     set_nested_field(result, path, "")
         else:
             raise ValueError(f"output_paths requires dict or list value, got {type(value)}")
-    elif config.get('output_path'):
-        set_nested_field(result, config['output_path'], value)
+    elif config.get("output_path"):
+        set_nested_field(result, config["output_path"], value)
     else:
-          raise ValueError(
-              f"No output destination specified in pattern config. "
-              f"Must provide one of: output_context, output_paths, or output_path"
-          )
+        raise ValueError(
+            "No output destination specified in pattern config. "
+            "Must provide one of: output_context, output_paths, or output_path"
+        )
+
 
 def get_patterns_to_parse(config):
     """
@@ -144,18 +150,21 @@ def get_patterns_to_parse(config):
     """
     resolved = {}
     for key, value in config.items():
-        if key.endswith('_pattern'):
+        if key.endswith("_pattern"):
             # Get pattern constant from EnvironmentPatterns
             pattern_value = getattr(EnvironmentPatterns, value, None)
             if pattern_value is None:
                 # Check if it looks like a constant name (ALL_CAPS_WITH_UNDERSCORES)
-                if value.isupper() and '_' in value:
-                    warnings.warn(f"Pattern constant '{value}' not found in EnvironmentPatterns, using as literal regex")
+                if value.isupper() and "_" in value:
+                    warnings.warn(
+                        f"Pattern constant '{value}' not found in EnvironmentPatterns, using as literal regex"
+                    )
                 pattern_value = value
             # Store without '_pattern' suffix (e.g., 'delimiter_pattern' -> 'delimiter')
             key_without_suffix = key[:-8]  # Remove '_pattern'
             resolved[key_without_suffix] = pattern_value
     return resolved
+
 
 class LaTeXToYAMLConverter:
     """Converts LaTeX to structured YAML format."""
@@ -163,17 +172,13 @@ class LaTeXToYAMLConverter:
     def __init__(
         self,
         template_registry: TemplateRegistry = None,
-        parse_config_registry: ParseConfigRegistry = None
+        parse_config_registry: ParseConfigRegistry = None,
     ):
         self.template_registry = template_registry or TemplateRegistry()
         self.parse_config_registry = parse_config_registry or ParseConfigRegistry()
 
     def _create_parsing_error(
-        self,
-        message: str,
-        type_name: str,
-        latex_snippet: str,
-        show_template: bool = True
+        self, message: str, type_name: str, latex_snippet: str, show_template: bool = True
     ) -> TemplateParsingError:
         """
         Create an enhanced parsing error with template reference.
@@ -187,13 +192,15 @@ class LaTeXToYAMLConverter:
         Returns:
             TemplateParsingError with enhanced context
         """
-        template_path = self.template_registry.get_template_path(type_name) if show_template else None
+        template_path = (
+            self.template_registry.get_template_path(type_name) if show_template else None
+        )
 
         return TemplateParsingError(
             message=message,
             type_name=type_name,
             template_path=template_path,
-            latex_snippet=latex_snippet
+            latex_snippet=latex_snippet,
         )
 
     def parse_with_config(self, latex_str: str, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -220,26 +227,26 @@ class LaTeXToYAMLConverter:
         context = {}  # For intermediate results between operations
 
         for _, operation_config in config.get("operations", {}).items():
-            operation = operation_config.get('operation')
+            operation = operation_config.get("operation")
             content_source = get_content_to_parse(operation_config, context, result, latex_str)
             patterns = get_patterns_to_parse(operation_config)  # Resolve all *_pattern constants
             value = None  # Will be set by each operation
 
-            if operation == 'set_literal':
+            if operation == "set_literal":
                 # Set constant value
-                value = operation_config['value']
+                value = operation_config["value"]
 
-            elif operation == 'extract_environment':
+            elif operation == "extract_environment":
                 # Extract environment content and parameters
                 # env_name can be a single string or a list of strings
-                env_names = operation_config['env_name']
+                env_names = operation_config["env_name"]
                 if isinstance(env_names, str):
                     env_names = [env_names]
 
-                num_params = operation_config.get('num_params', 0)
-                num_optional_params = operation_config.get('num_optional_params', 0)
-                param_names = operation_config.get('param_names', [])
-                capture_trailing = operation_config.get('capture_trailing_text', False)
+                num_params = operation_config.get("num_params", 0)
+                num_optional_params = operation_config.get("num_optional_params", 0)
+                param_names = operation_config.get("param_names", [])
+                capture_trailing = operation_config.get("capture_trailing_text", False)
 
                 # Try each environment name until one succeeds
                 last_error = None
@@ -256,11 +263,15 @@ class LaTeXToYAMLConverter:
                         continue
                 else:
                     # None of the environment names matched
-                    raise ValueError(f"None of the environment names matched: {env_names}. Last error: {last_error}")
+                    raise ValueError(
+                        f"None of the environment names matched: {env_names}. Last error: {last_error}"
+                    )
 
                 # Store params in result if param_names specified
                 if param_names:
-                    assert len(param_names) == len(env_params), "len(param_names) must match the number of extracted parameters"
+                    assert len(param_names) == len(env_params), (
+                        "len(param_names) must match the number of extracted parameters"
+                    )
                     for i, param_name in enumerate(param_names):
                         set_nested_field(result, param_name, env_params[i])
 
@@ -268,45 +279,45 @@ class LaTeXToYAMLConverter:
                 value = env_content
 
                 # Store the actual environment name that matched (useful when env_name is a list)
-                if isinstance(operation_config['env_name'], list):
+                if isinstance(operation_config["env_name"], list):
                     set_nested_field(result, "metadata.environment_name", actual_env_name)
 
                 # Capture trailing text after environment if requested
                 if capture_trailing:
-                    newline_pos = latex_str.find('\n', end_start_pos)
+                    newline_pos = latex_str.find("\n", end_start_pos)
                     if newline_pos != -1:
-                        trailing_text = latex_str[newline_pos + 1:].strip()
+                        trailing_text = latex_str[newline_pos + 1 :].strip()
                         if trailing_text:
                             set_nested_field(result, "metadata.trailing_text", trailing_text)
 
-            elif operation == 'split':
+            elif operation == "split":
                 # Generalized split operation
 
-                delimiter = patterns.get('delimiter')
+                delimiter = patterns.get("delimiter")
                 # Wrap in lookahead if we want to keep the delimiter (not let it get consumed by regex matching)
-                if operation_config.get('keep_delimiter', False):
-                    delimiter = f'(?={delimiter})'
+                if operation_config.get("keep_delimiter", False):
+                    delimiter = f"(?={delimiter})"
 
                 # Split content
                 parts = re.split(delimiter, content_source)
 
                 # Clean up parts if cleanup_pattern provided
-                cleanup_pattern = patterns.get('cleanup')
+                cleanup_pattern = patterns.get("cleanup")
                 if cleanup_pattern:
-                    parts = [re.sub(cleanup_pattern, '', part) for part in parts]
+                    parts = [re.sub(cleanup_pattern, "", part) for part in parts]
 
                 # Filter empty parts and set value
                 value = [p.strip() for p in parts if p.strip()]
 
-            elif operation == 'parse_itemize_content':
+            elif operation == "parse_itemize_content":
                 # Parse itemize content using resolved marker pattern (with fallback)
-                marker_pattern = patterns.get('marker', r'\\item\b')
+                marker_pattern = patterns.get("marker", r"\\item\b")
                 value = parse_itemize_content(content_source, marker_pattern)
 
-            elif operation == 'recursive_parse':
+            elif operation == "recursive_parse":
                 # Extract and recursively parse nested types
-                output_path = operation_config['output_path']
-                config_name = operation_config['config_name']
+                output_path = operation_config["output_path"]
+                config_name = operation_config["config_name"]
 
                 # Check if input is already a list of chunks (from split operation)
                 if isinstance(content_source, list):
@@ -324,7 +335,11 @@ class LaTeXToYAMLConverter:
 
                 else:
                     # Extract all matching environments (with full LaTeX including begin/end)
-                    environments = extract_all_environments(content_source, patterns.get('recursive'), include_env_command_in_positions=True)
+                    environments = extract_all_environments(
+                        content_source,
+                        patterns.get("recursive"),
+                        include_env_command_in_positions=True,
+                    )
 
                     if environments:
                         nested_config = self.parse_config_registry.get_config(config_name)
@@ -333,10 +348,12 @@ class LaTeXToYAMLConverter:
                         # Clean input content by removing nested environments
                         cleaned_content = content_source
                         for env_name, _, _, begin_pos, end_pos in reversed(environments):
-                            cleaned_content = cleaned_content[:begin_pos] + cleaned_content[end_pos:]
+                            cleaned_content = (
+                                cleaned_content[:begin_pos] + cleaned_content[end_pos:]
+                            )
 
                         # Update context with cleaned content (for bullets extraction)
-                        context['environment_content'] = cleaned_content
+                        context["environment_content"] = cleaned_content
 
                         for env_name, _, _, begin_pos, end_pos in environments:
                             # Get full environment LaTeX (with begin/end tags)
@@ -344,37 +361,44 @@ class LaTeXToYAMLConverter:
 
                             # Substitute {{{PROJECT_ENVIRONMENT_NAME}}} if present in config
                             config_copy = copy.deepcopy(nested_config)
-                            if 'operations' in config_copy and 'environment' in config_copy['operations']:
-                                if config_copy['operations']['environment'].get('env_name') == '{{{PROJECT_ENVIRONMENT_NAME}}}':
-                                    config_copy['operations']['environment']['env_name'] = env_name
+                            if (
+                                "operations" in config_copy
+                                and "environment" in config_copy["operations"]
+                            ):
+                                if (
+                                    config_copy["operations"]["environment"].get("env_name")
+                                    == "{{{PROJECT_ENVIRONMENT_NAME}}}"
+                                ):
+                                    config_copy["operations"]["environment"]["env_name"] = env_name
 
                             # Parse recursively
                             nested_result = self.parse_with_config(nested_latex, config_copy)
 
                             # Add environment_type to metadata
-                            if 'metadata' not in nested_result:
-                                nested_result['metadata'] = {}
-                            nested_result['metadata']['environment_type'] = env_name
+                            if "metadata" not in nested_result:
+                                nested_result["metadata"] = {}
+                            nested_result["metadata"]["environment_type"] = env_name
 
                             nested_results.append(nested_result)
 
                         set_nested_field(result, output_path, nested_results)
 
-            elif operation == 'extract_regex':
+            elif operation == "extract_regex":
                 # Extract all matches using regex with named capture groups
-                matches = extract_regex_matches(content_source, patterns['regex'])
+                matches = extract_regex_matches(content_source, patterns["regex"])
 
                 # Determine output value based on match structure
-                if operation_config.get('output_paths'):
+                if operation_config.get("output_paths"):
                     # Mode: Single match, multiple named groups → dict
                     if matches:
                         value = matches[0]
                         # Validate all required capture groups are present
-                        required_groups = set(operation_config['output_paths'].keys())
+                        required_groups = set(operation_config["output_paths"].keys())
                         actual_groups = set(value.keys())
-                        assert required_groups.issubset(actual_groups), \
+                        assert required_groups.issubset(actual_groups), (
                             f"Missing capture groups: {required_groups - actual_groups}"
-                        
+                        )
+
                 elif matches and len(matches[0]) == 1:
                     # Single capture group per match → list of strings
                     field_name = list(matches[0].keys())[0]
@@ -383,32 +407,29 @@ class LaTeXToYAMLConverter:
                     # Multiple capture groups per match → list of dicts
                     value = matches
 
-            elif operation == 'extract_braced_after_pattern':
+            elif operation == "extract_braced_after_pattern":
                 # Find pattern, then extract balanced braces after it
-                pattern = patterns.get('search')
-                match = re.search(patterns.get('search'), content_source)
+                pattern = patterns.get("search")
+                match = re.search(patterns.get("search"), content_source)
                 if not match:
                     raise ValueError(f"Pattern not found: {pattern}")
 
-                value, _ = extract_balanced_delimiters( content_source, start_pos = match.end())
+                value, _ = extract_balanced_delimiters(content_source, start_pos=match.end())
 
-            elif operation == 'to_plaintext':
+            elif operation == "to_plaintext":
                 # Convert LaTeX to plaintext
                 # If source is a list, transform to list of dicts with {latex_raw, plaintext}
                 # If source is a string, convert to plaintext string
                 if isinstance(content_source, list):
                     value = [
-                        {
-                            "latex_raw": item,
-                            "plaintext": to_plaintext(item)
-                        }
+                        {"latex_raw": item, "plaintext": to_plaintext(item)}
                         for item in content_source
                     ]
                 else:
                     value = to_plaintext(content_source)
 
             # Store output (unless it's recursive_parse which handles its own output)
-            if operation != 'recursive_parse' and value is not None:
+            if operation != "recursive_parse" and value is not None:
                 set_output(value, operation_config, context, result)
 
         return result
@@ -435,13 +456,15 @@ class LaTeXToYAMLConverter:
         # Find preamble (everything before \begin{document})
         doc_match = re.search(DocumentRegex.BEGIN_DOCUMENT, latex_str)
         if not doc_match:
-            raise ValueError(f"No \\begin{{document}} found")
+            raise ValueError("No \begin{document} found")
 
-        preamble = latex_str[:doc_match.start()]
+        preamble = latex_str[: doc_match.start()]
 
         # Extract all \renewcommand fields (handle nested braces)
         renewcommands = {}
-        renewcommand_starts = [m.start() for m in re.finditer(MetadataRegex.RENEWCOMMAND_START, preamble)]
+        renewcommand_starts = [
+            m.start() for m in re.finditer(MetadataRegex.RENEWCOMMAND_START, preamble)
+        ]
 
         for start_pos in renewcommand_starts:
             # Extract field name (first {...})
@@ -452,7 +475,7 @@ class LaTeXToYAMLConverter:
 
             # Find start of value (second {...})
             value_start = start_pos + field_name_match.end()
-            if value_start >= len(preamble) or preamble[value_start] != '{':
+            if value_start >= len(preamble) or preamble[value_start] != "{":
                 continue
 
             # Extract value using balanced delimiter helper
@@ -493,7 +516,7 @@ class LaTeXToYAMLConverter:
         list_title_after_name = True  # Default to true
         toggle_match = re.search(MetadataRegex.LIST_TITLE_AFTER_NAME, preamble)
         if toggle_match:
-            list_title_after_name = (toggle_match.group(1) == 'true')
+            list_title_after_name = toggle_match.group(1) == "true"
 
         # Extract custom package declarations (e.g., \usepackage{fontspec} + \newfontfamily)
         # Filter out standard packages that are generated by template
@@ -502,7 +525,7 @@ class LaTeXToYAMLConverter:
         for match in re.finditer(MetadataRegex.USEPACKAGE, preamble):
             package_line = match.group(0)
             # Check if this is a standard package (skip if it is)
-            is_standard = any(f'{{{pkg}}}' in package_line for pkg in standard_packages)
+            is_standard = any(f"{{{pkg}}}" in package_line for pkg in standard_packages)
             if not is_standard:
                 custom_packages.append(package_line)
         for match in re.finditer(MetadataRegex.NEWFONTFAMILY, preamble):
@@ -512,37 +535,43 @@ class LaTeXToYAMLConverter:
         colors = {k: renewcommands.pop(k) for k in ColorFields.all() if k in renewcommands}
 
         # Known metadata fields - store RAW (exact LaTeX)
-        name_raw = renewcommands.pop(MetadataPatterns.MYNAME, '')
-        date = renewcommands.pop(MetadataPatterns.MYDATE, '')
-        brand_raw = renewcommands.pop(MetadataPatterns.BRAND, '')
+        name_raw = renewcommands.pop(MetadataPatterns.MYNAME, "")
+        date = renewcommands.pop(MetadataPatterns.MYDATE, "")
+        brand_raw = renewcommands.pop(MetadataPatterns.BRAND, "")
         professional_profile_raw = renewcommands.pop(MetadataPatterns.PROFESSIONAL_PROFILE, None)
 
         # Apply minimal cleaning to professional_profile: limit consecutive blank lines
         if professional_profile_raw:
-            professional_profile_raw = set_max_consecutive_blank_lines(professional_profile_raw, max_consecutive=0)
+            professional_profile_raw = set_max_consecutive_blank_lines(
+                professional_profile_raw, max_consecutive=0
+            )
 
         # Create plaintext versions for fields that can contain LaTeX formatting
         # These will be used by Targeting context for decision-making
-        name_plaintext = to_plaintext(name_raw) if name_raw else ''
-        brand_plaintext = to_plaintext(brand_raw) if brand_raw else ''
-        professional_profile_plaintext = to_plaintext(professional_profile_raw) if professional_profile_raw else None
+        name_plaintext = to_plaintext(name_raw) if name_raw else ""
+        brand_plaintext = to_plaintext(brand_raw) if brand_raw else ""
+        professional_profile_plaintext = (
+            to_plaintext(professional_profile_raw) if professional_profile_raw else None
+        )
 
         return {
-            'name': name_raw,  # Raw LaTeX preserved for roundtrip
-            'name_plaintext': name_plaintext,  # Plaintext for Targeting context
-            'date': date,  # Already plaintext
-            'brand': brand_raw,
-            'brand_plaintext': brand_plaintext,
-            'professional_profile': professional_profile_raw,
-            'professional_profile_plaintext': professional_profile_plaintext,
-            'nlines_pp': nlines_pp,  # Number of lines in professional profile
-            'list_title_after_name': list_title_after_name,  # PhD display toggle
-            'colors': colors,
-            'hlcolor': hlcolor,
-            'setlengths': setlengths,
-            'deflens': deflens,
-            'custom_packages': custom_packages if custom_packages else None,  # Custom \usepackage and font declarations
-            'fields': renewcommands  # All other renewcommand fields
+            "name": name_raw,  # Raw LaTeX preserved for roundtrip
+            "name_plaintext": name_plaintext,  # Plaintext for Targeting context
+            "date": date,  # Already plaintext
+            "brand": brand_raw,
+            "brand_plaintext": brand_plaintext,
+            "professional_profile": professional_profile_raw,
+            "professional_profile_plaintext": professional_profile_plaintext,
+            "nlines_pp": nlines_pp,  # Number of lines in professional profile
+            "list_title_after_name": list_title_after_name,  # PhD display toggle
+            "colors": colors,
+            "hlcolor": hlcolor,
+            "setlengths": setlengths,
+            "deflens": deflens,
+            "custom_packages": custom_packages
+            if custom_packages
+            else None,  # Custom \usepackage and font declarations
+            "fields": renewcommands,  # All other renewcommand fields
         }
 
     def parse_document(self, latex_str: str) -> Dict[str, Any]:
@@ -561,12 +590,7 @@ class LaTeXToYAMLConverter:
         # Extract all pages
         pages = self.extract_pages(latex_str)
 
-        return {
-            "document": {
-                "metadata": metadata,
-                "pages": pages
-            }
-        }
+        return {"document": {"metadata": metadata, "pages": pages}}
 
     def parse_work_experience(self, latex_str: str) -> Dict[str, Any]:
         return self.parse_section(latex_str, "work_experience")
@@ -633,9 +657,9 @@ class LaTeXToYAMLConverter:
             "metadata": {
                 "include_dissertation": include_dissertation,
                 "include_minor": include_minor,
-                "use_icon_bullets": use_icon_bullets
+                "use_icon_bullets": use_icon_bullets,
             },
-            "content": {}
+            "content": {},
         }
 
     def parse_personality_alias_array(self, latex_str: str) -> Dict[str, Any]:
@@ -669,15 +693,11 @@ class LaTeXToYAMLConverter:
         # Parse items with balanced bracket matching for complex markers
         bullets = parse_itemize_with_complex_markers(env_content)
 
-        result = {
-            'type': 'custom_itemize',
-            'metadata': {},
-            'content': {'bullets': bullets}
-        }
+        result = {"type": "custom_itemize", "metadata": {}, "content": {"bullets": bullets}}
 
         # Add optional params if present
         if env_params and len(env_params) > 0:
-            result['metadata']['optional_params'] = env_params[0]
+            result["metadata"]["optional_params"] = env_params[0]
 
         return result
 
@@ -736,7 +756,7 @@ class LaTeXToYAMLConverter:
         if not doc_start or not doc_end:
             raise ValueError("Document markers not found")
 
-        document_content = latex_str[doc_start.end():doc_end.start()]
+        document_content = latex_str[doc_start.end() : doc_end.start()]
 
         # Find paracol environment boundaries
         paracol_start_match = re.search(PageRegex.BEGIN_PARACOL, document_content)
@@ -746,7 +766,7 @@ class LaTeXToYAMLConverter:
             raise ValueError("No paracol environment found")
 
         # Extract content within paracol (this is what we'll split on \clearpage)
-        paracol_content = document_content[paracol_start_match.end():paracol_end_match.start()]
+        paracol_content = document_content[paracol_start_match.end() : paracol_end_match.start()]
 
         # Count clearpage markers to determine which pages have clearpage after them
         clearpage_count = len(re.findall(DocumentRegex.CLEARPAGE_WITH_WHITESPACE, paracol_content))
@@ -768,14 +788,16 @@ class LaTeXToYAMLConverter:
 
                 # Determine if this page has clearpage after it
                 # Pages 1 through clearpage_count have clearpage, remaining pages don't
-                has_clearpage_after = (page_num <= clearpage_count)
+                has_clearpage_after = page_num <= clearpage_count
 
-                pages.append({
-                    "page_number": page_num,
-                    "regions": page_regions,
-                    "has_clearpage_after": has_clearpage_after
-                })
-            except ValueError as e:
+                pages.append(
+                    {
+                        "page_number": page_num,
+                        "regions": page_regions,
+                        "has_clearpage_after": has_clearpage_after,
+                    }
+                )
+            except ValueError:
                 # Page doesn't have valid structure
                 continue
 
@@ -800,20 +822,19 @@ class LaTeXToYAMLConverter:
         textblock_match = re.search(EnvironmentPatterns.TEXTBLOCK_WITH_ARGS, latex_str)
         if textblock_match:
             # Group 1: {width}, Group 2: (x, y)
-            width_arg = textblock_match.group(1).strip('{}')
-            position_arg = textblock_match.group(2).strip('()')
+            width_arg = textblock_match.group(1).strip("{}")
+            position_arg = textblock_match.group(2).strip("()")
             textblock_args = [width_arg, position_arg]
 
-            decorations.append({
-                "command": "textblock",
-                "args": textblock_args
-            })
+            decorations.append({"command": "textblock", "args": textblock_args})
 
             # Find textblock boundaries for removal
             textblock_start = textblock_match.start()
             try:
                 _, _, end_start_pos = extract_environment_content(latex_str, "textblock*")
-                end_match = re.search(EnvironmentPatterns.END_TEXTBLOCK_STAR, latex_str[end_start_pos:])
+                end_match = re.search(
+                    EnvironmentPatterns.END_TEXTBLOCK_STAR, latex_str[end_start_pos:]
+                )
                 if end_match:
                     textblock_end = end_start_pos + end_match.end()
                     # Remove textblock environment
@@ -840,9 +861,9 @@ class LaTeXToYAMLConverter:
             decorations.append({"command": "topgradtri", "args": args})
 
         # Remove decoration commands
-        latex_str = re.sub(PageRegex.LEFTGRAD, '', latex_str)
-        latex_str = re.sub(PageRegex.BOTTOMBAR, '', latex_str)
-        latex_str = re.sub(PageRegex.TOPGRADTRI, '', latex_str)
+        latex_str = re.sub(PageRegex.LEFTGRAD, "", latex_str)
+        latex_str = re.sub(PageRegex.BOTTOMBAR, "", latex_str)
+        latex_str = re.sub(PageRegex.TOPGRADTRI, "", latex_str)
 
         return latex_str, decorations
 
@@ -873,25 +894,19 @@ class LaTeXToYAMLConverter:
         # Extract textblock environment content using helper
         # Store as literal LaTeX - content never changes, just copy/paste it
         try:
-            textblock_content, _, _ = extract_environment_content(
-                latex_str, "textblock*"
-            )
+            textblock_content, _, _ = extract_environment_content(latex_str, "textblock*")
         except ValueError:
             return None
 
         # Skip textblock* arguments: {width}(coordinates)
         # These are captured separately in decorations, don't duplicate in literal content
         textblock_content = skip_latex_arguments(
-            textblock_content.strip(),
-            mandatory=1,
-            special_paren=True
+            textblock_content.strip(), mandatory=1, special_paren=True
         )
 
         # Store the inner content as-is (no parsing, no cleaning)
         # This preserves exact formatting: \mbox, \hspace, pipes, etc.
-        return {
-            "content_latex": textblock_content.strip()
-        }
+        return {"content_latex": textblock_content.strip()}
 
     def extract_page_regions(self, latex_str: str, page_number: int = 1) -> Dict[str, Any]:
         """
@@ -918,47 +933,49 @@ class LaTeXToYAMLConverter:
         # Find paracol environment
         paracol_match = re.search(PageRegex.BEGIN_PARACOL, latex_str)
         if not paracol_match:
-            raise ValueError(f"No \\begin{{paracol}}{{2}} found")
+            raise ValueError("No \begin{paracol} found")
 
         paracol_start = paracol_match.end()
 
         # Find \end{paracol}
         end_match = re.search(PageRegex.END_PARACOL, latex_str[paracol_start:])
         if not end_match:
-            raise ValueError(f"No matching \\end{{paracol}} found")
+            raise ValueError("No matching \end{paracol} found")
 
-        paracol_content = latex_str[paracol_start:paracol_start + end_match.start()]
+        paracol_content = latex_str[paracol_start : paracol_start + end_match.start()]
 
         # Find \switchcolumn (optional for continuation pages)
         switch_match = re.search(PageRegex.SWITCHCOLUMN, paracol_content)
 
         if switch_match:
             # Has both columns
-            left_content = paracol_content[:switch_match.start()].strip()
-            main_content = paracol_content[switch_match.end():].strip()
+            left_content = paracol_content[: switch_match.start()].strip()
+            main_content = paracol_content[switch_match.end() :].strip()
 
-            left_sections = self._extract_sections_from_column(left_content, region_name="left_column")
-            main_sections = self._extract_sections_from_column(main_content, region_name="main_column")
+            left_sections = self._extract_sections_from_column(
+                left_content, region_name="left_column"
+            )
+            main_sections = self._extract_sections_from_column(
+                main_content, region_name="main_column"
+            )
         else:
             # No switchcolumn - all content is in main column (continuation page)
             left_sections = []
-            main_sections = self._extract_sections_from_column(paracol_content.strip(), region_name="main_column")
+            main_sections = self._extract_sections_from_column(
+                paracol_content.strip(), region_name="main_column"
+            )
 
         return {
-            "top": {
-                "show_professional_profile": (page_number == 1)
-            },
-            "left_column": {
-                "sections": left_sections
-            } if left_sections else None,
-            "main_column": {
-                "sections": main_sections
-            } if main_sections else None,
+            "top": {"show_professional_profile": (page_number == 1)},
+            "left_column": {"sections": left_sections} if left_sections else None,
+            "main_column": {"sections": main_sections} if main_sections else None,
             "textblock_literal": textblock_literal,
-            "decorations": decorations if decorations else None
+            "decorations": decorations if decorations else None,
         }
 
-    def _extract_sections_from_column(self, column_content: str, region_name: str) -> List[Dict[str, Any]]:
+    def _extract_sections_from_column(
+        self, column_content: str, region_name: str
+    ) -> List[Dict[str, Any]]:
         """
         Extract all sections from column content.
 
@@ -981,40 +998,44 @@ class LaTeXToYAMLConverter:
             try:
                 brace_pos = match.end()  # Position after '\section*{'
                 section_name, end_pos = extract_balanced_delimiters(
-                    column_content, brace_pos, open_char='{', close_char='}'
+                    column_content, brace_pos, open_char="{", close_char="}"
                 )
-                section_markers.append({
-                    'start': match.start(),
-                    'end': end_pos,  # Position after closing }
-                    'name': section_name.strip(),
-                    'type': 'standard'
-                })
+                section_markers.append(
+                    {
+                        "start": match.start(),
+                        "end": end_pos,  # Position after closing }
+                        "name": section_name.strip(),
+                        "type": "standard",
+                    }
+                )
             except ValueError:
                 # Skip malformed section with unbalanced braces
                 continue
 
         # Find old Education header (5 resumes use non-standard format)
         for match in re.finditer(SectionRegex.OLD_EDUCATION_HEADER, column_content):
-            section_markers.append({
-                'start': match.start(),
-                'end': match.end(),
-                'name': 'Education',
-                'type': 'old_education'
-            })
+            section_markers.append(
+                {
+                    "start": match.start(),
+                    "end": match.end(),
+                    "name": "Education",
+                    "type": "old_education",
+                }
+            )
 
         # Sort by position
-        section_markers.sort(key=lambda x: x['start'])
+        section_markers.sort(key=lambda x: x["start"])
 
         if not section_markers:
             return sections
 
         for i, marker in enumerate(section_markers):
-            section_name = marker['name']
+            section_name = marker["name"]
 
             # Get content from after this section header to before next section
-            content_start = marker['end']
+            content_start = marker["end"]
             if i + 1 < len(section_markers):
-                content_end = section_markers[i + 1]['start']
+                content_end = section_markers[i + 1]["start"]
             else:
                 content_end = len(column_content)
 
@@ -1026,22 +1047,24 @@ class LaTeXToYAMLConverter:
             if vspace_match:
                 spacing_after = vspace_match.group(1)  # e.g., "2.8\sectionsep"
                 # Strip vspace from content
-                section_content = section_content[:vspace_match.start()].strip()
+                section_content = section_content[: vspace_match.start()].strip()
 
             # Infer type and parse section
             try:
-                section_dict = self._parse_section_by_inference(section_name, section_content, region_name)
+                section_dict = self._parse_section_by_inference(
+                    section_name, section_content, region_name
+                )
 
                 # Ensure metadata dict exists
-                if 'metadata' not in section_dict:
-                    section_dict['metadata'] = {}
+                if "metadata" not in section_dict:
+                    section_dict["metadata"] = {}
 
                 # Move section-level fields into metadata
-                section_dict['metadata']['name'] = section_name
-                section_dict['metadata']['name_plaintext'] = to_plaintext(section_name)
+                section_dict["metadata"]["name"] = section_name
+                section_dict["metadata"]["name_plaintext"] = to_plaintext(section_name)
 
                 if spacing_after:
-                    section_dict['metadata']['spacing_after'] = spacing_after
+                    section_dict["metadata"]["spacing_after"] = spacing_after
 
                 sections.append(section_dict)
             except Exception as e:
@@ -1053,7 +1076,9 @@ class LaTeXToYAMLConverter:
 
         return sections
 
-    def _parse_section_by_inference(self, section_name: str, content: str, region_name: str) -> Dict[str, Any]:
+    def _parse_section_by_inference(
+        self, section_name: str, content: str, region_name: str
+    ) -> Dict[str, Any]:
         """
         Infer section type from content and parse accordingly.
 
@@ -1070,11 +1095,7 @@ class LaTeXToYAMLConverter:
         if re.search(EnvironmentPatterns.BEGIN_ITEMIZE_PROJ_MAIN, content):
             # Standalone projects section (about half of historical resumes use this)
             parsed = self.parse_projects(content)
-            return {
-                "type": "projects",
-                "metadata": {},
-                "subsections": parsed["subsections"]
-            }
+            return {"type": "projects", "metadata": {}, "subsections": parsed["subsections"]}
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE_ACADEMIC, content):
             # Work experience section
@@ -1087,60 +1108,61 @@ class LaTeXToYAMLConverter:
                 end_pattern = EnvironmentPatterns.END_ITEMIZE_ACADEMIC
                 end_match = re.search(end_pattern, content[start:])
                 if end_match:
-                    subsection_latex = content[start:start + end_match.end()]
+                    subsection_latex = content[start : start + end_match.end()]
                     subsection = self.parse_work_experience(subsection_latex)
                     subsections.append(subsection)
 
-            return {
-                "type": "work_history",
-                "metadata": {},
-                "subsections": subsections
-            }
+            return {"type": "work_history", "metadata": {}, "subsections": subsections}
 
-        elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content) and ContentPatterns.EDUCATION_UNIVERSITY in content:
+        elif (
+            re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content)
+            and ContentPatterns.EDUCATION_UNIVERSITY in content
+        ):
             # education (check before skill_categories - more specific pattern)
             parsed = self.parse_education(content)
             return {
                 "type": "education",
                 "metadata": parsed["metadata"],
-                "content": parsed.get("content", {})
+                "content": parsed.get("content", {}),
             }
 
-        elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content) and re.search(EnvironmentPatterns.ITEM_BRACKET, content) and re.search(EnvironmentPatterns.BEGIN_ITEMIZE_LL, content):
+        elif (
+            re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content)
+            and re.search(EnvironmentPatterns.ITEM_BRACKET, content)
+            and re.search(EnvironmentPatterns.BEGIN_ITEMIZE_LL, content)
+        ):
             # skill_categories - outer itemize with \item[icon]Name + nested itemizeLL
             parsed = self.parse_skill_categories(content)
             return {
                 "type": "skill_categories",
                 "metadata": {},
-                "subsections": parsed["subsections"]
+                "subsections": parsed["subsections"],
             }
 
-        elif FormattingPatterns.SETLENGTH in content and FormattingPatterns.BASELINESKIP in content and FormattingPatterns.SCSHAPE in content:
+        elif (
+            FormattingPatterns.SETLENGTH in content
+            and FormattingPatterns.BASELINESKIP in content
+            and FormattingPatterns.SCSHAPE in content
+        ):
             # skill_list_caps
             parsed = self.parse_skill_list_caps(content)
-            return {
-                "type": "skill_list_caps",
-                "metadata": {},
-                "content": parsed["content"]
-            }
+            return {"type": "skill_list_caps", "metadata": {}, "content": parsed["content"]}
 
-        elif '|' in content:
+        elif "|" in content:
             # skill_list_pipes (pipe-delimited list, may or may not have \texttt formatting)
             parsed = self.parse_skill_list_pipes(content)
-            return {
-                "type": "skill_list_pipes",
-                "metadata": {},
-                "content": parsed["content"]
-            }
+            return {"type": "skill_list_pipes", "metadata": {}, "content": parsed["content"]}
 
-        elif region_name == "left_column" and re.search(EnvironmentPatterns.BEGIN_ITEMIZE_ANY, content):
+        elif region_name == "left_column" and re.search(
+            EnvironmentPatterns.BEGIN_ITEMIZE_ANY, content
+        ):
             # personality_alias_array - Left column itemize variants (itemizeMain, itemizeLL)
             # All left-column itemize sections are personality sections (verified empirically)
             parsed = self.parse_personality_alias_array(content)
             return {
                 "type": "personality_alias_array",
                 "metadata": parsed.get("metadata", {}),
-                "content": parsed["content"]
+                "content": parsed["content"],
             }
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE, content):
@@ -1151,7 +1173,7 @@ class LaTeXToYAMLConverter:
             return {
                 "type": "custom_itemize",
                 "metadata": parsed.get("metadata", {}),
-                "content": parsed["content"]
+                "content": parsed["content"],
             }
 
         elif re.search(EnvironmentPatterns.BEGIN_ITEMIZE_ANY, content):
@@ -1161,13 +1183,9 @@ class LaTeXToYAMLConverter:
             return {
                 "type": "simple_list",
                 "metadata": parsed["metadata"],
-                "content": parsed["content"]
+                "content": parsed["content"],
             }
 
         else:
             # Unknown type - store as raw
-            return {
-                "type": "unknown",
-                "metadata": {},
-                "content": {"raw": content}
-            }
+            return {"type": "unknown", "metadata": {}, "content": {"raw": content}}

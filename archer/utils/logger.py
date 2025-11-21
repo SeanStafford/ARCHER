@@ -5,21 +5,16 @@ Provides reusable loguru configuration with provenance tracking.
 Context-specific wrappers should be defined in contexts/{context}/logger.py.
 """
 
-import os
 import sys
 from pathlib import Path
 
-from loguru import logger
 from dotenv import load_dotenv
+from loguru import logger
 
 load_dotenv()
 
 
-def setup_logger(
-    context_name: str,
-    log_dir: Path,
-    extra_provenance: dict = None
-) -> Path:
+def setup_logger(context_name: str, log_dir: Path, extra_provenance: dict = None) -> Path:
     """
     Configure loguru for a context with provenance tracking.
 
@@ -51,9 +46,7 @@ def setup_logger(
 
     # Add file handler - captures everything (DEBUG level)
     logger.add(
-        log_file,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <7} | {message}",
-        level="DEBUG"
+        log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level: <7} | {message}", level="DEBUG"
     )
 
     # Add console handler - only INFO and above
@@ -61,7 +54,7 @@ def setup_logger(
         sys.stdout,
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <7} | {message}",
         level="INFO",
-        colorize=True
+        colorize=True,
     )
 
     # Log provenance header

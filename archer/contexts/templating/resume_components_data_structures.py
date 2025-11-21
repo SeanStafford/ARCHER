@@ -22,6 +22,7 @@ class DocumentMetadata:
         colors: Color scheme definitions (emphcolor, topbarcolor, etc.)
         fields: All other \renewcommand field values
     """
+
     name: str
     date: str
     brand: str
@@ -40,6 +41,7 @@ class TopBar:
     Attributes:
         show_professional_profile: Whether to show profile (True for page 1, False for page 2+)
     """
+
     show_professional_profile: bool = True
 
 
@@ -54,6 +56,7 @@ class BottomBar:
         name: Section name/title
         text: Content text
     """
+
     name: str
     text: str
 
@@ -68,6 +71,7 @@ class Subsection:
         metadata: Type-specific metadata (company, title, icon, etc.)
         content: Type-specific content (bullets, list, projects, etc.)
     """
+
     type: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     content: Dict[str, Any] = field(default_factory=dict)
@@ -84,6 +88,7 @@ class Section:
         content: Direct content for simple sections (skill lists)
         subsections: Nested subsections for complex sections (work experience, skill categories)
     """
+
     name: str
     type: str
     content: Optional[Dict[str, Any]] = None
@@ -98,6 +103,7 @@ class Column:
     Attributes:
         sections: Ordered list of sections in this column
     """
+
     sections: List[Section] = field(default_factory=list)
 
 
@@ -114,6 +120,7 @@ class PageRegions:
         main_column: Main/right column (experience, projects)
         bottom: Optional bottom bar (page 2 personality sections)
     """
+
     top: TopBar
     left_column: Optional[Column] = None
     main_column: Optional[Column] = None
@@ -129,5 +136,6 @@ class Page:
         page_number: Page number (1-indexed)
         regions: Page regions (top, columns, bottom)
     """
+
     page_number: int
     regions: PageRegions

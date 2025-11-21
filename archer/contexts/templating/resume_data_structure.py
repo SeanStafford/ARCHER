@@ -20,16 +20,16 @@ from typing import Any, Dict, List, Optional
 from omegaconf import OmegaConf
 
 from archer.contexts.templating import latex_to_yaml
-from archer.utils.markdown import format_list_markdown, latex_to_markdown
 from archer.contexts.templating.markdown_formatter import (
     format_education_markdown,
     format_subsections_markdown,
     format_work_experience_markdown,
 )
 from archer.utils.latex_parsing_tools import to_plaintext
-
+from archer.utils.markdown import format_list_markdown, latex_to_markdown
 
 DEFAULT_BLACKLIST_PATTERNS = ["Truths and a Lie"]
+
 
 @dataclass
 class ResumeSection:
@@ -46,6 +46,7 @@ class ResumeSection:
         page_number: Page number where section appears (1-indexed)
         region: Region where section appears (e.g., "left_column", "right_column")
     """
+
     name: str
     section_type: str
     data: Dict[str, Any] = field(default_factory=dict)
@@ -88,7 +89,12 @@ class ResumeSection:
         elif self.section_type in ("skill_categories", "projects"):
             # Wrapper sections with subsections (each has name and items)
             return format_subsections_markdown(self.data, self.name)
-        elif self.section_type in ("personality_alias_array", "personality_bottom_bar", "skill_list_caps", "skill_list_pipes"):
+        elif self.section_type in (
+            "personality_alias_array",
+            "personality_bottom_bar",
+            "skill_list_caps",
+            "skill_list_pipes",
+        ):
             return format_list_markdown(self.data["items"], self.name)
         elif self.section_type == "education":
             return format_education_markdown(self.data, self.name)
@@ -138,7 +144,6 @@ class ResumeSection:
         return items
 
 
-
 class ResumeDocument:
     """
     Structured representation of a complete resume document.
@@ -153,7 +158,12 @@ class ResumeDocument:
     Note: Structural markdown (headers, bullets) from formatters is always present.
     """
 
-    def __init__(self, yaml_path: Path, mode: str = "markdown", blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS):
+    def __init__(
+        self,
+        yaml_path: Path,
+        mode: str = "markdown",
+        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
+    ):
         """
         Load resume from YAML file and simplify to Targeting-focused structure.
 
@@ -175,7 +185,7 @@ class ResumeDocument:
         """
         if mode not in ("markdown", "plaintext"):
             raise ValueError(f"Invalid mode: {mode}. Must be 'markdown' or 'plaintext'")
-        
+
         if type(yaml_path) is str:
             yaml_path = Path(yaml_path)
 
@@ -210,9 +220,12 @@ class ResumeDocument:
         # Extract sections from all pages and regions
         for page_number, page in enumerate(doc["pages"], start=1):
             for region_name, region_data in page["regions"].items():
-                
                 # Skip empty regions or regions without sections
-                if not region_data or not isinstance(region_data, dict) or "sections" not in region_data:
+                if (
+                    not region_data
+                    or not isinstance(region_data, dict)
+                    or "sections" not in region_data
+                ):
                     continue
 
                 for section_data in region_data["sections"]:
@@ -221,12 +234,18 @@ class ResumeDocument:
                     section_name = metadata["name_plaintext"]
 
                     # Skip section if name matches any blacklist pattern
-                    if any(re.search(pattern, section_name, re.IGNORECASE) for pattern in self.blacklist_patterns):
+                    if any(
+                        re.search(pattern, section_name, re.IGNORECASE)
+                        for pattern in self.blacklist_patterns
+                    ):
                         continue
 
                     if "subsections" in section_data:
                         # Parse all subsections
-                        subsections = [self._get_section_data(subsection) for subsection in section_data["subsections"]]
+                        subsections = [
+                            self._get_section_data(subsection)
+                            for subsection in section_data["subsections"]
+                        ]
                         data = {"subsections": subsections}
 
                     else:
@@ -238,12 +257,14 @@ class ResumeDocument:
                         section_type=section_data["type"],
                         data=data,
                         page_number=page_number,
-                        region=region_name
+                        region=region_name,
                     )
                     self.sections.append(section)
 
     @classmethod
-    def from_tex(cls, tex_path: Path, mode: str = "markdown", blacklist_patterns: Optional[List[str]] = None) -> "ResumeDocument":
+    def from_tex(
+        cls, tex_path: Path, mode: str = "markdown", blacklist_patterns: Optional[List[str]] = None
+    ) -> "ResumeDocument":
         """
         Parse a .tex file into a structured ResumeDocument.
 
@@ -271,7 +292,8 @@ class ResumeDocument:
         try:
             # Create temporary YAML in memory
             import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as tmp:
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as tmp:
                 tmp_path = Path(tmp.name)
 
             # Convert LaTeX to YAML
@@ -293,7 +315,7 @@ class ResumeDocument:
             warnings.warn(
                 f"Failed to convert {tex_path.name}: {str(e)}\n"
                 f"Consider using scripts/convert_template.py which saves intermediate files for debugging.",
-                UserWarning
+                UserWarning,
             )
             raise ValueError(f"Failed to parse {tex_path}: {str(e)}") from e
 
@@ -315,7 +337,9 @@ class ResumeDocument:
         else:  # plaintext
             return [item["plaintext"] for item in items]
 
-    def _get_section_data(self, section_data: Dict[str, Any], section_name: str = "") -> Dict[str, Any]:
+    def _get_section_data(
+        self, section_data: Dict[str, Any], section_name: str = ""
+    ) -> Dict[str, Any]:
         """Parse a section from YAML structure into ResumeSection.
 
         Args:
@@ -326,7 +350,9 @@ class ResumeDocument:
 
         # Get name from metadata (standardized structure)
         metadata = section_data["metadata"]
-        raw_name = metadata.get("name", section_name)  # Fallback to section_name if name not in metadata
+        raw_name = metadata.get(
+            "name", section_name
+        )  # Fallback to section_name if name not in metadata
 
         if section_type == "work_experience":
             return self._parse_work_experience(section_data)
@@ -345,12 +371,14 @@ class ResumeDocument:
                 try:
                     name = metadata["name_plaintext"]
                 except KeyError:
-                    raise ValueError(f"Missing 'name_plaintext' in metadata for section with data:\n{section_data}")
+                    raise ValueError(
+                        f"Missing 'name_plaintext' in metadata for section with data:\n{section_data}"
+                    )
                 # name = metadata.get("name_plaintext", to_plaintext(raw_name))
 
             data = {"items": items, "name": name, "type": section_type}
             return data
-        
+
     def _parse_work_experience(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract work experience data from YAML, respecting mode.
 
@@ -389,23 +417,21 @@ class ResumeDocument:
             # Project name: use name_plaintext if available, otherwise convert name based on mode
             if self.mode == "markdown":
                 project_name = latex_to_markdown(proj_metadata["name"])
-                project_items = [latex_to_markdown(bullet["latex_raw"]) for bullet in proj_content["bullets"]]
+                project_items = [
+                    latex_to_markdown(bullet["latex_raw"]) for bullet in proj_content["bullets"]
+                ]
             else:  # plaintext
                 project_name = proj_metadata["name_plaintext"]
                 project_items = [bullet["plaintext"] for bullet in proj_content["bullets"]]
 
-            project_data = {
-                "name": project_name,
-                "items": project_items,
-                "type": "project"
-            }
+            project_data = {"name": project_name, "items": project_items, "type": "project"}
             projects.append(project_data)
 
         return {
             "type": "work_experience",
             **converted_metadata,
             "projects": projects,
-            "items": items
+            "items": items,
         }
 
     def _parse_education(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -441,11 +467,10 @@ class ResumeDocument:
             "degree": degree,
             "field": field,
             "dates": dates,
-            "items": items
+            "items": items,
         }
 
         return data
-
 
     def get_section(self, name: str, case_sensitive: bool = False) -> ResumeSection:
         """
@@ -467,8 +492,8 @@ class ResumeDocument:
             for section in self.sections:
                 if section.name.lower() == name_lower:
                     return section
-                
-        raise AttributeError(f"Section not found: {name}")        
+
+        raise AttributeError(f"Section not found: {name}")
 
     def get_items_by_section(
         self, sections: List[str] | str, case_sensitive: bool = False
@@ -567,7 +592,12 @@ class ResumeDocumentArchive:
         self.archive_path = archive_path
         self.structured_path = archive_path / "structured"
 
-    def load(self, mode: str = "available", format_mode: str = "markdown", blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS) -> List[ResumeDocument]:
+    def load(
+        self,
+        mode: str = "available",
+        format_mode: str = "markdown",
+        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
+    ) -> List[ResumeDocument]:
         """
         Load resume documents from archive.
 
@@ -596,13 +626,17 @@ class ResumeDocumentArchive:
         self.documents = {doc.filename: doc for doc in docs}
         return docs
 
-    def _load_available(self, format_mode: str = "markdown", blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS) -> List[ResumeDocument]:
+    def _load_available(
+        self,
+        format_mode: str = "markdown",
+        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
+    ) -> List[ResumeDocument]:
         """Load only pre-converted YAMLs from structured/ directory."""
         if not self.structured_path.exists():
             warnings.warn(
                 f"Structured directory not found: {self.structured_path}\n"
                 f"Run scripts/convert_template.py batch to convert resumes.",
-                UserWarning
+                UserWarning,
             )
             return []
 
@@ -612,7 +646,9 @@ class ResumeDocumentArchive:
 
         for yaml_file in yaml_files:
             try:
-                doc = ResumeDocument(yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns)
+                doc = ResumeDocument(
+                    yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                )
                 documents.append(doc)
             except Exception as e:
                 errors.append((yaml_file.name, str(e)))
@@ -620,13 +656,16 @@ class ResumeDocumentArchive:
         if errors:
             error_summary = "\n".join(f"  - {name}: {error}" for name, error in errors)
             warnings.warn(
-                f"Failed to load {len(errors)} YAML file(s):\n{error_summary}",
-                UserWarning
+                f"Failed to load {len(errors)} YAML file(s):\n{error_summary}", UserWarning
             )
 
         return documents
 
-    def _load_all(self, format_mode: str = "markdown", blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS) -> List[ResumeDocument]:
+    def _load_all(
+        self,
+        format_mode: str = "markdown",
+        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
+    ) -> List[ResumeDocument]:
         """Load all resumes, converting .tex files if needed."""
         # Get all .tex files
         tex_files = sorted(self.archive_path.glob("*.tex"))
@@ -645,10 +684,14 @@ class ResumeDocumentArchive:
                 if tex_file.stem in existing_yamls:
                     # Load from YAML
                     yaml_file = self.structured_path / f"{tex_file.stem}.yaml"
-                    doc = ResumeDocument(yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns)
+                    doc = ResumeDocument(
+                        yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                    )
                 else:
                     # Convert from .tex
-                    doc = ResumeDocument.from_tex(tex_file, mode=format_mode, blacklist_patterns=blacklist_patterns)
+                    doc = ResumeDocument.from_tex(
+                        tex_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                    )
                 documents.append(doc)
             except Exception as e:
                 errors.append((tex_file.name, str(e)))
@@ -661,7 +704,7 @@ class ResumeDocumentArchive:
             warnings.warn(
                 f"Failed to load {len(errors)}/{len(tex_files)} resume(s):\n{error_summary}\n\n"
                 f"Consider using scripts/convert_template.py batch to convert all resumes with validation.",
-                UserWarning
+                UserWarning,
             )
 
         return documents

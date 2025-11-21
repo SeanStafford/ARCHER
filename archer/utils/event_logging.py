@@ -34,18 +34,12 @@ from dotenv import load_dotenv
 
 from archer.utils.timestamp import now_exact
 
-
 load_dotenv()
 LOGS_PATH = Path(os.getenv("LOGS_PATH", "outs/logs"))
 PIPELINE_EVENTS_FILE = LOGS_PATH / "resume_pipeline_events.log"
 
 
-def log_pipeline_event(
-    event_type: str,
-    resume_name: str,
-    source: str,
-    **extra_fields
-) -> None:
+def log_pipeline_event(event_type: str, resume_name: str, source: str, **extra_fields) -> None:
     """
     Log an event to the master pipeline event log.
 
@@ -76,7 +70,7 @@ def log_pipeline_event(
         "event_type": event_type,
         "resume_name": resume_name,
         "source": source,
-        **extra_fields
+        **extra_fields,
     }
 
     # Append to pipeline event log (JSON Lines format)
@@ -85,11 +79,7 @@ def log_pipeline_event(
 
 
 def log_status_change(
-    resume_name: str,
-    old_status: str,
-    new_status: str,
-    source: str,
-    **extra_fields
+    resume_name: str, old_status: str, new_status: str, source: str, **extra_fields
 ) -> None:
     """
     Log status change event.
@@ -110,14 +100,12 @@ def log_status_change(
         old_status=old_status,
         new_status=new_status,
         source=source,
-        **extra_fields
+        **extra_fields,
     )
 
 
 def get_recent_events(
-    n: int = 10,
-    resume_name: Optional[str] = None,
-    event_type: Optional[str] = None
+    n: int = 10, resume_name: Optional[str] = None, event_type: Optional[str] = None
 ) -> list[dict]:
     """
     Get the last n events from the pipeline log, optionally filtered.

@@ -8,14 +8,15 @@ All rendering modules should import from this module, not from utils.logger dire
 import os
 from pathlib import Path
 
-from loguru import logger
 from dotenv import load_dotenv
+from loguru import logger
 
 from archer.utils.logger import setup_logger as _setup_logger
 
 load_dotenv()
 
 CONTEXT_PREFIX = "[render]"
+
 
 def setup_rendering_logger(log_dir: Path) -> Path:
     """
@@ -38,11 +39,12 @@ def setup_rendering_logger(log_dir: Path) -> Path:
     return _setup_logger(
         context_name="render",
         log_dir=log_dir,
-        extra_provenance={"LaTeX compiler": os.getenv("LATEX_COMPILER")}
+        extra_provenance={"LaTeX compiler": os.getenv("LATEX_COMPILER")},
     )
 
 
 # Wrapper functions with automatic [render] prefix
+
 
 def _log_info(message: str) -> None:
     """Log info message with [render] prefix."""
@@ -71,7 +73,10 @@ def _log_debug(message: str) -> None:
 
 # High-level rendering-specific logging helpers
 
-def log_compilation_start(resume_name: str, tex_file: Path, num_passes: int, working_dir: Path) -> None:
+
+def log_compilation_start(
+    resume_name: str, tex_file: Path, num_passes: int, working_dir: Path
+) -> None:
     """Log start of compilation with context."""
     _log_info(f"Starting compilation: {resume_name}")
     _log_info(f"Compiling in {working_dir}")
@@ -83,7 +88,7 @@ def log_compilation_result(
     resume_name: str,
     result,  # CompilationResult
     elapsed_time: float,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> None:
     """
     Log compilation result with diagnostics.
@@ -96,18 +101,12 @@ def log_compilation_result(
     """
     if result.success:
         _log_success("Compilation succeeded.")
-        _log_success(
-            f"{resume_name}: "
-            f"{len(result.warnings)} warnings ({elapsed_time:.2f}s)"
-        )
+        _log_success(f"{resume_name}: {len(result.warnings)} warnings ({elapsed_time:.2f}s)")
         if result.pdf_path:
             _log_debug(f"  PDF: {result.pdf_path}")
     else:
         _log_error("Compilation failed.")
-        _log_error(
-            f"{resume_name}: "
-            f"{len(result.errors)} errors ({elapsed_time:.2f}s)"
-        )
+        _log_error(f"{resume_name}: {len(result.errors)} errors ({elapsed_time:.2f}s)")
         error_limit = 10 if verbose else 5
         for i, err in enumerate(result.errors[:error_limit], 1):
             _log_error(f"  Error {i}: {err}")
@@ -129,15 +128,9 @@ def log_compilation_result(
     if verbose or not result.success:
         if result.stdout:
             logger.opt(raw=True).debug(
-                f"\n{'=' * 80}\n"
-                f"PDFLATEX STDOUT:\n"
-                f"{'=' * 80}\n"
-                f"{result.stdout}\n"
+                f"\n{'=' * 80}\nPDFLATEX STDOUT:\n{'=' * 80}\n{result.stdout}\n"
             )
         if result.stderr:
             logger.opt(raw=True).debug(
-                f"\n{'=' * 80}\n"
-                f"PDFLATEX STDERR:\n"
-                f"{'=' * 80}\n"
-                f"{result.stderr}\n"
+                f"\n{'=' * 80}\nPDFLATEX STDERR:\n{'=' * 80}\n{result.stderr}\n"
             )

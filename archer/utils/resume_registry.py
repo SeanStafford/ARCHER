@@ -26,7 +26,7 @@ import shutil
 import tempfile
 from collections import Counter
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 
@@ -35,14 +35,14 @@ from archer.utils.timestamp import now_exact
 
 load_dotenv()
 REGISTRY_FILE = Path(os.getenv("RESUME_REGISTRY"))
-REGISTRY_COLUMNS = ['resume_name', 'resume_type', 'status', 'last_updated']
+REGISTRY_COLUMNS = ["resume_name", "resume_type", "status", "last_updated"]
 
 
 def ensure_registry_exists() -> None:
     """Create registry file with header if it doesn't exist."""
     if not REGISTRY_FILE.exists():
         REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(REGISTRY_FILE, 'w', newline='', encoding='utf-8') as f:
+        with open(REGISTRY_FILE, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(REGISTRY_COLUMNS)
 
@@ -53,20 +53,15 @@ ensure_registry_exists()
 
 def resume_is_registered(resume_name: str) -> bool:
     """Check if a resume is already registered."""
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row['resume_name'] == resume_name:
+            if row["resume_name"] == resume_name:
                 return True
     return False
 
 
-def register_resume(
-    resume_name: str,
-    resume_type: str,
-    source: str,
-    status: str = "raw"
-) -> None:
+def register_resume(resume_name: str, resume_type: str, source: str, status: str = "raw") -> None:
     """
     Register a new resume in the registry and log the event.
 
@@ -93,7 +88,7 @@ def register_resume(
         "resume_name": resume_name,
         "source": source,
         "resume_type": resume_type,
-        "status": status
+        "status": status,
     }
 
     # Interactive prompt for manual registrations
@@ -111,18 +106,14 @@ def register_resume(
 
     # Append new entry with current timestamp
     timestamp = now_exact()
-    with open(REGISTRY_FILE, 'a', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([resume_name, resume_type, status, timestamp])
 
     log_pipeline_event(**event_data)
 
 
-def update_resume_status(
-    updates: Dict[str, str],
-    source: str,
-    **extra_fields
-) -> Dict[str, bool]:
+def update_resume_status(updates: Dict[str, str], source: str, **extra_fields) -> Dict[str, bool]:
     """
     Update status for one or more resumes and log events.
 
@@ -165,21 +156,21 @@ def update_resume_status(
     updated = {resume_name: False for resume_name in updates}
     old_statuses = {}
 
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            resume_name = row['resume_name']
+            resume_name = row["resume_name"]
             if resume_name in updates:
-                old_statuses[resume_name] = row['status']
-                row['status'] = updates[resume_name]
-                row['last_updated'] = timestamp
+                old_statuses[resume_name] = row["status"]
+                row["status"] = updates[resume_name]
+                row["last_updated"] = timestamp
                 updated[resume_name] = True
             rows.append(row)
 
     # Write to temp file first (atomic write pattern)
-    temp_fd, temp_path = tempfile.mkstemp(suffix='.csv', text=True)
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".csv", text=True)
     try:
-        with os.fdopen(temp_fd, 'w', newline='', encoding='utf-8') as f:
+        with os.fdopen(temp_fd, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=REGISTRY_COLUMNS)
             writer.writeheader()
             writer.writerows(rows)
@@ -200,11 +191,10 @@ def update_resume_status(
                 old_status=old_statuses[resume_name],
                 new_status=updates[resume_name],
                 source=source,
-                **extra_fields
+                **extra_fields,
             )
 
     return updated
-
 
 
 def get_resume_status(resume_name: str) -> Optional[Dict[str, str]]:
@@ -214,10 +204,10 @@ def get_resume_status(resume_name: str) -> Optional[Dict[str, str]]:
     Returns:
         Dict with resume metadata, or None if not found
     """
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row['resume_name'] == resume_name:
+            if row["resume_name"] == resume_name:
                 return dict(row)
     return None
 
@@ -225,10 +215,10 @@ def get_resume_status(resume_name: str) -> Optional[Dict[str, str]]:
 def list_resumes_by_status(status: str) -> List[Dict[str, str]]:
     """Get all resumes with a specific status."""
     resumes = []
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row['status'] == status:
+            if row["status"] == status:
                 resumes.append(dict(row))
     return resumes
 
@@ -236,10 +226,10 @@ def list_resumes_by_status(status: str) -> List[Dict[str, str]]:
 def list_resumes_by_type(resume_type: str) -> List[Dict[str, str]]:
     """Get all resumes with a specific type."""
     resumes = []
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row['resume_type'] == resume_type:
+            if row["resume_type"] == resume_type:
                 resumes.append(dict(row))
     return resumes
 
@@ -247,7 +237,7 @@ def list_resumes_by_type(resume_type: str) -> List[Dict[str, str]]:
 def get_all_resumes() -> List[Dict[str, str]]:
     """Get all registered resumes."""
     resumes = []
-    with open(REGISTRY_FILE, 'r', newline='', encoding='utf-8') as f:
+    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             resumes.append(dict(row))
@@ -266,11 +256,7 @@ def count_resumes() -> Dict[str, int]:
     by_status = Counter()
     by_type = Counter()
     for resume in all_resumes:
-        by_status[resume['status']] += 1
-        by_type[resume['resume_type']] += 1
+        by_status[resume["status"]] += 1
+        by_type[resume["resume_type"]] += 1
 
-    return {
-        'total': len(all_resumes),
-        'by_status': by_status,
-        'by_type': by_type
-    }
+    return {"total": len(all_resumes), "by_status": by_status, "by_type": by_type}

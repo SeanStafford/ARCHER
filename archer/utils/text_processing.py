@@ -11,11 +11,7 @@ from typing import List, Tuple
 
 
 def extract_balanced_delimiters(
-    text: str,
-    start_pos: int,
-    open_char: str = '{',
-    close_char: str = '}',
-    escape_char: str = '\\'
+    text: str, start_pos: int, open_char: str = "{", close_char: str = "}", escape_char: str = "\\"
 ) -> Tuple[str, int]:
     """
     Extract content between balanced delimiters, handling escaped characters.
@@ -44,7 +40,7 @@ def extract_balanced_delimiters(
         >>> content
         'bar {nested} baz'
         >>> text2 = "code [list [1, 2] more] end"
-        >>> content2, end2 = extract_balanced_delimiters(text2, 5, '[', ']')
+        >>> content2, end2 = extract_balanced_delimiters(text2, 5, "[", "]")
         >>> content2
         'list [1, 2] more'
     """
@@ -68,7 +64,7 @@ def extract_balanced_delimiters(
         )
 
     # content is from start_pos to pos-1 (excluding closing delimiter)
-    content = text[start_pos:pos - 1]
+    content = text[start_pos : pos - 1]
     return content, pos
 
 
@@ -89,20 +85,20 @@ def extract_regex_matches(text: str, pattern: str) -> List[dict]:
         Returns empty list if no matches found.
 
     Example:
-        >>> pattern = r'\\item\[(?P<icon>[^\]]+)\]\s*(?P<text>[^\n]+)'
-        >>> text = '\\item[\\faDatabase] PostgreSQL\\n\\item[\\faCode] Python'
+        >>> pattern = r"\\item\[(?P<icon>[^\]]+)\]\s*(?P<text>[^\n]+)"
+        >>> text = "\\item[\\faDatabase] PostgreSQL\\n\\item[\\faCode] Python"
         >>> extract_regex_matches(text, pattern)
         [
             {'icon': '\\faDatabase', 'text': 'PostgreSQL'},
             {'icon': '\\faCode', 'text': 'Python'}
         ]
 
-        >>> pattern = r'\\section\{(?P<title>[^}]+)\}'
-        >>> text = '\\section{Introduction}'
+        >>> pattern = r"\\section\{(?P<title>[^}]+)\}"
+        >>> text = "\\section{Introduction}"
         >>> extract_regex_matches(text, pattern)
         [{'title': 'Introduction'}]
 
-        >>> extract_regex_matches('no matches', r'(?P<foo>bar)')
+        >>> extract_regex_matches("no matches", r"(?P<foo>bar)")
         []
     """
     return [match.groupdict() for match in re.finditer(pattern, text)]
@@ -154,7 +150,7 @@ def normalize_par_to_blank_line(content: str) -> str:
 
     # Replace: "text\par\n" -> "text\n\n" (but not on lines with \centering)
     # Pattern captures content before \par in group 1
-    return re.sub(SectionRegex.PAR_AT_LINE_END, r'\1\n\n', content, flags=re.MULTILINE)
+    return re.sub(SectionRegex.PAR_AT_LINE_END, r"\1\n\n", content, flags=re.MULTILINE)
 
 
 def set_max_consecutive_blank_lines(content: str, max_consecutive: int = 1) -> str:
@@ -184,24 +180,20 @@ def set_max_consecutive_blank_lines(content: str, max_consecutive: int = 1) -> s
     if max_consecutive == 0:
         # Match ANY blank lines (1 or more)
         # \n\s*\n matches first blank line, (\s*\n)* matches zero or more additional
-        pattern = r'\n\s*\n(\s*\n)*'
+        pattern = r"\n\s*\n(\s*\n)*"
     else:
         # Match 2+ consecutive blank lines only
         # \n\s*\n matches first blank line, (\s*\n)+ matches one or more additional
-        pattern = r'\n\s*\n(\s*\n)+'
+        pattern = r"\n\s*\n(\s*\n)+"
 
     # Replacement is max_consecutive+1 newlines
     # (e.g., max_consecutive=1 means "\n\n" which is 1 blank line)
-    replacement = '\n' * (max_consecutive + 1)
+    replacement = "\n" * (max_consecutive + 1)
 
     return re.sub(pattern, replacement, content)
 
 
-def get_meaningful_diff(
-    file1: Path,
-    file2: Path,
-    context_lines: int = 3
-) -> Tuple[List[str], int]:
+def get_meaningful_diff(file1: Path, file2: Path, context_lines: int = 3) -> Tuple[List[str], int]:
     """
     Compare two files ignoring blank line differences.
 
@@ -220,10 +212,7 @@ def get_meaningful_diff(
         - num_differences: Count of actual content differences (excluding headers)
 
     Example:
-        >>> diff_lines, num_diffs = get_meaningful_diff(
-        ...     Path("original.tex"),
-        ...     Path("modified.tex")
-        ... )
+        >>> diff_lines, num_diffs = get_meaningful_diff(Path("original.tex"), Path("modified.tex"))
         >>> if num_diffs == 0:
         ...     print("Files are identical (ignoring blank lines)")
         >>> else:
@@ -231,29 +220,31 @@ def get_meaningful_diff(
         ...     for line in diff_lines:
         ...         print(line)
     """
-    content1 = file1.read_text(encoding='utf-8')
-    content2 = file2.read_text(encoding='utf-8')
+    content1 = file1.read_text(encoding="utf-8")
+    content2 = file2.read_text(encoding="utf-8")
 
     # Remove all blank lines for comparison
-    lines1 = set_max_consecutive_blank_lines(content1, max_consecutive=0).split('\n')
-    lines2 = set_max_consecutive_blank_lines(content2, max_consecutive=0).split('\n')
+    lines1 = set_max_consecutive_blank_lines(content1, max_consecutive=0).split("\n")
+    lines2 = set_max_consecutive_blank_lines(content2, max_consecutive=0).split("\n")
 
     if lines1 == lines2:
         return [], 0
 
     # Use difflib for detailed comparison
-    diff = list(difflib.unified_diff(
-        lines1,
-        lines2,
-        fromfile=str(file1.name),
-        tofile=str(file2.name),
-        lineterm='',
-        n=context_lines
-    ))
+    diff = list(
+        difflib.unified_diff(
+            lines1,
+            lines2,
+            fromfile=str(file1.name),
+            tofile=str(file2.name),
+            lineterm="",
+            n=context_lines,
+        )
+    )
 
     # Count actual differences (lines starting with + or -, excluding headers)
-    num_diffs = sum(1 for line in diff if line.startswith(('+', '-')))
-    header_lines = sum(1 for line in diff if line.startswith(('---', '+++')))
+    num_diffs = sum(1 for line in diff if line.startswith(("+", "-")))
+    header_lines = sum(1 for line in diff if line.startswith(("---", "+++")))
     num_diffs -= header_lines
 
     return diff, num_diffs

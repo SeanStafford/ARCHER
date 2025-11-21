@@ -4,7 +4,7 @@ Utility functions for formatting text-based reports and tables.
 Provides consistent table formatting for resume analysis reports.
 """
 
-from typing import Any, List, Tuple
+from typing import Any, List
 
 
 class Column:
@@ -96,13 +96,9 @@ class TableFormatter:
             ValueError: If number of values doesn't match columns
         """
         if len(values) != len(self.columns):
-            raise ValueError(
-                f"Expected {len(self.columns)} values, got {len(values)}"
-            )
+            raise ValueError(f"Expected {len(self.columns)} values, got {len(values)}")
 
-        row_parts = [
-            col.format_value(val) for col, val in zip(self.columns, values)
-        ]
+        row_parts = [col.format_value(val) for col, val in zip(self.columns, values)]
         self.lines.append(" ".join(row_parts))
         return self
 

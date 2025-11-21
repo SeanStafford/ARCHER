@@ -6,10 +6,10 @@ Centralized registries for loading and caching templates and parsing configs.
 
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from dotenv import load_dotenv
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template, TemplateNotFound
 from omegaconf import OmegaConf
 
 load_dotenv()

@@ -23,15 +23,18 @@ import re
 from pathlib import Path
 from typing import List, Set
 
-from archer.utils.clean_latex import clean_latex_content, CommentType
-from archer.utils.text_processing import set_max_consecutive_blank_lines, normalize_par_to_blank_line
-from archer.contexts.templating.latex_patterns import SectionRegex, PageRegex
+from archer.contexts.templating.latex_patterns import PageRegex, SectionRegex
+from archer.utils.clean_latex import CommentType, clean_latex_content
 from archer.utils.latex_parsing_tools import extract_environment_content
-
+from archer.utils.text_processing import (
+    normalize_par_to_blank_line,
+    set_max_consecutive_blank_lines,
+)
 
 # ============================================================================
 # Normalization Functions (Normalize Mode)
 # ============================================================================
+
 
 def normalize_textblock_position(content: str) -> str:
     """
@@ -54,7 +57,9 @@ def normalize_textblock_position(content: str) -> str:
     try:
         # Use extract_environment_content which returns (content, begin_end_pos, end_start_pos)
         # We need the full environment including \begin and \end
-        _, start, end = extract_environment_content(content, "textblock*", include_env_command_in_positions=True)
+        _, start, end = extract_environment_content(
+            content, "textblock*", include_env_command_in_positions=True
+        )
 
         # Extract full textblock (including \begin{textblock*}...\end{textblock*})
         textblock_full = content[start:end]
@@ -76,7 +81,9 @@ def normalize_textblock_position(content: str) -> str:
         if page_setup_match:
             # Insert after the page setup (at end of captured group 1)
             insert_pos = page_setup_match.end(1)
-            content = content[:insert_pos] + '\n\n' + textblock_full.strip() + '\n' + content[insert_pos:]
+            content = (
+                content[:insert_pos] + "\n\n" + textblock_full.strip() + "\n" + content[insert_pos:]
+            )
 
     except ValueError:
         # No textblock found, return as-is
@@ -118,81 +125,83 @@ def normalize_sean_resume_structure(content: str) -> str:
         Content with Sean's structural rules applied
     """
     # Rule 0: Convert tabs to spaces (standardize indentation)
-    result = content.replace('\t', '        ')  # 1 tab = 8 spaces (matches Education template)
+    result = content.replace("\t", "        ")  # 1 tab = 8 spaces (matches Education template)
 
     # Rule 0.5: Strip all leading whitespace from lines
-    result = '\n'.join(line.lstrip() for line in result.split('\n'))
+    result = "\n".join(line.lstrip() for line in result.split("\n"))
 
     # Rule 1: Convert old Education header format (from normalize_education_header)
-    result = re.sub(SectionRegex.OLD_EDUCATION_HEADER, r'\\section*{Education}\n', result, flags=re.DOTALL)
+    result = re.sub(
+        SectionRegex.OLD_EDUCATION_HEADER, r"\\section*{Education}\n", result, flags=re.DOTALL
+    )
 
     # Rule 2: Remove \vspace at top of column (after \switchcolumn)
     # This doen't affect layout since they're at column boundaries
-    result = re.sub(r'(\\switchcolumn)\n+\\vspace\{[^}]+\}\n+', r'\1\n\n', result)
+    result = re.sub(r"(\\switchcolumn)\n+\\vspace\{[^}]+\}\n+", r"\1\n\n", result)
 
     # Rule 3: Remove \vspace at bottom of column (before \switchcolumn)
     # This doen't affect layout since they're at column boundaries
-    result = re.sub(r'\n+\\vspace\{[^}]+\}\n+(\\switchcolumn)', r'\n\n\1', result)
+    result = re.sub(r"\n+\\vspace\{[^}]+\}\n+(\\switchcolumn)", r"\n\n\1", result)
 
     # Rule 10 (apply early, lower priority): Zero blank lines around preamble commands
     # Remove blank lines before \renewcommand, \setlength, \deflen
-    result = re.sub(r'\n\n+(\\renewcommand)', r'\n\1', result)
-    result = re.sub(r'\n\n+(\\setlength)', r'\n\1', result)
-    result = re.sub(r'\n\n+(\\deflen)', r'\n\1', result)
+    result = re.sub(r"\n\n+(\\renewcommand)", r"\n\1", result)
+    result = re.sub(r"\n\n+(\\setlength)", r"\n\1", result)
+    result = re.sub(r"\n\n+(\\deflen)", r"\n\1", result)
     # Remove blank lines after these commands
-    result = re.sub(r'(\\renewcommand\{[^}]+\}\{[^}]*\})\n\n+', r'\1\n', result)
-    result = re.sub(r'(\\setlength\{[^}]+\}\{[^}]*\})\n\n+', r'\1\n', result)
-    result = re.sub(r'(\\deflen\{[^}]+\}\{[^}]*\})\n\n+', r'\1\n', result)
+    result = re.sub(r"(\\renewcommand\{[^}]+\}\{[^}]*\})\n\n+", r"\1\n", result)
+    result = re.sub(r"(\\setlength\{[^}]+\}\{[^}]*\})\n\n+", r"\1\n", result)
+    result = re.sub(r"(\\deflen\{[^}]+\}\{[^}]*\})\n\n+", r"\1\n", result)
 
     # Rule 9: Exactly 1 blank line before \item[...] and variants (\itemLL, \itemi, etc.)
     # Pattern \item[^ ]* matches \item followed by any non-space characters
-    result = re.sub(r'\n+(\s*\\item[^ ]*)', r'\n\n\1', result)
+    result = re.sub(r"\n+(\s*\\item[^ ]*)", r"\n\n\1", result)
 
     # Rule 8: Exactly 2 blank lines after \end{...}
     # Match \end{environment_name}, then strip blanks and add 2
-    result = re.sub(r'( *\\end\{[^}]+\})\n+', r'\1\n\n\n', result)
+    result = re.sub(r"( *\\end\{[^}]+\})\n+", r"\1\n\n\n", result)
 
     # Rule 7: Exactly 1 blank line before \end{...}
     # First remove all blank lines before \end{, then add exactly 1
-    result = re.sub(r'\n+( *\\end\{[^}]+\})', r'\n\n\1', result)
+    result = re.sub(r"\n+( *\\end\{[^}]+\})", r"\n\n\1", result)
 
     # Rule 6: Exactly 2 blank lines before and after \section*{...}
     # Before: strip blanks and add 2
-    result = re.sub(r'\n+(\\section\*\{[^}]+\})', r'\n\n\n\1', result)
+    result = re.sub(r"\n+(\\section\*\{[^}]+\})", r"\n\n\n\1", result)
     # After: strip blanks and add 2
-    result = re.sub(r'(\\section\*\{[^}]+\})\n+', r'\1\n\n\n', result)
+    result = re.sub(r"(\\section\*\{[^}]+\})\n+", r"\1\n\n\n", result)
 
     # Rule 5: At least 1 blank line before \begin{itemize...}
     # Match \begin{itemize variants} - if no blank line, add 1
-    result = re.sub(r'([^\n])\n( *\\begin\{itemize[^}]*\})', r'\1\n\n\2', result)
+    result = re.sub(r"([^\n])\n( *\\begin\{itemize[^}]*\})", r"\1\n\n\2", result)
 
     # Rule 4: Exactly 1 blank line after \begin{itemize...}
     # Strip all blanks after, then add exactly 1
-    result = re.sub(r'(\\begin\{itemize[^}]*\})\n+', r'\1\n\n', result)
+    result = re.sub(r"(\\begin\{itemize[^}]*\})\n+", r"\1\n\n", result)
 
     # Rule 11: Normalize textblock position (move to after page toggles)
     result = normalize_textblock_position(result)
 
     # Rule 12: Remove space between ] and { in \item[...] commands
     # Matches: \item[...] { → \item[...]{
-    result = re.sub(r'(\\item\[[^\]]*\])\s+\{', r'\1{', result)
+    result = re.sub(r"(\\item\[[^\]]*\])\s+\{", r"\1{", result)
 
     # Rule 13: Collapse multiple spaces to single space after \item commands
     # Matches: \itemLL  \texttt → \itemLL \texttt
-    result = re.sub(r'(\\item\w+)\s{2,}', r'\1 ', result)
+    result = re.sub(r"(\\item\w+)\s{2,}", r"\1 ", result)
 
     # Rule 14: Remove trailing % with only whitespace before it on line
     # Matches: \paperwidth} % → \paperwidth}
     # Preserves line-ending % used for whitespace suppression (when % is at end after content)
-    result = re.sub(r'\s+%\s*$', '', result, flags=re.MULTILINE)
+    result = re.sub(r"\s+%\s*$", "", result, flags=re.MULTILINE)
 
     # Rule 15: Remove \vspace between nested project environments
     # Matches: \end{itemizeKeyProject}\n\n\vspace{5pt}\n\n\begin{itemizeKeyProject}
     # This vspace is an artifact that doesn't affect layout (projects have their own spacing)
     result = re.sub(
-        r'(\\end\{itemize(?:Key)?Project\})\n+\\vspace\{[^}]+\}\n+(\\begin\{itemize(?:Key)?Project\})',
-        r'\1\n\n\n\2',
-        result
+        r"(\\end\{itemize(?:Key)?Project\})\n+\\vspace\{[^}]+\}\n+(\\begin\{itemize(?:Key)?Project\})",
+        r"\1\n\n\n\2",
+        result,
     )
 
     return result
@@ -242,22 +251,22 @@ def strip_trailing_whitespace(content: str) -> str:
         >>> strip_trailing_whitespace("text %\\n")  # Preserves line-ending %
         'text %\\n'
     """
-    lines = content.split('\n')
+    lines = content.split("\n")
     cleaned_lines = []
 
     for line in lines:
         # Check if line ends with % (whitespace suppression)
-        if line.rstrip().endswith('%'):
+        if line.rstrip().endswith("%"):
             # Strip only spaces/tabs before the %, keep the %
             # Find the last % and preserve everything from there
-            stripped = line.rstrip(' \t')
+            stripped = line.rstrip(" \t")
         else:
             # Normal line - strip all trailing whitespace
             stripped = line.rstrip()
 
         cleaned_lines.append(stripped)
 
-    return '\n'.join(cleaned_lines)
+    return "\n".join(cleaned_lines)
 
 
 def _apply_normalizations(content: str) -> str:
@@ -290,6 +299,7 @@ def _apply_normalizations(content: str) -> str:
 # ============================================================================
 # Processing Functions (Clean Mode + Normalize Mode)
 # ============================================================================
+
 
 def process_file(
     input_path: Path,

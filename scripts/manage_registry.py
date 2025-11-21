@@ -22,14 +22,14 @@ import typer
 from dotenv import load_dotenv
 
 from archer.utils.resume_registry import (
-    register_resume,
-    resume_is_registered,
-    get_resume_status,
+    count_resumes,
     get_all_resumes,
+    get_resume_status,
     list_resumes_by_status,
     list_resumes_by_type,
-    count_resumes,
-    update_resume_status
+    register_resume,
+    resume_is_registered,
+    update_resume_status,
 )
 
 load_dotenv()
@@ -72,15 +72,11 @@ def _infer_archive_status(resume_name: str) -> str:
         return "raw"
 
 
-
 @app.command("init")
 def init_command(
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        "-n",
-        help="Show what would be registered without making changes"
-    )
+        False, "--dry-run", "-n", help="Show what would be registered without making changes"
+    ),
 ):
     """
     Initialize registry with historical resumes from archive.
@@ -100,18 +96,10 @@ def init_command(
     tex_files = sorted(RAW_ARCHIVE_PATH.glob("*.tex"))
 
     if not tex_files:
-        typer.secho(
-            f"No .tex files found in {RAW_ARCHIVE_PATH}",
-            fg=typer.colors.YELLOW,
-            err=True
-        )
+        typer.secho(f"No .tex files found in {RAW_ARCHIVE_PATH}", fg=typer.colors.YELLOW, err=True)
         raise typer.Exit(code=1)
 
-    typer.secho(
-        f"\nFound {len(tex_files)} resume(s) in archive",
-        fg=typer.colors.BLUE,
-        bold=True
-    )
+    typer.secho(f"\nFound {len(tex_files)} resume(s) in archive", fg=typer.colors.BLUE, bold=True)
 
     if dry_run:
         typer.echo("Running in DRY RUN mode (no changes will be made)\n")
@@ -123,7 +111,7 @@ def init_command(
 
     # Collect updates for batch processing (efficiency)
     to_register = []  # (resume_name, status)
-    to_update = {}    # resume_name -> new_status
+    to_update = {}  # resume_name -> new_status
 
     for tex_file in tex_files:
         resume_name = tex_file.stem
@@ -147,10 +135,7 @@ def init_command(
         for resume_name, status in to_register:
             try:
                 register_resume(
-                    resume_name=resume_name,
-                    resume_type="historical",
-                    source="cli",
-                    status=status
+                    resume_name=resume_name, resume_type="historical", source="cli", status=status
                 )
                 typer.secho(f"✓ {resume_name} → {status}", fg=typer.colors.GREEN)
                 registered_count += 1
@@ -161,14 +146,13 @@ def init_command(
 
         # Batch update existing resumes (single file write!)
         if to_update:
-            results = update_resume_status(
-                updates=to_update,
-                source="cli"
-            )
+            results = update_resume_status(updates=to_update, source="cli")
 
             for resume_name, success in results.items():
                 if success:
-                    typer.secho(f"⟳ {resume_name} → {to_update[resume_name]}", fg=typer.colors.YELLOW)
+                    typer.secho(
+                        f"⟳ {resume_name} → {to_update[resume_name]}", fg=typer.colors.YELLOW
+                    )
                     updated_count += 1
                 else:
                     typer.secho(f"✗ {resume_name}: not found in registry", fg=typer.colors.RED)
@@ -197,18 +181,10 @@ def init_command(
 
 @app.command("list")
 def list_command(
-    status: Optional[str] = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Filter by status"
-    ),
+    status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status"),
     resume_type: Optional[str] = typer.Option(
-        None,
-        "--type",
-        "-t",
-        help="Filter by type (historical, generated, or test)"
-    )
+        None, "--type", "-t", help="Filter by type (historical, generated, or test)"
+    ),
 ):
     """
     List resumes in the registry.
@@ -238,10 +214,10 @@ def list_command(
         return
 
     # Find longest name for alignment
-    max_name_len = max(len(r['resume_name']) for r in resumes)
+    max_name_len = max(len(r["resume_name"]) for r in resumes)
 
     for resume in resumes:
-        padding = ' ' * (max_name_len - len(resume['resume_name']))
+        padding = " " * (max_name_len - len(resume["resume_name"]))
         typer.echo(
             f"  {resume['resume_name']}{padding}  {resume['resume_type']:10}  {resume['status']}"
         )
@@ -264,21 +240,16 @@ def stats_command():
     typer.echo(f"Total resumes: {counts['total']}")
 
     typer.echo("\nBy Status:")
-    for status, count in sorted(counts['by_status'].items()):
+    for status, count in sorted(counts["by_status"].items()):
         typer.echo(f"  {status:20} {count}")
 
     typer.echo("\nBy Type:")
-    for resume_type, count in sorted(counts['by_type'].items()):
+    for resume_type, count in sorted(counts["by_type"].items()):
         typer.echo(f"  {resume_type:20} {count}")
 
 
 @app.command("status")
-def status_command(
-    resume_name: str = typer.Argument(
-        ...,
-        help="Resume name (e.g., Res202510)"
-    )
-):
+def status_command(resume_name: str = typer.Argument(..., help="Resume name (e.g., Res202510)")):
     """
     Get status of a specific resume.
 
@@ -288,11 +259,7 @@ def status_command(
     entry = get_resume_status(resume_name)
 
     if entry is None:
-        typer.secho(
-            f"Resume '{resume_name}' not found in registry",
-            fg=typer.colors.RED,
-            err=True
-        )
+        typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
     typer.secho(f"\n{resume_name}", fg=typer.colors.BLUE, bold=True)
@@ -302,20 +269,11 @@ def status_command(
 
 @app.command("update")
 def update_command(
-    resume_name: str = typer.Argument(
-        ...,
-        help="Resume name to update"
-    ),
+    resume_name: str = typer.Argument(..., help="Resume name to update"),
     new_status: str = typer.Argument(
-        ...,
-        help="New status value (see docs/RESUME_STATUS_REFERENCE.md)"
+        ..., help="New status value (see docs/RESUME_STATUS_REFERENCE.md)"
     ),
-    reason: Optional[str] = typer.Option(
-        None,
-        "--reason",
-        "-r",
-        help="Reason for manual update"
-    )
+    reason: Optional[str] = typer.Option(None, "--reason", "-r", help="Reason for manual update"),
 ):
     """
     Manually update resume status.
@@ -330,41 +288,26 @@ def update_command(
         python scripts/manage_registry.py update Res202511 failed --reason "LaTeX errors"
     """
     if not resume_is_registered(resume_name):
-        typer.secho(
-            f"Resume '{resume_name}' not found in registry",
-            fg=typer.colors.RED,
-            err=True
-        )
+        typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
     # Get current status
     entry = get_resume_status(resume_name)
-    old_status = entry['status']
+    old_status = entry["status"]
 
     if old_status == new_status:
-        typer.secho(
-            f"Resume is already in status '{new_status}'",
-            fg=typer.colors.YELLOW,
-            err=True
-        )
+        typer.secho(f"Resume is already in status '{new_status}'", fg=typer.colors.YELLOW, err=True)
         raise typer.Exit(code=0)
 
     # Update status
     try:
         extra_fields = {}
         if reason:
-            extra_fields['reason'] = reason
+            extra_fields["reason"] = reason
 
-        update_resume_status(
-            updates={resume_name: new_status},
-            source="manual",
-            **extra_fields
-        )
+        update_resume_status(updates={resume_name: new_status}, source="manual", **extra_fields)
 
-        typer.secho(
-            f"✓ Updated {resume_name}: {old_status} → {new_status}",
-            fg=typer.colors.GREEN
-        )
+        typer.secho(f"✓ Updated {resume_name}: {old_status} → {new_status}", fg=typer.colors.GREEN)
 
         if reason:
             typer.echo(f"  Reason: {reason}")

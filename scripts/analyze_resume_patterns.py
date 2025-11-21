@@ -193,7 +193,7 @@ def main(
             "-o",
             help="Save report to file (prints to stdout if not specified)",
             dir_okay=False,
-        )
+        ),
     ] = None,
 ):
     """

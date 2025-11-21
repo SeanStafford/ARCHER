@@ -9,10 +9,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List
 
-from archer.contexts.templating.resume_data_structure import (
-    ResumeDocument,
-    ResumeDocumentArchive,
-)
+from archer.contexts.templating.resume_data_structure import ResumeDocument
 
 
 class ResumeDatabase:
@@ -33,10 +30,7 @@ class ResumeDatabase:
         "personality_bottom_bar",
     )
 
-    branch_sections = (
-        "projects",
-        "skill_categories"
-    )
+    branch_sections = ("projects", "skill_categories")
 
     def __init__(self, db_path: Path):
         """
@@ -63,9 +57,7 @@ class ResumeDatabase:
         self.conn.row_factory = sqlite3.Row  # Enable column access by name
 
     @classmethod
-    def from_documents(
-        cls, documents: List[ResumeDocument], db_path: Path
-    ) -> "ResumeDatabase":
+    def from_documents(cls, documents: List[ResumeDocument], db_path: Path) -> "ResumeDatabase":
         """
         Build new database from list of documents (deletes existing database).
 
@@ -111,12 +103,8 @@ class ResumeDatabase:
             )
         """
         )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_section_type ON items(section_type)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_resume_name ON items(resume_name)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_section_type ON items(section_type)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_resume_name ON items(resume_name)")
         conn.commit()
         conn.close()
 
@@ -186,11 +174,21 @@ class ResumeDatabase:
         for section in doc.sections:
             self._add_section_items(section, row_fields.copy())
 
-    def _add_row(self, resume_name: str, path: str, section_name: str, section_type: str,
-                 item_text: str, item_order: int,
-                 subsection_name: str = None, subsection_type: str = None,
-                 company: str = None, job_title: str = None, dates: str = None,
-                 project_name: str = None):
+    def _add_row(
+        self,
+        resume_name: str,
+        path: str,
+        section_name: str,
+        section_type: str,
+        item_text: str,
+        item_order: int,
+        subsection_name: str = None,
+        subsection_type: str = None,
+        company: str = None,
+        job_title: str = None,
+        dates: str = None,
+        project_name: str = None,
+    ):
         """
         Insert a single item row into the database.
 
@@ -219,10 +217,20 @@ class ResumeDatabase:
                 company, job_title, dates, project_name
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (resume_name, path, section_name, section_type,
-             subsection_name, subsection_type,
-             item_text, item_order,
-             company, job_title, dates, project_name),
+            (
+                resume_name,
+                path,
+                section_name,
+                section_type,
+                subsection_name,
+                subsection_type,
+                item_text,
+                item_order,
+                company,
+                job_title,
+                dates,
+                project_name,
+            ),
         )
 
     def _add_section_items(self, section, row_fields: dict):
@@ -276,13 +284,15 @@ class ResumeDatabase:
         dates = subsection.get("dates")
 
         # Add work_experience-level fields
-        row_fields.update({
-            "subsection_name": company,
-            "subsection_type": "work_experience",
-            "company": company,
-            "job_title": job_title,
-            "dates": dates,
-        })
+        row_fields.update(
+            {
+                "subsection_name": company,
+                "subsection_type": "work_experience",
+                "company": company,
+                "job_title": job_title,
+                "dates": dates,
+            }
+        )
 
         # Add work_experience items
         items = subsection.get("items", [])
@@ -304,10 +314,12 @@ class ResumeDatabase:
         subsection_name = subsection["name"]
 
         # Add subsection-level fields
-        row_fields.update({
-            "subsection_name": subsection_name,
-            "subsection_type": subsection_type,
-        })
+        row_fields.update(
+            {
+                "subsection_name": subsection_name,
+                "subsection_type": subsection_type,
+            }
+        )
 
         # project subsections also get project_name
         if subsection_type == "project":

@@ -11,13 +11,13 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 
 from archer.contexts.templating.latex_patterns import (
-    regex_to_literal,
-    PageRegex,
     EnvironmentPatterns,
+    PageRegex,
+    regex_to_literal,
 )
-from archer.contexts.templating.registries import TemplateRegistry, ParseConfigRegistry
-from archer.utils.text_processing import set_max_consecutive_blank_lines
+from archer.contexts.templating.registries import ParseConfigRegistry, TemplateRegistry
 from archer.utils.latex_parsing_tools import format_latex_environment
+from archer.utils.text_processing import set_max_consecutive_blank_lines
 
 load_dotenv()
 TEMPLATING_CONTEXT_PATH = Path(os.getenv("TEMPLATING_CONTEXT_PATH"))
@@ -26,7 +26,11 @@ TEMPLATING_CONTEXT_PATH = Path(os.getenv("TEMPLATING_CONTEXT_PATH"))
 class YAMLToLaTeXConverter:
     """Converts structured YAML to LaTeX format."""
 
-    def __init__(self, template_registry: TemplateRegistry = None, parse_config_registry: ParseConfigRegistry = None):
+    def __init__(
+        self,
+        template_registry: TemplateRegistry = None,
+        parse_config_registry: ParseConfigRegistry = None,
+    ):
         self.template_registry = template_registry or TemplateRegistry()
         self.parse_config_registry = parse_config_registry or ParseConfigRegistry()
 
@@ -72,9 +76,9 @@ class YAMLToLaTeXConverter:
                     "left_column": {"sections": []},
                     "main_column": {"sections": []},
                     "textblock_literal": None,
-                    "decorations": page["regions"].get("decorations")
+                    "decorations": page["regions"].get("decorations"),
                 },
-                "has_clearpage_after": page.get("has_clearpage_after", False)
+                "has_clearpage_after": page.get("has_clearpage_after", False),
             }
 
             # Render left column sections
@@ -91,16 +95,22 @@ class YAMLToLaTeXConverter:
 
             # Render textblock literal if present (just pass through verbatim)
             if page["regions"].get("textblock_literal"):
-                rendered_page["regions"]["textblock_literal"] = self.generate_textblock_literal(page["regions"]["textblock_literal"])
+                rendered_page["regions"]["textblock_literal"] = self.generate_textblock_literal(
+                    page["regions"]["textblock_literal"]
+                )
 
             # Render decorations if present
             if page["regions"].get("decorations"):
                 rendered_decorations = []
                 for decoration in page["regions"]["decorations"]:
-                    decoration_latex = self._generate_decoration(decoration, page["regions"].get("textblock_literal"))
+                    decoration_latex = self._generate_decoration(
+                        decoration, page["regions"].get("textblock_literal")
+                    )
                     if decoration_latex:
                         rendered_decorations.append(decoration_latex)
-                rendered_page["regions"]["decorations"] = rendered_decorations if rendered_decorations else None
+                rendered_page["regions"]["decorations"] = (
+                    rendered_decorations if rendered_decorations else None
+                )
 
             pages_with_rendered_sections.append(rendered_page)
 
@@ -110,8 +120,7 @@ class YAMLToLaTeXConverter:
         document_template = self.template_registry.env.from_string(document_template_content)
 
         generated_latex = document_template.render(
-            preamble=preamble,
-            pages=pages_with_rendered_sections
+            preamble=preamble, pages=pages_with_rendered_sections
         )
 
         # Ensure generated output follows normalization rules (max 1 blank line)
@@ -130,7 +139,7 @@ class YAMLToLaTeXConverter:
         """
         # Get environment name from parse config
         config = self.parse_config_registry.get_config("work_experience")
-        latex_environment = config['operations']['environment']['env_name']
+        latex_environment = config["operations"]["environment"]["env_name"]
 
         metadata = subsection["metadata"]
         content = subsection["content"]
@@ -156,7 +165,7 @@ class YAMLToLaTeXConverter:
             metadata=metadata,
             title=title,
             bullets=bullets,
-            rendered_projects=rendered_projects
+            rendered_projects=rendered_projects,
         )
 
     def convert_project(self, project: Dict[str, Any], indent: str = "") -> str:
@@ -185,10 +194,7 @@ class YAMLToLaTeXConverter:
         latex_environment = metadata.get("environment_type", "itemizeAProject")
         template = self.template_registry.get_template("project")
         return template.render(
-            latex_environment=latex_environment,
-            metadata=metadata,
-            content=content,
-            indent=indent
+            latex_environment=latex_environment, metadata=metadata, content=content, indent=indent
         )
 
     def convert_skill_list_caps(self, section: Dict[str, Any]) -> str:
@@ -243,7 +249,9 @@ class YAMLToLaTeXConverter:
         subsections = section["subsections"]
 
         # Render each category subsection
-        rendered_categories = [self.convert_skill_category(subsection) for subsection in subsections]
+        rendered_categories = [
+            self.convert_skill_category(subsection) for subsection in subsections
+        ]
 
         # Render the main template with categories
         template = self.template_registry.get_template("skill_categories")
@@ -293,7 +301,9 @@ class YAMLToLaTeXConverter:
         """
         return literal_data.get("content_latex", "")
 
-    def _generate_decoration(self, decoration: Dict[str, Any], textblock_content: Dict[str, Any] = None) -> str:
+    def _generate_decoration(
+        self, decoration: Dict[str, Any], textblock_content: Dict[str, Any] = None
+    ) -> str:
         """
         Generate LaTeX for a single page decoration command.
 
@@ -312,10 +322,7 @@ class YAMLToLaTeXConverter:
             if textblock_content:
                 inner_content = self.generate_textblock_literal(textblock_content)
                 return format_latex_environment(
-                    "textblock*",
-                    inner_content,
-                    mandatory_args=[args[0]],
-                    special_paren_arg=args[1]
+                    "textblock*", inner_content, mandatory_args=[args[0]], special_paren_arg=args[1]
                 )
             return None
         else:
@@ -393,16 +400,17 @@ class YAMLToLaTeXConverter:
             content_latex = self.convert_skill_list_pipes({"content": section_data["content"]})
 
         elif section_type == "skill_categories":
-            content_latex = self.convert_skill_categories({"subsections": section_data["subsections"]})
+            content_latex = self.convert_skill_categories(
+                {"subsections": section_data["subsections"]}
+            )
 
         elif section_type == "education":
             content_latex = self.convert_education({"metadata": section_data["metadata"]})
 
         elif section_type == "personality_alias_array":
-            content_latex = self.convert_personality_alias_array({
-                "content": section_data["content"],
-                "metadata": section_data.get("metadata", {})
-            })
+            content_latex = self.convert_personality_alias_array(
+                {"content": section_data["content"], "metadata": section_data.get("metadata", {})}
+            )
 
         elif section_type == "work_history":
             # Generate all work experience subsections
@@ -412,7 +420,9 @@ class YAMLToLaTeXConverter:
                 subsections.append(subsection_latex)
 
             # Wrap in outer itemize environment
-            wrapper_path = TEMPLATING_CONTEXT_PATH / "template/wrappers/work_history_wrapper.tex.jinja"
+            wrapper_path = (
+                TEMPLATING_CONTEXT_PATH / "template/wrappers/work_history_wrapper.tex.jinja"
+            )
             wrapper_content = wrapper_path.read_text(encoding="utf-8")
             wrapper_template = self.template_registry.env.from_string(wrapper_content)
             content_latex = wrapper_template.render(content="\n\n".join(subsections))
@@ -447,7 +457,9 @@ class YAMLToLaTeXConverter:
                 content_latex = f"% Unknown section type: {section_type}"
 
         # Wrap with section header and spacing using template
-        section_wrapper_path = TEMPLATING_CONTEXT_PATH / "template/wrappers/section_wrapper.tex.jinja"
+        section_wrapper_path = (
+            TEMPLATING_CONTEXT_PATH / "template/wrappers/section_wrapper.tex.jinja"
+        )
         section_wrapper_content = section_wrapper_path.read_text(encoding="utf-8")
         wrapper_template = self.template_registry.env.from_string(section_wrapper_content)
 
@@ -457,5 +469,5 @@ class YAMLToLaTeXConverter:
         return wrapper_template.render(
             name=metadata["name"],
             content=content_latex,
-            spacing_after=metadata.get("spacing_after")  # spacing_after is optional
+            spacing_after=metadata.get("spacing_after"),  # spacing_after is optional
         )

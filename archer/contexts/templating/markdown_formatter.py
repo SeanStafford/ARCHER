@@ -4,8 +4,9 @@ Markdown Utilities
 Helper functions for formatting structured resume data as markdown.
 """
 
-from archer.utils.markdown import latex_to_markdown
 from typing import Any, Dict
+
+from archer.utils.markdown import latex_to_markdown
 
 
 def format_work_experience_markdown(data: Dict[str, Any]) -> str:
@@ -24,28 +25,28 @@ def format_work_experience_markdown(data: Dict[str, Any]) -> str:
     parts = []
 
     # Company/institution as ### header
-    company = data.get('company', 'Unknown Company')
+    company = data.get("company", "Unknown Company")
     parts.append(f"### {company}\n")
 
     # Add metadata (title, dates, location)
-    if data.get('title'):
+    if data.get("title"):
         parts.append(f"**{data['title']}**")
-    if data.get('dates'):
+    if data.get("dates"):
         parts.append(f"*{data['dates']}*")
-    if data.get('location'):
+    if data.get("location"):
         parts.append(f"{data['location']}")
 
     parts.append("")  # Blank line before content
 
     # Add top-level items
-    for item in data.get('items', []):
+    for item in data.get("items", []):
         parts.append(f"- {item}")
 
     # Add projects as #### headers
-    for project in data.get('projects', []):
-        if project.get('name'):
+    for project in data.get("projects", []):
+        if project.get("name"):
             parts.append(f"\n#### {project['name']}\n")
-        for item in project.get('items', []):
+        for item in project.get("items", []):
             parts.append(f"- {item}")
 
     return "\n".join(parts)
@@ -95,18 +96,17 @@ def format_education_markdown(data: Dict[str, Any], institution_name: str) -> st
     """
     parts = [f"## {institution_name}\n"]
 
-    if data.get('degree'):
+    if data.get("degree"):
         parts.append(f"**{data['degree']}**")
-    if data.get('field'):
+    if data.get("field"):
         parts.append(f"{data['field']}")
-    if data.get('dates'):
+    if data.get("dates"):
         parts.append(f"*{data['dates']}*")
 
     parts.append("")  # Blank line before items
 
-    for item in data.get('items', []):
+    for item in data.get("items", []):
         item_text = latex_to_markdown(item)
         parts.append(f"- {item_text}")
 
     return "\n".join(parts)
-

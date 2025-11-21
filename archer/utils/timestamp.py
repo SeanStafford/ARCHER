@@ -1,6 +1,6 @@
 """Timestamp formatting utilities."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 def now_exact() -> str:

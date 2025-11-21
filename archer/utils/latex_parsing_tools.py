@@ -8,8 +8,8 @@ All LaTeX patterns are defined as constants below for visibility and maintainabi
 """
 
 import re
-from typing import List, Tuple
 from dataclasses import dataclass
+from typing import List, Tuple
 
 from archer.utils.text_processing import extract_balanced_delimiters
 
@@ -22,30 +22,38 @@ class LaTeXPatterns:
     These are format string templates that accept command/environment names.
     Use .format() or f-strings to substitute the command name.
     """
+
     # Command patterns (use with .format(command=name))
-    COMMAND_WITH_BRACES: str = r'\\{command}\{{([^}}]+)\}}'  # Matches \cmd{content}, captures content
-    COMMAND_WITH_WHITESPACE: str = r'\\{command}\s*'  # Matches \cmd with trailing whitespace
-    COMMAND_AT_END: str = r'\\{command}\s*$'  # Matches \cmd at end of string
+    COMMAND_WITH_BRACES: str = (
+        r"\\{command}\{{([^}}]+)\}}"  # Matches \cmd{content}, captures content
+    )
+    COMMAND_WITH_WHITESPACE: str = r"\\{command}\s*"  # Matches \cmd with trailing whitespace
+    COMMAND_AT_END: str = r"\\{command}\s*$"  # Matches \cmd at end of string
 
     # Environment patterns (use with .format(env=name))
-    BEGIN_ENV: str = r'\\begin\{{{env}\}}'  # Matches \begin{envname}
-    END_ENV: str = r'\\end\{{{env}\}}'  # Matches \end{envname}
-    BEGIN_ENV_PATTERN: str = r'\\begin\{{({pattern})\}}'  # Matches \begin with pattern, captures env name
+    BEGIN_ENV: str = r"\\begin\{{{env}\}}"  # Matches \begin{envname}
+    END_ENV: str = r"\\end\{{{env}\}}"  # Matches \end{envname}
+    BEGIN_ENV_PATTERN: str = (
+        r"\\begin\{{({pattern})\}}"  # Matches \begin with pattern, captures env name
+    )
 
     # Brace extraction patterns
-    SIMPLE_BRACES: str = r'\{([^}]+)\}'  # Matches {content}, no nesting
+    SIMPLE_BRACES: str = r"\{([^}]+)\}"  # Matches {content}, no nesting
 
     # Itemize marker patterns (use with named group (?P<marker>...))
-    ITEM_ALPHABETIC: str = r'\\(?P<marker>item[A-Za-z]*)'  # Matches \itemi, \itemii, \itemLL, etc.
-    ITEM_BRACKETED: str = r'\\(?P<marker>item\[[^\]]*\])'  # Matches \item[icon], \item[--], \item[]
-    ITEM_ANY: str = r'\\(?P<marker>item(?:\[[^\]]*\])?[A-Za-z]*)'  # Matches any \item variant
+    ITEM_ALPHABETIC: str = r"\\(?P<marker>item[A-Za-z]*)"  # Matches \itemi, \itemii, \itemLL, etc.
+    ITEM_BRACKETED: str = r"\\(?P<marker>item\[[^\]]*\])"  # Matches \item[icon], \item[--], \item[]
+    ITEM_ANY: str = r"\\(?P<marker>item(?:\[[^\]]*\])?[A-Za-z]*)"  # Matches any \item variant
 
     # Plaintext conversion patterns (for stripping LaTeX in to_plaintext())
-    COLOR_WITH_TEXT: str = r'\\color\{[^}]+\}\{([^}]*)\}'  # Matches \color{red}{text}, captures text
-    COLOR_STANDALONE: str = r'\\color\{[^}]+\}'  # Matches \color{red}, removes entirely
-    SPACING_COMMANDS: str = r'\\[vh]space\{[^}]*\}'  # Matches \vspace{...} or \hspace{...}
-    ANY_COMMAND_WITH_BRACES: str = r'\\[a-zA-Z]+\{[^}]*\}'  # Matches any \command{...}
-    ANY_COMMAND_NO_BRACES: str = r'\\[a-zA-Z]+'  # Matches any \command
+    COLOR_WITH_TEXT: str = (
+        r"\\color\{[^}]+\}\{([^}]*)\}"  # Matches \color{red}{text}, captures text
+    )
+    COLOR_STANDALONE: str = r"\\color\{[^}]+\}"  # Matches \color{red}, removes entirely
+    SPACING_COMMANDS: str = r"\\[vh]space\{[^}]*\}"  # Matches \vspace{...} or \hspace{...}
+    ANY_COMMAND_WITH_BRACES: str = r"\\[a-zA-Z]+\{[^}]*\}"  # Matches any \command{...}
+    ANY_COMMAND_NO_BRACES: str = r"\\[a-zA-Z]+"  # Matches any \command
+
 
 # Used only twice, might not be useful. Might replace it with other, more general function(s)
 def extract_brace_arguments(latex_str: str) -> List[str]:
@@ -83,7 +91,9 @@ def extract_sequential_params(latex_str: str, start_pos: int, num_params: int) -
         List of extracted parameter values
 
     Example:
-        >>> latex = "\\begin{itemizeAcademic}{Company}{Title {with \\textit{nested}}}{Location}{Dates}"
+        >>> latex = (
+        ...     "\\begin{itemizeAcademic}{Company}{Title {with \\textit{nested}}}{Location}{Dates}"
+        ... )
         >>> extract_sequential_params(latex, 23, 4)  # Start after {itemizeAcademic}
         ['Company', 'Title {with \\textit{nested}}', 'Location', 'Dates']
     """
@@ -92,7 +102,7 @@ def extract_sequential_params(latex_str: str, start_pos: int, num_params: int) -
 
     for _ in range(num_params):
         # Find opening brace
-        while pos < len(latex_str) and latex_str[pos] != '{':
+        while pos < len(latex_str) and latex_str[pos] != "{":
             pos += 1
 
         if pos >= len(latex_str):
@@ -104,17 +114,17 @@ def extract_sequential_params(latex_str: str, start_pos: int, num_params: int) -
         param_start = pos
 
         while pos < len(latex_str) and brace_count > 0:
-            if latex_str[pos] == '\\':
+            if latex_str[pos] == "\\":
                 pos += 2  # Skip escaped char
                 continue
-            elif latex_str[pos] == '{':
+            elif latex_str[pos] == "{":
                 brace_count += 1
-            elif latex_str[pos] == '}':
+            elif latex_str[pos] == "}":
                 brace_count -= 1
             pos += 1
 
         if brace_count == 0:
-            param_value = latex_str[param_start:pos-1]
+            param_value = latex_str[param_start : pos - 1]
             params.append(param_value)
 
     return params
@@ -147,7 +157,7 @@ def extract_environment_content(
 
     Example:
         >>> text = "\\\\begin{itemize} foo \\\\begin{itemize} bar \\\\end{itemize} \\\\end{itemize}"
-        >>> content, begin_end, end_start = extract_environment_content(text, 'itemize')
+        >>> content, begin_end, end_start = extract_environment_content(text, "itemize")
         >>> content
         ' foo \\\\begin{itemize} bar \\\\end{itemize} '
     """
@@ -235,9 +245,7 @@ def extract_environment(
         >>> text = r'''\\begin{itemizeAcademic}{Company}{Title}{Location}{Dates}
         ...     Content here
         ...     \\end{itemizeAcademic}'''
-        >>> params, content, _, _ = extract_environment(
-        ...     text, "itemizeAcademic", num_params=4
-        ... )
+        >>> params, content, _, _ = extract_environment(text, "itemizeAcademic", num_params=4)
         >>> params
         ['Company', 'Title', 'Location', 'Dates']
         >>> content.strip()
@@ -246,12 +254,10 @@ def extract_environment(
         >>> text2 = r'''\\begin{itemize}[leftmargin=0pt, itemsep=8pt]
         ...     \\item First
         ...     \\end{itemize}'''
-        >>> params2, content2, _, _ = extract_environment(
-        ...     text2, "itemize", num_optional_params=1
-        ... )
+        >>> params2, content2, _, _ = extract_environment(text2, "itemize", num_optional_params=1)
         >>> params2
         ['leftmargin=0pt, itemsep=8pt']
-        >>> '\\item First' in content2
+        >>> "\\item First" in content2
         True
     """
     # Guard against buggy parameter combination
@@ -277,16 +283,14 @@ def extract_environment(
     if num_optional_params > 0 or num_params > 0:
         # Use skip_latex_arguments to extract and skip both optional and mandatory params
         content = skip_latex_arguments(
-            raw_env_content,
-            optional=num_optional_params,
-            mandatory=num_params
+            raw_env_content, optional=num_optional_params, mandatory=num_params
         )
 
         # Extract optional params
         pos = 0
         for _ in range(num_optional_params):
             # Find opening [
-            match = re.match(r'\s*\[', raw_env_content[pos:])
+            match = re.match(r"\s*\[", raw_env_content[pos:])
             if not match:
                 break
             pos += match.end()
@@ -295,17 +299,17 @@ def extract_environment(
             bracket_count = 1
             param_start = pos
             while pos < len(raw_env_content) and bracket_count > 0:
-                if raw_env_content[pos] == '\\':
+                if raw_env_content[pos] == "\\":
                     pos += 2  # Skip escaped char
                     continue
-                elif raw_env_content[pos] == '[':
+                elif raw_env_content[pos] == "[":
                     bracket_count += 1
-                elif raw_env_content[pos] == ']':
+                elif raw_env_content[pos] == "]":
                     bracket_count -= 1
                 pos += 1
 
             if bracket_count == 0:
-                params.append(raw_env_content[param_start:pos-1])
+                params.append(raw_env_content[param_start : pos - 1])
 
         # Extract mandatory params
         if num_params > 0:
@@ -316,10 +320,7 @@ def extract_environment(
 
 
 def extract_all_environments(
-    text: str,
-    env_pattern: str,
-    num_params: int = 0,
-    include_env_command_in_positions: bool = True
+    text: str, env_pattern: str, num_params: int = 0, include_env_command_in_positions: bool = True
 ) -> List[Tuple[str, List[str], str, int, int]]:
     """
     Extract all environments matching a regex pattern.
@@ -342,17 +343,17 @@ def extract_all_environments(
     for match in re.finditer(begin_pattern, text):
         env_name = match.group(1)  # Captured environment name
         params, content, begin_end_pos, end_start_pos = extract_environment(
-            text, env_name, num_params, start_pos=match.start(),
-            include_env_command_in_positions=include_env_command_in_positions
+            text,
+            env_name,
+            num_params,
+            start_pos=match.start(),
+            include_env_command_in_positions=include_env_command_in_positions,
         )
         results.append((env_name, params, content, begin_end_pos, end_start_pos))
     return results
 
 
-def extract_itemize_entry(
-    entry_latex: str,
-    marker_pattern: str
-) -> dict:
+def extract_itemize_entry(entry_latex: str, marker_pattern: str) -> dict:
     """
     Extract marker, plaintext, and latex_raw from an itemize list entry.
 
@@ -380,7 +381,7 @@ def extract_itemize_entry(
         ValueError: If no marker found matching the provided pattern
 
     Example:
-        >>> entry = r'\\itemi \\textbf{Bold} text with {formatting}'
+        >>> entry = r"\\itemi \\textbf{Bold} text with {formatting}"
         >>> extract_itemize_entry(entry, LaTeXPatterns.ITEM_ALPHABETIC)
         {
             'marker': 'itemi',
@@ -388,7 +389,7 @@ def extract_itemize_entry(
             'plaintext': 'Bold text with formatting'
         }
 
-        >>> entry2 = r'\\item[\\faIcon] Item text'
+        >>> entry2 = r"\\item[\\faIcon] Item text"
         >>> extract_itemize_entry(entry2, LaTeXPatterns.ITEM_BRACKETED)
         {
             'marker': 'item[\\faIcon]',
@@ -401,12 +402,11 @@ def extract_itemize_entry(
     match = re.match(marker_pattern, entry_stripped)
     if not match:
         raise ValueError(
-            f"No marker found matching pattern '{marker_pattern}' "
-            f"in entry: {entry_latex[:50]}..."
+            f"No marker found matching pattern '{marker_pattern}' in entry: {entry_latex[:50]}..."
         )
 
     # Extract marker (without leading backslash)
-    marker = match.group('marker')
+    marker = match.group("marker")
 
     # Extract content (everything after marker, from stripped version)
     content_start = match.end()
@@ -415,17 +415,10 @@ def extract_itemize_entry(
     # Generate plaintext version by stripping all LaTeX commands
     plaintext = to_plaintext(latex_raw)
 
-    return {
-        'marker': marker,
-        'latex_raw': latex_raw,
-        'plaintext': plaintext
-    }
+    return {"marker": marker, "latex_raw": latex_raw, "plaintext": plaintext}
 
 
-def split_itemize_entries(
-    content: str,
-    marker_pattern: str
-) -> List[str]:
+def split_itemize_entries(content: str, marker_pattern: str) -> List[str]:
     """
     Split itemize content into individual entry strings.
 
@@ -440,7 +433,7 @@ def split_itemize_entries(
         List of entry strings, each starting with its marker
 
     Example:
-        >>> content = r'\\itemi First\\itemi Second\\itemi Third'
+        >>> content = r"\\itemi First\\itemi Second\\itemi Third"
         >>> split_itemize_entries(content, LaTeXPatterns.ITEM_ALPHABETIC)
         ['\\itemi First', '\\itemi Second', '\\itemi Third']
     """
@@ -463,10 +456,7 @@ def split_itemize_entries(
     return entries
 
 
-def parse_itemize_content(
-    content: str,
-    marker_pattern: str
-) -> List[dict]:
+def parse_itemize_content(content: str, marker_pattern: str) -> List[dict]:
     """
     Parse itemize content into list of entry dictionaries.
 
@@ -481,7 +471,7 @@ def parse_itemize_content(
         List of entry dicts with {marker, latex_raw, plaintext}
 
     Example:
-        >>> content = r'\\itemi \\textbf{First}\\itemi Second'
+        >>> content = r"\\itemi \\textbf{First}\\itemi Second"
         >>> entries = parse_itemize_content(content, LaTeXPatterns.ITEM_ALPHABETIC)
         >>> entries[0]
         {'marker': 'itemi', 'latex_raw': '\\\\textbf{First}', 'plaintext': 'First'}
@@ -510,35 +500,35 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
         List of entry dicts with {marker, latex_raw, plaintext}
 
     Example:
-        >>> content = r'\\item[\\raisebox{-1pt}{>} 20,000] GPU-hours\\item[X] Other'
+        >>> content = r"\\item[\\raisebox{-1pt}{>} 20,000] GPU-hours\\item[X] Other"
         >>> entries = parse_itemize_with_complex_markers(content)
-        >>> entries[0]['marker']
+        >>> entries[0]["marker"]
         '\\item[\\raisebox{-1pt}{>} 20,000]'
-        >>> entries[0]['latex_raw']
+        >>> entries[0]["latex_raw"]
         'GPU-hours'
     """
     items = []
-    item_pattern = r'\\item'
+    item_pattern = r"\\item"
 
     for match in re.finditer(item_pattern, content):
         item_start = match.start()
         item_pos = match.end()
 
         # Check if this is \item[...] (with bracket)
-        if item_pos < len(content) and content[item_pos:item_pos+1] == '[':
+        if item_pos < len(content) and content[item_pos : item_pos + 1] == "[":
             # Use extract_balanced_delimiters to handle nested braces
             try:
                 bracket_content, item_pos = extract_balanced_delimiters(
-                    content, item_pos + 1, open_char='[', close_char=']'
+                    content, item_pos + 1, open_char="[", close_char="]"
                 )
                 # Reconstruct full marker including brackets
-                marker = f'\\item[{bracket_content}]'
+                marker = f"\\item[{bracket_content}]"
             except ValueError:
                 # Fallback to simple \item if bracket matching fails
-                marker = '\\item'
+                marker = "\\item"
         else:
             # Simple \item without bracket
-            marker = '\\item'
+            marker = "\\item"
 
         # Find start of next \item or end of content
         next_item = re.search(item_pattern, content[item_pos:])
@@ -550,11 +540,9 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
         # Extract item content
         item_content = content[item_pos:content_end].strip()
 
-        items.append({
-            'marker': marker,
-            'latex_raw': item_content,
-            'plaintext': to_plaintext(item_content)
-        })
+        items.append(
+            {"marker": marker, "latex_raw": item_content, "plaintext": to_plaintext(item_content)}
+        )
 
     return items
 
@@ -585,7 +573,7 @@ def replace_command(text: str, command: str, prefix: str = "", suffix: str = "")
         'text \\\\texttt{nested} more'
     """
     result = text
-    command_pattern = f'\\{command}{{'
+    command_pattern = f"\\{command}{{"
 
     while True:
         # Find next occurrence of \command{
@@ -633,7 +621,7 @@ def strip_formatting(text: str, commands: List[str]) -> str:
     for command in commands:
         # Build pattern from template, escaping command name
         pattern = LaTeXPatterns.COMMAND_WITH_WHITESPACE.format(command=re.escape(command))
-        result = re.sub(pattern, '', result)
+        result = re.sub(pattern, "", result)
     return result
 
 
@@ -656,7 +644,7 @@ def remove_command_at_end(text: str, command: str) -> str:
     """
     # Build pattern from template, escaping command name
     pattern = LaTeXPatterns.COMMAND_AT_END.format(command=re.escape(command))
-    return re.sub(pattern, '', text)
+    return re.sub(pattern, "", text)
 
 
 def to_plaintext(latex_str: str) -> str:
@@ -696,40 +684,40 @@ def to_plaintext(latex_str: str) -> str:
         'Use { and } for literal braces'
     """
     if not latex_str:
-        return ''
+        return ""
 
     result = latex_str
 
     # Remove common content wrappers by unwrapping them
-    wrappers = ['textbf', 'textit', 'emph', 'underline', 'texttt', 'scshape', 'coloremph']
+    wrappers = ["textbf", "textit", "emph", "underline", "texttt", "scshape", "coloremph"]
     for wrapper in wrappers:
         result = replace_command(result, wrapper)
 
     # Remove color commands (\\color{...}{...} or \\color{...})
-    result = re.sub(LaTeXPatterns.COLOR_WITH_TEXT, r'\1', result)
-    result = re.sub(LaTeXPatterns.COLOR_STANDALONE, '', result)
+    result = re.sub(LaTeXPatterns.COLOR_WITH_TEXT, r"\1", result)
+    result = re.sub(LaTeXPatterns.COLOR_STANDALONE, "", result)
 
     # Remove common standalone commands
-    standalone = ['centering', 'par', 'nolinebreak', 'nopagebreak']
+    standalone = ["centering", "par", "nolinebreak", "nopagebreak"]
     result = strip_formatting(result, standalone)
 
     # Remove spacing commands (\\vspace{...}, \\hspace{...})
-    result = re.sub(LaTeXPatterns.SPACING_COMMANDS, '', result)
+    result = re.sub(LaTeXPatterns.SPACING_COMMANDS, "", result)
 
     # Handle line breaks (\\) - convert to space
-    result = result.replace(r'\\', ' ')
+    result = result.replace(r"\\", " ")
 
     # Handle common math mode symbols before general command removal
     math_symbols = [
-        (' to ', r'$\to$'),      # Arrow: 1 $\to$ 64 -> 1 to 64
-        ('->', r'\to'),          # Bare arrow command
-        ('->', r'\rightarrow'),  # Right arrow
-        ('<-', r'\leftarrow'),   # Left arrow
-        ('<=', r'\leq'),         # Less than or equal
-        ('>=', r'\geq'),         # Greater than or equal
-        ('!=', r'\neq'),         # Not equal
-        ('~', r'\sim'),          # Similar to
-        ('≈', r'\approx'),       # Approximately
+        (" to ", r"$\to$"),  # Arrow: 1 $\to$ 64 -> 1 to 64
+        ("->", r"\to"),  # Bare arrow command
+        ("->", r"\rightarrow"),  # Right arrow
+        ("<-", r"\leftarrow"),  # Left arrow
+        ("<=", r"\leq"),  # Less than or equal
+        (">=", r"\geq"),  # Greater than or equal
+        ("!=", r"\neq"),  # Not equal
+        ("~", r"\sim"),  # Similar to
+        ("≈", r"\approx"),  # Approximately
     ]
     for replacement, latex_cmd in math_symbols:
         result = result.replace(latex_cmd, replacement)
@@ -737,40 +725,40 @@ def to_plaintext(latex_str: str) -> str:
     # Handle escaped special characters and spacing commands
     # These must be done before general command removal
     escaped_chars = [
-        ('%', r'\%'),   # Escaped percent
-        ('$', r'\$'),   # Escaped dollar
-        ('&', r'\&'),   # Escaped ampersand
-        ('#', r'\#'),   # Escaped hash
-        ('_', r'\_'),   # Escaped underscore
-        (' ', r'\;'),   # Thin space
-        (' ', r'\,'),   # Thin space
-        (' ', r'\:'),   # Medium space
-        ('', r'\!'),    # Negative thin space (remove)
+        ("%", r"\%"),  # Escaped percent
+        ("$", r"\$"),  # Escaped dollar
+        ("&", r"\&"),  # Escaped ampersand
+        ("#", r"\#"),  # Escaped hash
+        ("_", r"\_"),  # Escaped underscore
+        (" ", r"\;"),  # Thin space
+        (" ", r"\,"),  # Thin space
+        (" ", r"\:"),  # Medium space
+        ("", r"\!"),  # Negative thin space (remove)
     ]
     for replacement, escaped in escaped_chars:
         result = result.replace(escaped, replacement)
 
     # Remove math mode delimiters ($...$) after handling math symbols
-    result = result.replace('$', '')
+    result = result.replace("$", "")
 
     # Remove any remaining backslash commands (\\command or \\command{...})
     # First remove commands with braces
-    result = re.sub(LaTeXPatterns.ANY_COMMAND_WITH_BRACES, '', result)
+    result = re.sub(LaTeXPatterns.ANY_COMMAND_WITH_BRACES, "", result)
     # Then remove commands without braces
-    result = re.sub(LaTeXPatterns.ANY_COMMAND_NO_BRACES, '', result)
+    result = re.sub(LaTeXPatterns.ANY_COMMAND_NO_BRACES, "", result)
 
     # Remove literal braces used for grouping (not escaped braces)
     # Escaped braces (\{ and \}) should be converted to literal { and }
-    result = result.replace(r'\{', '<<<LEFTBRACE>>>')
-    result = result.replace(r'\}', '<<<RIGHTBRACE>>>')
+    result = result.replace(r"\{", "<<<LEFTBRACE>>>")
+    result = result.replace(r"\}", "<<<RIGHTBRACE>>>")
     # Remove unescaped braces
-    result = result.replace('{', '').replace('}', '')
+    result = result.replace("{", "").replace("}", "")
     # Restore escaped braces as literal characters
-    result = result.replace('<<<LEFTBRACE>>>', '{')
-    result = result.replace('<<<RIGHTBRACE>>>', '}')
+    result = result.replace("<<<LEFTBRACE>>>", "{")
+    result = result.replace("<<<RIGHTBRACE>>>", "}")
 
     # Clean up extra whitespace
-    result = re.sub(r'\s+', ' ', result)
+    result = re.sub(r"\s+", " ", result)
     result = result.strip()
 
     return result
@@ -809,32 +797,29 @@ def to_latex(plaintext_str: str) -> str:
         '87\\\\% on-time delivery'
     """
     if not plaintext_str:
-        return ''
+        return ""
 
     result = plaintext_str
 
     # Escape special LaTeX characters
     # Note: Order matters - backslash must be first to avoid double-escaping
-    result = result.replace('\\', r'\textbackslash{}')
-    result = result.replace('%', r'\%')
-    result = result.replace('$', r'\$')
-    result = result.replace('&', r'\&')
-    result = result.replace('_', r'\_')
-    result = result.replace('#', r'\#')
-    result = result.replace('{', r'\{')
-    result = result.replace('}', r'\}')
-    result = result.replace('~', r'\textasciitilde{}')
-    result = result.replace('^', r'\textasciicircum{}')
+    result = result.replace("\\", r"\textbackslash{}")
+    result = result.replace("%", r"\%")
+    result = result.replace("$", r"\$")
+    result = result.replace("&", r"\&")
+    result = result.replace("_", r"\_")
+    result = result.replace("#", r"\#")
+    result = result.replace("{", r"\{")
+    result = result.replace("}", r"\}")
+    result = result.replace("~", r"\textasciitilde{}")
+    result = result.replace("^", r"\textasciicircum{}")
 
     return result
 
 
 # Used only once in converter, might not be useful. Might replace it with other, more general function(s)
 def skip_latex_arguments(
-    text: str,
-    optional: int = 0,
-    mandatory: int = 0,
-    special_paren: bool = False
+    text: str, optional: int = 0, mandatory: int = 0, special_paren: bool = False
 ) -> str:
     """
     Skip LaTeX arguments at start of text and return remaining content.
@@ -857,8 +842,11 @@ def skip_latex_arguments(
         Text with arguments stripped from beginning
 
     Example:
-        >>> skip_latex_arguments("{\\\\textwidth}(\\\\leftmargin, 0.5\\\\paperheight)content",
-        ...                      mandatory=1, special_paren=True)
+        >>> skip_latex_arguments(
+        ...     "{\\\\textwidth}(\\\\leftmargin, 0.5\\\\paperheight)content",
+        ...     mandatory=1,
+        ...     special_paren=True,
+        ... )
         'content'
         >>> skip_latex_arguments("[option]{arg}content", optional=1, mandatory=1)
         'content'
@@ -868,7 +856,7 @@ def skip_latex_arguments(
     # Skip optional arguments [...]
     for _ in range(optional):
         # Find opening [
-        match = re.match(r'\s*\[', text[pos:])
+        match = re.match(r"\s*\[", text[pos:])
         if not match:
             break
         pos += match.end()
@@ -876,12 +864,12 @@ def skip_latex_arguments(
         # Find matching ]
         bracket_count = 1
         while pos < len(text) and bracket_count > 0:
-            if text[pos] == '\\':
+            if text[pos] == "\\":
                 pos += 2  # Skip escaped char
                 continue
-            elif text[pos] == '[':
+            elif text[pos] == "[":
                 bracket_count += 1
-            elif text[pos] == ']':
+            elif text[pos] == "]":
                 bracket_count -= 1
             pos += 1
 
@@ -891,37 +879,37 @@ def skip_latex_arguments(
         # Calculate how many chars to skip (all the {...} blocks)
         for _ in params:
             # Skip whitespace before {
-            match = re.match(r'\s*', text[pos:])
+            match = re.match(r"\s*", text[pos:])
             pos += match.end()
             # Skip the {...} block
             brace_count = 1
             pos += 1  # Skip opening {
             while pos < len(text) and brace_count > 0:
-                if text[pos] == '\\':
+                if text[pos] == "\\":
                     pos += 2
                     continue
-                elif text[pos] == '{':
+                elif text[pos] == "{":
                     brace_count += 1
-                elif text[pos] == '}':
+                elif text[pos] == "}":
                     brace_count -= 1
                 pos += 1
 
     # Skip special paren argument (...)
     if special_paren:
         # Find opening (
-        match = re.match(r'\s*\(', text[pos:])
+        match = re.match(r"\s*\(", text[pos:])
         if match:
             pos += match.end()
 
             # Find matching )
             paren_count = 1
             while pos < len(text) and paren_count > 0:
-                if text[pos] == '\\':
+                if text[pos] == "\\":
                     pos += 2  # Skip escaped char
                     continue
-                elif text[pos] == '(':
+                elif text[pos] == "(":
                     paren_count += 1
-                elif text[pos] == ')':
+                elif text[pos] == ")":
                     paren_count -= 1
                 pos += 1
 
@@ -933,7 +921,7 @@ def format_latex_environment(
     content: str,
     optional_args: List[str] = None,
     mandatory_args: List[str] = None,
-    special_paren_arg: str = None
+    special_paren_arg: str = None,
 ) -> str:
     """
     Generate LaTeX environment with arguments.
@@ -956,9 +944,12 @@ def format_latex_environment(
         Complete LaTeX environment string
 
     Example:
-        >>> format_latex_environment("textblock*", "content",
-        ...                          mandatory_args=["\\\\textwidth"],
-        ...                          special_paren_arg="\\\\leftmargin, 0.5\\\\paperheight")
+        >>> format_latex_environment(
+        ...     "textblock*",
+        ...     "content",
+        ...     mandatory_args=["\\\\textwidth"],
+        ...     special_paren_arg="\\\\leftmargin, 0.5\\\\paperheight",
+        ... )
         '\\\\begin{textblock*}{\\\\textwidth}(\\\\leftmargin, 0.5\\\\paperheight)\\ncontent\\n\\\\end{textblock*}'
     """
     # Build opening tag

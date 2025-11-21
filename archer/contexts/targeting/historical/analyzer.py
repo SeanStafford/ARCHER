@@ -8,8 +8,8 @@ operate on structured resume data rather than raw LaTeX. This separation respect
 context boundaries and enables powerful text-based analysis capabilities.
 """
 
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from archer.contexts.templating import ResumeDocument, ResumeDocumentArchive
@@ -23,8 +23,9 @@ DEFAULT_EXCLUDED_SECTIONS = [
     "Proficiency Pseudonyms",
     "Marketable Monikers",
     "Certifiable Pseudonyms",
-    "Alliterative Alias"
+    "Alliterative Alias",
 ]
+
 
 class ResumeArchiveAnalyzer:
     """
@@ -287,7 +288,7 @@ class ResumeArchiveAnalyzer:
 
         for doc in self.documents:
             count = sum(
-                len(section.data.get('subsections', []))
+                len(section.data.get("subsections", []))
                 for section in doc.sections
                 if section.section_type == "work_history"
             )
@@ -295,7 +296,9 @@ class ResumeArchiveAnalyzer:
 
         return counts
 
-    def extract_all_skills(self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS) -> Set[str]:
+    def extract_all_skills(
+        self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS
+    ) -> Set[str]:
         """
         Extract all unique skills across all resumes.
 
@@ -323,16 +326,18 @@ class ResumeArchiveAnalyzer:
 
                 # Flat skill lists
                 if section.section_type in ("skill_list_caps", "skill_list_pipes"):
-                    skills.update(section.data.get('items', []))
+                    skills.update(section.data.get("items", []))
 
                 # Categorized skills
                 elif section.section_type == "skill_categories":
-                    for category in section.data.get('subsections', []):
-                        skills.update(category.get('items', []))
+                    for category in section.data.get("subsections", []):
+                        skills.update(category.get("items", []))
 
         return skills
 
-    def skill_frequency(self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS) -> Dict[str, int]:
+    def skill_frequency(
+        self, exclude_sections: List[str] = DEFAULT_EXCLUDED_SECTIONS
+    ) -> Dict[str, int]:
         """
         Count how often each skill appears across all resumes.
 
@@ -361,10 +366,10 @@ class ResumeArchiveAnalyzer:
                     continue
 
                 if section.section_type in ("skill_list_caps", "skill_list_pipes"):
-                    skills_in_doc.update(section.data.get('items', []))
+                    skills_in_doc.update(section.data.get("items", []))
                 elif section.section_type == "skill_categories":
-                    for category in section.data.get('subsections', []):
-                        skills_in_doc.update(category.get('items', []))
+                    for category in section.data.get("subsections", []):
+                        skills_in_doc.update(category.get("items", []))
 
             # Count each unique skill once per resume
             for skill in skills_in_doc:
@@ -382,7 +387,7 @@ class ResumeArchiveAnalyzer:
         field_name: str,
         patterns: List[str],
         return_matches: bool = False,
-        case_sensitive: bool = False
+        case_sensitive: bool = False,
     ) -> Dict[str, any]:
         """
         Search for patterns in a specific document field.
@@ -490,8 +495,7 @@ class ResumeArchiveAnalyzer:
 
         for keyword in keywords:
             count = sum(
-                1 for doc in self.documents
-                if keyword.lower() in doc.get_all_text().lower()
+                1 for doc in self.documents if keyword.lower() in doc.get_all_text().lower()
             )
             counts[keyword] = count
 
@@ -715,7 +719,9 @@ class ResumeArchiveAnalyzer:
             )
 
             formatter.add_section_header(f"TITLE COMPONENT CO-OCCURRENCE: {component}")
-            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}")
+            formatter.add_text(
+                f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}"
+            )
             formatter.add_blank_line()
 
             if component not in co_occur:
@@ -740,7 +746,9 @@ class ResumeArchiveAnalyzer:
             formatter = TableFormatter(columns=[], total_width=100)
 
             formatter.add_section_header("TITLE COMPONENT CO-OCCURRENCE (Top 5 Components)")
-            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}")
+            formatter.add_text(
+                f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}"
+            )
             formatter.add_blank_line()
 
             # Get top 5 components by frequency

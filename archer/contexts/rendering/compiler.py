@@ -6,9 +6,9 @@ Handles compilation of .tex files to PDF using pdflatex.
 
 import os
 import re
-import time
 import shutil
 import subprocess
+import time
 import warnings as warnings_module
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,15 +16,15 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 
-from archer.utils.resume_registry import update_resume_status, resume_is_registered
-from archer.utils.timestamp import now, today
 from archer.contexts.rendering.logger import (
-    setup_rendering_logger,
-    log_compilation_start,
-    log_compilation_result,
+    _log_debug,
     _log_info,
-    _log_debug
+    log_compilation_result,
+    log_compilation_start,
+    setup_rendering_logger,
 )
+from archer.utils.resume_registry import resume_is_registered, update_resume_status
+from archer.utils.timestamp import now, today
 
 load_dotenv()
 
@@ -156,11 +156,8 @@ def compile_latex(
         )
 
         response = input("Proceed with in-place compilation? [Y/n]: ").strip().lower()
-        if response and response not in ['y', 'yes', 'yeppers']:
-            return CompilationResult(
-                success=False,
-                errors=["Compilation cancelled by user"]
-            )
+        if response and response not in ["y", "yes", "yeppers"]:
+            return CompilationResult(success=False, errors=["Compilation cancelled by user"])
 
         compile_dir = tex_file.parent.resolve()
     else:
@@ -175,8 +172,7 @@ def compile_latex(
     if fig_dir is not None:
         if not fig_dir.exists():
             return CompilationResult(
-                success=False,
-                errors=[f"Figures directory not found: {fig_dir}"]
+                success=False, errors=[f"Figures directory not found: {fig_dir}"]
             )
         if not figs_symlink.exists():
             figs_symlink.symlink_to(fig_dir)
@@ -208,8 +204,8 @@ def compile_latex(
             cwd=compile_dir,
             capture_output=True,
             text=True,
-            encoding='utf-8',
-            errors='replace',  # Replace invalid UTF-8 bytes instead of crashing
+            encoding="utf-8",
+            errors="replace",  # Replace invalid UTF-8 bytes instead of crashing
         )
 
         all_stdout.append(result.stdout)
@@ -231,7 +227,7 @@ def compile_latex(
 
     if log_file.exists():
         # pdflatex writes log files in latin-1 encoding (font metadata contains non-UTF-8)
-        log_content = log_file.read_text(encoding='latin-1')
+        log_content = log_file.read_text(encoding="latin-1")
         errors, warnings = _parse_latex_log(log_content)
 
     # Check if PDF was generated
@@ -306,17 +302,13 @@ def compile_resume(
     tex_file = Path(tex_file).resolve()
     # Early validation before any registry updates
     if not tex_file.exists():
-        return CompilationResult(
-            success=False, errors=[f"TeX file not found: {tex_file}"]
-        )
+        return CompilationResult(success=False, errors=[f"TeX file not found: {tex_file}"])
 
     # Extract resume name for registry lookup (registry uses file stem)
     resume_name = tex_file.stem
     # Verify resume is registered in the tracking system
     if not resume_is_registered(resume_name):
-        return CompilationResult(
-            success=False, errors=[f"Resume not registered: {resume_name}"]
-        )
+        return CompilationResult(success=False, errors=[f"Resume not registered: {resume_name}"])
 
     # Create timestamped log directory for this compilation
     timestamp = now()
@@ -336,10 +328,7 @@ def compile_resume(
     log_compilation_start(resume_name, tex_file, num_passes, log_dir)
 
     # Log start of rendering to pipeline events by setting status to 'rendering' (Tier 2)
-    update_resume_status(
-        updates={resume_name: "rendering"},
-        source="rendering"
-    )
+    update_resume_status(updates={resume_name: "rendering"}, source="rendering")
 
     start_time = time.time()
 
@@ -348,17 +337,14 @@ def compile_resume(
         tex_file=tex_file,
         compile_dir=output_dir,
         num_passes=num_passes,
-        keep_artifacts=True  # Always keep initially, we'll clean up based on success
+        keep_artifacts=True,  # Always keep initially, we'll clean up based on success
     )
 
     compilation_time_s = time.time() - start_time
 
     # Log compilation result (Tier 1)
     log_compilation_result(
-        resume_name=resume_name,
-        result=result,
-        elapsed_time=compilation_time_s,
-        verbose=verbose
+        resume_name=resume_name, result=result, elapsed_time=compilation_time_s, verbose=verbose
     )
 
     # Handle success vs failure
@@ -395,11 +381,11 @@ def compile_resume(
             compilation_time_s=round(compilation_time_s, 2),
             warning_count=len(result.warnings),
             num_passes=num_passes,
-            pdf_path=str(final_pdf)
+            pdf_path=str(final_pdf),
         )
-    else: # Compilation failed
+    else:  # Compilation failed
         # Keep artifacts for debugging on failure
-        _log_debug(f"Keeping artifacts: compilation failed")
+        _log_debug("Keeping artifacts: compilation failed")
 
         # Log failure to pipeline events (Tier 2)
         update_resume_status(
@@ -407,7 +393,7 @@ def compile_resume(
             source="rendering",
             compilation_time_s=round(compilation_time_s, 2),
             error_count=len(result.errors),
-            errors=result.errors[:5] if result.errors else []
+            errors=result.errors[:5] if result.errors else [],
         )
 
     return result

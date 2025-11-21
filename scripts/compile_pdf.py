@@ -21,10 +21,10 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional
-from typing_extensions import Annotated
 
 import typer
 from dotenv import load_dotenv
+from typing_extensions import Annotated
 
 from archer.contexts.rendering import compile_resume
 
@@ -56,7 +56,7 @@ def compile(
             exists=True,
             dir_okay=False,
             resolve_path=True,
-        )
+        ),
     ],
     output_dir: Annotated[
         Optional[Path],
@@ -66,7 +66,7 @@ def compile(
             help="Custom output directory (default: timestamped log directory)",
             dir_okay=True,
             file_okay=False,
-        )
+        ),
     ] = None,
     num_passes: Annotated[
         int,
@@ -76,7 +76,7 @@ def compile(
             help="Number of pdflatex passes (default: 2 for cross-references)",
             min=1,
             max=5,
-        )
+        ),
     ] = 2,
     verbose: Annotated[
         bool,
@@ -84,7 +84,7 @@ def compile(
             "--verbose",
             "-v",
             help="Show detailed compilation output (pdflatex stdout/stderr)",
-        )
+        ),
     ] = False,
     keep_artifacts: Annotated[
         bool,
@@ -92,7 +92,7 @@ def compile(
             "--keep-artifacts",
             "-k",
             help="Keep LaTeX artifacts (.aux, .log, etc.) on successful compilation",
-        )
+        ),
     ] = False,
 ):
     """
@@ -112,9 +112,7 @@ def compile(
     # Validate file extension
     if tex_file.suffix != ".tex":
         typer.secho(
-            f"Error: File must have .tex extension: {tex_file}",
-            fg=typer.colors.RED,
-            err=True
+            f"Error: File must have .tex extension: {tex_file}", fg=typer.colors.RED, err=True
         )
         raise typer.Exit(code=1)
 
@@ -135,7 +133,7 @@ def compile(
             keep_artifacts_on_success=keep_artifacts,
         )
     except Exception as e:
-        typer.secho(f"\nCompilation failed with exception:", fg=typer.colors.RED, bold=True)
+        typer.secho("\nCompilation failed with exception:", fg=typer.colors.RED, bold=True)
         typer.secho(f"  {str(e)}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
@@ -170,9 +168,7 @@ def compile(
 def batch(
     pattern: Annotated[
         Optional[str],
-        typer.Argument(
-            help="Glob pattern for selecting resumes (e.g., 'Res2025*.tex')"
-        )
+        typer.Argument(help="Glob pattern for selecting resumes (e.g., 'Res2025*.tex')"),
     ] = None,
     resume_type: Annotated[
         Optional[str],
@@ -180,7 +176,7 @@ def batch(
             "--type",
             "-t",
             help="Resume type to compile (e.g., 'test', 'historical')",
-        )
+        ),
     ] = None,
 ):
     """
@@ -202,11 +198,7 @@ def batch(
 
         $ compile_pdf.py batch --type historical
     """
-    typer.secho(
-        "\nBatch compilation not yet implemented.",
-        fg=typer.colors.YELLOW,
-        bold=True
-    )
+    typer.secho("\nBatch compilation not yet implemented.", fg=typer.colors.YELLOW, bold=True)
     typer.echo("This feature is planned for future development.")
     typer.echo("\nPlanned features:")
     typer.echo("  - Parallel compilation")

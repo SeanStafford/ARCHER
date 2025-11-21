@@ -13,9 +13,9 @@ Never: Makes content prioritization decisions
 """
 
 from archer.contexts.templating.converter import (
-    yaml_to_latex,
-    latex_to_yaml,
     clean_yaml,
+    latex_to_yaml,
+    yaml_to_latex,
 )
 from archer.contexts.templating.resume_data_structure import (
     ResumeDocument,
