@@ -38,6 +38,53 @@ load_dotenv()
 REGISTRY_FILE = Path(os.getenv("RESUME_REGISTRY"))
 REGISTRY_COLUMNS = ["resume_name", "resume_type", "status", "last_updated"]
 
+# Allowed statuses by resume type
+
+# Cross-cutting statuses applicable to all resume types
+CROSS_CUTTING_STATUSES = {
+    "review",
+    "archived",
+    "cancelled",
+}
+
+HISTORICAL_STATUSES = {
+    "raw",
+    "normalized",
+    "parsed",
+    "parsing_failed",
+} | CROSS_CUTTING_STATUSES
+
+GENERATED_STATUSES = {
+    "pending",
+    "targeting",
+    "targeting_failed",
+    "targeting_completed",
+    "templating",
+    "templating_failed",
+    "templating_completed",
+    "rendering",
+    "rendering_failed",
+    "rendering_completed",
+    "approved",
+} | CROSS_CUTTING_STATUSES
+
+EXPERIMENTAL_STATUSES = {
+    "drafting",
+    "drafting_completed",
+    "templating",
+    "templating_failed",
+    "templating_completed",
+    "rendering",
+    "rendering_failed",
+    "rendering_completed",
+    "approved",
+} | CROSS_CUTTING_STATUSES
+
+# Test resumes can be fixtures for any pipeline stage
+TEST_STATUSES = (
+    HISTORICAL_STATUSES | GENERATED_STATUSES | EXPERIMENTAL_STATUSES | CROSS_CUTTING_STATUSES
+)
+
 
 def ensure_registry_exists() -> None:
     """Create registry file with header if it doesn't exist."""
@@ -62,7 +109,37 @@ def resume_is_registered(resume_name: str) -> bool:
     return False
 
 
-def register_resume(resume_name: str, resume_type: str, source: str, status: str = "raw") -> None:
+def prompt_for_reason(user_prompt: Optional[str] = None) -> Optional[str]:
+    """
+    Prompt user for an optional reason for manual registry operations.
+
+    Args:
+        user_prompt: Custom prompt text (default: "Reason for manual registration")
+
+    Returns:
+        Reason string if provided, None if skipped
+
+    Raises:
+        KeyboardInterrupt: If user aborts with Ctrl+C
+    """
+
+    user_prompt = user_prompt or "Reason for manual registration"
+    user_prompt += " (press Enter to skip, Ctrl+C to abort): "
+    try:
+        reason_input = input(user_prompt).strip()
+        return reason_input if reason_input else None
+    except KeyboardInterrupt:
+        print("\n✗ Operation aborted by user")
+        raise
+
+
+def register_resume(
+    resume_name: str,
+    resume_type: str,
+    source: str,
+    status: str = "raw",
+    reason: Optional[str] = None,
+) -> None:
     """
     Register a new resume in the registry and log the event.
 
@@ -93,16 +170,11 @@ def register_resume(resume_name: str, resume_type: str, source: str, status: str
     }
 
     # Interactive prompt for manual registrations
-    if source == "manual":
-        try:
-            reason_input = input(
-                "Reason for manual registration (press Enter to skip, Ctrl+C to abort): "
-            ).strip()
-            if reason_input:
-                event_data["reason"] = reason_input
-        except KeyboardInterrupt:
-            print("\n✗ Registration aborted by user")
-            raise
+    if source == "manual" and not reason:
+        reason = prompt_for_reason()
+
+    if reason:
+        event_data["reason"] = reason
 
     # Append new entry with current timestamp
     timestamp = now_exact()

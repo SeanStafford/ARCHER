@@ -7,11 +7,12 @@ pipeline status. This script provides commands for initialization, querying, and
 manual status updates.
 
 Commands:
-    init    - Initialize registry with historical resumes
-    list    - List resumes (optionally filter by status/type)
-    stats   - Show registry statistics
-    status  - Get status of a specific resume
-    update  - Manually update resume status
+    init     - Initialize registry with historical resumes
+    register - Register new test or experimental resume
+    list     - List resumes (optionally filter by status/type)
+    stats    - Show registry statistics
+    status   - Get status of a specific resume
+    update   - Manually update resume status
 """
 
 import os
@@ -22,11 +23,14 @@ import typer
 from dotenv import load_dotenv
 
 from archer.utils.resume_registry import (
+    EXPERIMENTAL_STATUSES,
+    TEST_STATUSES,
     count_resumes,
     get_all_resumes,
     get_resume_status,
     list_resumes_by_status,
     list_resumes_by_type,
+    prompt_for_reason,
     register_resume,
     resume_is_registered,
     update_resume_status,
@@ -86,9 +90,9 @@ def init_command(
 
     Examples:\n
 
-        $ python scripts/manage_registry.py init --dry-run  # Dry run to preview
+        $ manage_registry.py init --dry-run  # Dry run to preview
 
-        $ python scripts/manage_registry.py init            # Initialize registry
+        $ manage_registry.py init            # Initialize registry
     """
 
     # Get all .tex files from archive
@@ -178,6 +182,100 @@ def init_command(
         typer.echo("\nDry run complete. Run without --dry-run to make changes.")
 
 
+@app.command("register")
+def register_command(
+    resume_name: str = typer.Argument(
+        ..., help="Resume name (e.g., _test_Simple or Res202511_MLEng_Company)"
+    ),
+    resume_type: str = typer.Argument(..., help="Resume type: 'test' or 'experimental' only"),
+    status: str = typer.Argument(..., help="Initial status (see allowed statuses by type below)"),
+):
+    """
+    Manually register a new test or experimental resume.
+
+    This command is restricted to test and experimental resume types only. Historical resumes should be registered via 'init', and generated resumes are registered automatically by the pipeline.
+
+    You will be prompted for an optional reason that will be logged with the registration event.
+
+    Status validation uses EXPERIMENTAL_STATUSES or TEST_STATUSES from archer.utils.resume_registry. If an invalid status is provided, the command will show the complete list of allowed statuses for that type.
+
+    Examples:\n
+
+        $ manage_registry.py register _test_Simple test raw                         # Register test resume
+
+        $ manage_registry.py register Res202511_MLEng_Disney experimental drafting  # Register experimental resume
+
+        $ manage_registry.py register _test_EdgeCase test parsing_failed            # Register test with failure status
+    """
+    # Validate resume type
+    allowed_types = {"test", "experimental"}
+    if resume_type not in allowed_types:
+        typer.secho(
+            f"Error: resume_type must be 'test' or 'experimental', got '{resume_type}'",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        typer.echo(f"\nAllowed types for manual registration: {', '.join(sorted(allowed_types))}")
+        typer.echo("Note: Use 'init' command for historical resumes")
+        raise typer.Exit(code=1)
+
+    # Get allowed statuses for this resume type
+    allowed_statuses = EXPERIMENTAL_STATUSES if resume_type == "experimental" else TEST_STATUSES
+
+    # Validate status
+    if status not in allowed_statuses:
+        typer.secho(
+            f"Error: Invalid status '{status}' for resume_type '{resume_type}'",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        typer.echo(f"\nAllowed statuses for {resume_type} resumes:")
+        typer.echo(" | ".join(sorted(allowed_statuses)))
+        # for s in sorted(allowed_statuses):
+        #     typer.echo(f"  - {s}")
+        typer.echo("")
+        raise typer.Exit(code=1)
+
+    # Check if already registered
+    if resume_is_registered(resume_name):
+        typer.secho(
+            f"Error: Resume '{resume_name}' is already registered", fg=typer.colors.RED, err=True
+        )
+        entry = get_resume_status(resume_name)
+        typer.echo(f"  Current type:   {entry['resume_type']}")
+        typer.echo(f"  Current status: {entry['status']}")
+        typer.echo("\nUse 'update' command to change status")
+        raise typer.Exit(code=1)
+
+    # Prompt for optional reason
+    try:
+        reason = prompt_for_reason("Reason for registration")
+    except KeyboardInterrupt:
+        raise typer.Exit(code=1)
+
+    # Register the resume
+    try:
+        register_resume(
+            resume_name=resume_name,
+            resume_type=resume_type,
+            source="cli",
+            status=status,
+            reason=reason,
+        )
+
+        typer.secho(
+            f"✓ Registered {resume_name} as {resume_type} with status '{status}'",
+            fg=typer.colors.GREEN,
+        )
+
+        if reason:
+            typer.echo(f"  Reason: {reason}")
+
+    except Exception as e:
+        typer.secho(f"✗ Failed to register: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
 @app.command("list")
 def list_command(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status"),
@@ -190,11 +288,11 @@ def list_command(
 
     Examples:\n
 
-        $ python scripts/manage_registry.py list                    # List all resumes
+        $ manage_registry.py list                    # List all resumes
 
-        $ python scripts/manage_registry.py list --status parsed    # List only parsed resumes
+        $ manage_registry.py list --status parsed    # List only parsed resumes
 
-        $ python scripts/manage_registry.py list --type historical  # List only historical resumes
+        $ manage_registry.py list --type historical  # List only historical resumes
     """
     if status:
         resumes = list_resumes_by_status(status)
@@ -229,7 +327,7 @@ def stats_command():
 
     Examples:\n
 
-        $ python scripts/manage_registry.py stats
+        $ manage_registry.py stats
     """
     counts = count_resumes()
 
@@ -253,7 +351,7 @@ def status_command(resume_name: str = typer.Argument(..., help="Resume name (e.g
 
     Examples:\n
 
-        $ python scripts/manage_registry.py status Res202510
+        $ manage_registry.py status Res202510
     """
     entry = get_resume_status(resume_name)
 
@@ -277,13 +375,14 @@ def update_command(
     """
     Manually update resume status.
 
-    This logs the update as a status change event with source="manual".
+    Prompts for an optional reason if not provided via --reason flag.
+    Logs the update as a status change event with source="cli".
 
     Examples:\n
 
-        $ python scripts/manage_registry.py update Res202510 completed                    # Mark resume as completed
+        $ manage_registry.py update Res202510 completed                       # Mark as completed (prompts for reason)
 
-        $ python scripts/manage_registry.py update Res202511 failed --reason "LaTeX errors"  # Mark as failed with reason
+        $ manage_registry.py update Res202511 failed --reason "LaTeX errors" # Mark as failed with reason
     """
     if not resume_is_registered(resume_name):
         typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)
@@ -296,6 +395,13 @@ def update_command(
     if old_status == new_status:
         typer.secho(f"Resume is already in status '{new_status}'", fg=typer.colors.YELLOW, err=True)
         raise typer.Exit(code=0)
+
+    # Prompt for reason if not provided via --reason flag
+    if not reason:
+        try:
+            reason = prompt_for_reason("Reason for status update")
+        except KeyboardInterrupt:
+            raise typer.Exit(code=1)
 
     # Update status
     try:
