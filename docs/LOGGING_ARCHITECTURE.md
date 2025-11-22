@@ -29,10 +29,30 @@ Capture detailed execution traces for debugging within a single context. Include
 
 - **Format**: Human-readable text with timestamps
 - **Library**: Loguru (automatic timestamps, levels, colors)
-- **Location**: Timestamped directories (`outs/logs/render_20251114_123456/render.log`)
-- **Lifetime**: Permanent (one directory per session)
+- **Location**: Timestamped directories (`outs/logs/compile_20251114_123456/render.log`)
+- **Lifetime**: Permanent (one directory per logging session)
 - **Scope**: Single context, single execution
 - **Audience**: Developers debugging issues
+
+### Naming Conventions
+
+**Log Directory Naming**: `{phase}_{timestamp}`
+- Directory names reflect the **phase** of the pipeline being executed
+- Example: `compile_20251114_123456` for LaTeX compilation operations
+- Timestamp format: `YYYYMMDD_HHMMSS` (see `archer/utils/timestamp.py`)
+
+**Log File Naming**: `{context}.log`
+- Log files are named after the **context** (non-gerund form), not the phase
+- Example: `render.log` (from rendering context, not `compile.log`)
+- **Convention**: Use the context name even when the context has multiple phases (e.g., compilation and validation)
+- **Rationale**: The log comes from the context's logger
+
+**Example Structure**:
+```
+outs/logs/compile_20251114_123456/
+├── render.log          # Log file
+└── resume.pdf          # Symlink to compiled PDF
+```
 
 ### Example Log
 
@@ -253,7 +273,7 @@ update_resume_status(
 
 ```
 outs/logs/
-├── render_20251114_123456/
+├── compile_20251114_123456/
 │   ├── render.log                    # Loguru output with provenance
 │   ├── Res202511_Role_CompanyA/       # Resume-specific artifacts
 │   │   ├── resume.tex
@@ -279,11 +299,11 @@ outs/logs/
 ### Tier 1 (Detailed)
 
 ```bash
-# View specific session log
-less outs/logs/render_20251114_123456/render.log
+# View specific run
+less outs/logs/compile_20251114_123456/render.log
 
-# Search across sessions
-grep "ERROR" outs/logs/render_*/render.log
+# Search across all runs of this type
+grep "ERROR" outs/logs/compile_*/render.log
 ```
 
 ### Tier 2 (Pipeline Events)

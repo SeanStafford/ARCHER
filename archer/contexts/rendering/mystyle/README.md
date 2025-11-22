@@ -79,3 +79,9 @@ All structural styling remains in these `.sty` files and should not be modified 
 - Professional serif font used for body text
 - Provided by `texlive-fonts-extra` package
 - Alternative: Comment out line 11 in `packages.sty` to use default LaTeX fonts
+
+---
+
+## Questions or Additions?
+
+If this document does not provide sufficient information, read the actual file(s) and update this document to be more useful for the next time it is referenced. 

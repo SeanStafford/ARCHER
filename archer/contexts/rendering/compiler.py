@@ -24,14 +24,18 @@ from archer.contexts.rendering.logger import (
     setup_rendering_logger,
 )
 from archer.utils.pdf_processing import page_count
-from archer.utils.resume_registry import resume_is_registered, update_resume_status
-from archer.utils.timestamp import now, today
+from archer.utils.resume_registry import (
+    get_resume_status,
+    resume_is_registered,
+    update_resume_status,
+)
+from archer.utils.timestamp import now
 
 load_dotenv()
 
 LATEX_COMPILER = os.getenv("LATEX_COMPILER")
+DATA_PATH = Path(os.getenv("DATA_PATH"))
 LOGS_PATH = Path(os.getenv("LOGS_PATH"))
-RESULTS_PATH = Path(os.getenv("RESULTS_PATH"))
 FIGS_PATH = Path(os.getenv("FIGS_PATH"))
 KEEP_LATEX_ARTIFACTS = os.getenv("KEEP_LATEX_ARTIFACTS").lower() == "true"
 
@@ -286,8 +290,8 @@ def compile_resume(
     pipeline event log (Tier 2 logging).
 
     On success:
-        - Moves PDF to outs/results/YYYY-MM-DD/
-        - Creates symlink in log directory pointing to PDF
+        - Moves PDF to data/resumes/{type}/compiled/
+        - Creates symlink (resume.pdf) in log directory pointing to PDF
         - Saves minimal render.log (or detailed if verbose=True)
         - Deletes artifacts (unless keep_artifacts_on_success=True)
 
@@ -313,13 +317,21 @@ def compile_resume(
 
     # Extract resume name for registry lookup (registry uses file stem)
     resume_name = tex_file.stem
+
     # Verify resume is registered in the tracking system
     if not resume_is_registered(resume_name):
         return CompilationResult(success=False, errors=[f"Resume not registered: {resume_name}"])
 
+    # Get resume type to determine output directory (check early to avoid compilation waste)
+    resume_type = get_resume_status(resume_name).get("resume_type")
+    if resume_type is None:
+        return CompilationResult(
+            success=False, errors=[f"Cannot determine resume type for {resume_name}"]
+        )
+
     # Create timestamped log directory for this compilation
     timestamp = now()
-    log_dir = LOGS_PATH / f"render_{timestamp}"
+    log_dir = LOGS_PATH / f"compile_{timestamp}"
     log_dir.mkdir(parents=True, exist_ok=True)
 
     if output_dir is None:
@@ -356,16 +368,16 @@ def compile_resume(
 
     # Handle success vs failure
     if result.success:
-        # Move PDF to dated results directory
-        results_dir = RESULTS_PATH / today()
-        results_dir.mkdir(parents=True, exist_ok=True)
+        # Move PDF to resume-type-specific compiled directory
+        compiled_dir = DATA_PATH / "resumes" / resume_type / "compiled"
+        compiled_dir.mkdir(parents=True, exist_ok=True)
 
-        final_pdf = results_dir / f"{resume_name}.pdf"
+        final_pdf = compiled_dir / f"{resume_name}.pdf"
         shutil.move(result.pdf_path, final_pdf)
         _log_info(f"PDF saved to: {final_pdf}")
 
-        # Create symlink in log directory pointing to final PDF
-        pdf_symlink = log_dir / f"{resume_name}.pdf"
+        # Create uniform symlink in log directory pointing to final PDF
+        pdf_symlink = log_dir / "resume.pdf"
         pdf_symlink.symlink_to(final_pdf)
 
         # Clean up artifacts on success (unless keep_artifacts_on_success=True)

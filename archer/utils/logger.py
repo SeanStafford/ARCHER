@@ -34,7 +34,7 @@ def setup_logger(context_name: str, log_dir: Path, extra_provenance: dict = None
 
         log_file = setup_logger(
             context_name="render",
-            log_dir=Path("outs/logs/render_20251114_123456"),
+            log_dir=Path("outs/logs/compile_20251114_123456"),
             extra_provenance={"LaTeX compiler": "pdflatex"}
         )
     """

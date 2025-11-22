@@ -37,7 +37,7 @@ else:
 - High-level wrapper for ARCHER resume compilation
 - Integrates registry tracking (Tier 2 logging)
 - Detailed loguru logging (Tier 1 logging)
-- Organized output management (results/ + logs/)
+- Organized output management
 - Success-based artifact cleanup
 - Used by: Production resume generation, main pipeline
 
@@ -52,7 +52,7 @@ else:
 **Purpose:** Comprehensive execution traces for debugging and auditing
 
 **Implementation:**
-- Logs to `outs/logs/render_TIMESTAMP/render.log`
+- Logs to `outs/logs/compile_TIMESTAMP/render.log`
 - All rendering logs prefixed with `[render]` for multi-context clarity.
 
 ### Tier 2: Pipeline Event Logging
@@ -78,16 +78,16 @@ else:
 When compilation succeeds:
 
 ```
-outs/
-├── results/2025-11-14/
-│   └── Res202506.pdf                ← Final PDF (dated)
-└── logs/render_20251114_210621/
-    ├── render.log                   ← Minimal log
-    └── Res202506.pdf                → Symlink to results/
+outs/logs/compile_20251114_210621/
+├── render.log                       # Minimal log
+└── resume.pdf  →  Symlink to data/resumes/{type}/compiled/
+
+data/resumes/experimental/compiled/
+└── Res202506_MLEng.pdf              # Final compiled PDF
 ```
 
 **Actions:**
-1. PDF moved to **dated results directory** (`outs/results/YYYY-MM-DD/`)
+1. PDF moved to **resume-type compiled directory** (`data/resumes/{type}/compiled/`)
 2. Symlink created in log directory for easy navigation
 3. **All LaTeX artifacts deleted** (.aux, .log, .out, .toc)
 4. Minimal `render.log` kept for audit trail
@@ -99,7 +99,7 @@ outs/
 When compilation fails:
 
 ```
-outs/logs/render_20251114_210621/
+outs/logs/compile_20251114_210621/
 ├── render.log                      ← Detailed log with full stdout/stderr
 ├── Res202506.aux
 ├── Res202506.log                   ← pdflatex log for debugging
@@ -110,7 +110,7 @@ outs/logs/render_20251114_210621/
 **Actions:**
 1. **All artifacts preserved** for debugging
 2. Full pdflatex stdout/stderr logged to `render.log`
-3. No PDF in results/ (compilation failed)
+3. No PDF in compiled/ (compilation failed)
 
 **Result:** Complete debugging context available
 

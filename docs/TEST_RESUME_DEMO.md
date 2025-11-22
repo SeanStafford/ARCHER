@@ -198,3 +198,11 @@ python scripts/convert_template.py clean \
 **Fictional content:** Uses Futurama characters (Philip J. Fry, Planet Express, MomCorp) for dynamically generated content (work experience, skills, projects, professional profile).
 
 **LaTeX constants caveat:** The Education section does not vary at all across ARCHER resumes so it is not part of the dynamic resume generation pipeline. Therefore, modification of the Education section was not worth the effort for the test resume -- it contains real information. The LinkedIn URL in the header is also real.
+
+---
+
+## Note on Directory Structure Changes
+
+**As of 2025-11-22:** ARCHER's compilation output structure has been updated. Compiled PDFs now go to `data/resumes/{type}/compiled/` and log directories are now named `compile_{timestamp}` instead of `render_{timestamp}`. The paths shown in this document reflect the old structure from when the test resumes were originally created.
+
+**TODO:** Update the test resume files and this documentation to reflect the new directory structure. See project root `TODO.md` for details.

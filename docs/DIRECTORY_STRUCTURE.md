@@ -65,9 +65,11 @@ Each resume type directory follows the same structure:
 ```
 {type}/
 ├── structured/            # YAML format (structured data)
-│   └── Res202511_MLEng_Disney.yaml
-└── raw/                   # LaTeX format (necessary for historical resumes, potentially useless for generated resumes)
-    └── Res202511_MLEng_Disney.tex
+│   └── Res202511_MLEng.yaml
+├── raw/                   # LaTeX format (necessary for historical resumes, potentially useless for generated resumes)
+│   └── Res202511_MLEng.tex
+└── compiled/              # pdfs reside here until validation and approval, after which they move to `outs/results/`
+    └── Res202511_MLEng.pdf
 ```
 
 See `docs/RESUME_STATUS_REFERENCE.md` for details for each type.
@@ -105,34 +107,35 @@ Example outs tree:
 
 ```
 outs/
-├── results/               # Final PDFs organized by date
-│   ├── 2025-11-21/
-│   │   └── Res202511_MLEng_Disney.pdf
-│   └── 2025-11-22/
-│       └── Res202511_MLEng_Meta.pdf
+├── results/               # Final approved PDFs organized by date
+│   └── 2025-11-21/
+│       └── {resume_name}.pdf
 └── logs/                  # Execution logs and pipeline events
     ├── resume_pipeline_events.log      # Tier 2: JSON Lines event log
     ├── resume_registry.csv             # Resume status tracking
-    ├── render_20251121_173045/         # Tier 1: Detailed logs
+    ├── compile_20251121_173045/        # Tier 1: Compilation logs
     │   ├── render.log
-    │   └── Res202511_MLEng_Disney.pdf  → symlink to results/
+    │   └── resume.pdf  →  symlink to data/resumes/{type}/compiled/{resume_name}.pdf
     └── template_20251121_120000/
         └── template.log
 ```
 
 ### Results (`outs/results/`)
 
-**Purpose**: Final compiled PDFs organized by date
+**Purpose**: Final approved PDFs ready for delivery (organized by date)
 
 **Organization**: `YYYY-MM-DD/` subdirectories
 - Makes it easy to find recent resumes
 - Naturally archives older versions
+- **Only contains validated and approved resumes** that have passed all quality checks
 
 ### Logs (`outs/logs/`)
 
 **Purpose**: Logging system for execution tracking and debugging. See `docs/LOGGING_ARCHITECTURE.md` for details.
 
-**Detailed In-Context Logs with Loguru**: `{context}_TIMESTAMP/`
+**Detailed In-Context Logs with Loguru**: `{phase}_TIMESTAMP/`
+- Directory names reflect the pipeline phase (e.g., `compile_`, `template_`)
+- Log files named after context (e.g., `render.log`, `template.log`)
 - Human-readable loguru logs
 - Provenance tracking (script, command, environment)
 - Full execution traces for debugging
