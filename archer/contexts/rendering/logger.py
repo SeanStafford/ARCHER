@@ -137,3 +137,36 @@ def log_compilation_result(
             logger.opt(raw=True).debug(
                 f"\n{'=' * 80}\nPDFLATEX STDERR:\n{'=' * 80}\n{result.stderr}\n"
             )
+
+
+def log_validation_start(resume_name: str, pdf_path: Path) -> None:
+    """Log start of PDF validation."""
+    _log_info(f"Starting PDF validation: {resume_name}")
+    _log_debug(f"  PDF: {pdf_path}")
+
+
+def log_validation_result(
+    resume_name: str,
+    validation_result,  # ValidationResult
+    verbose: bool = False,
+) -> None:
+    """
+    Log validation result with diagnostics.
+
+    Args:
+        resume_name: Resume identifier
+        validation_result: ValidationResult from validate_pdf()
+        verbose: Show detailed issues (default: False)
+    """
+    # Always log page count
+    _log_info(f"{resume_name}: {validation_result.page_count} pages")
+
+    if validation_result.is_valid:
+        _log_success("Validation passed.")
+    else:
+        _log_warning("Validation failed.")
+        issue_limit = 10 if verbose else 5
+        for i, issue in enumerate(validation_result.issues[:issue_limit], 1):
+            _log_warning(f"  Issue {i}: {issue}")
+        if len(validation_result.issues) > issue_limit:
+            _log_warning(f"  ... and {len(validation_result.issues) - issue_limit} more issues")
