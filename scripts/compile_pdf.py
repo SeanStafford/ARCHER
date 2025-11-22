@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-PDF Compilation CLI
+PDF Compilation and Validation CLI
 
-Compiles LaTeX resume files to PDF using the rendering context.
+Compiles LaTeX resume files to PDF and validates compiled PDFs using the rendering context.
 
 Commands:
-    compile - Compile a single LaTeX file to PDF
-    batch   - Compile multiple resumes (not yet implemented)
+    compile  - Compile a single LaTeX file to PDF
+    validate - Validate a compiled PDF resume
+    batch    - Compile multiple resumes (not yet implemented)
 
 Examples:\n
 
     compile_pdf.py compile data/resume_archive/Res202506.tex  # Compile single resume
 
     compile_pdf.py compile Res202506.tex --verbose            # Verbose output
+
+    compile_pdf.py validate path/to/resume.pdf                # Validate PDF
 """
 
 import os
@@ -25,13 +28,14 @@ from dotenv import load_dotenv
 from typing_extensions import Annotated
 
 from archer.contexts.rendering import compile_resume
+from archer.contexts.rendering.validator import validate_resume
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
 RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 
 app = typer.Typer(
-    help="Compile LaTeX resumes to PDF with registry tracking",
+    help="Compile LaTeX resumes to PDF and validate compiled PDFs with registry tracking",
     add_completion=False,
     invoke_without_command=True,
 )
@@ -45,8 +49,8 @@ def main(ctx: typer.Context):
         raise typer.Exit()
 
 
-@app.command()
-def compile(
+@app.command("compile")
+def compile_command(
     tex_file: Annotated[
         Path,
         typer.Argument(
@@ -162,8 +166,97 @@ def compile(
     sys.exit(0 if result.success else 1)
 
 
-@app.command()
-def batch(
+@app.command("validate")
+def validate_command(
+    pdf_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Compiled resume PDF to validate (.pdf extension)",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ],
+    expected_pages: Annotated[
+        int,
+        typer.Option(
+            "--expected-pages",
+            "-e",
+            help="Expected number of pages (default: 2 for ARCHER resumes)",
+            min=1,
+            max=10,
+        ),
+    ] = 2,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show detailed validation output (all issues)",
+        ),
+    ] = False,
+):
+    """
+    Validate a compiled resume PDF.
+
+    Checks PDF quality including page count and other layout constraints.
+    Requires the resume to be registered in the registry.
+
+    Examples:\n
+
+        $ compile_pdf.py validate path/to/resume.pdf            # Validate PDF
+
+        $ compile_pdf.py validate path/to/resume.pdf --verbose  # Show all issues
+
+        $ compile_pdf.py validate path/to/resume.pdf -e 1       # Expect 1 page
+    """
+    # Validate file extension
+    if pdf_file.suffix != ".pdf":
+        typer.secho(
+            f"Error: File must have .pdf extension: {pdf_file}", fg=typer.colors.RED, err=True
+        )
+        raise typer.Exit(code=1)
+
+    # Extract resume name from filename
+    resume_name = pdf_file.stem
+
+    # Display validation info
+    typer.secho(f"\nValidating: {pdf_file.name}", fg=typer.colors.BLUE, bold=True)
+    typer.echo(f"Resume name: {resume_name}")
+    typer.echo(f"Expected pages: {expected_pages}")
+    typer.echo("")
+
+    # Validate the resume
+    result = validate_resume(
+        resume_name=resume_name,
+        pdf_path=pdf_file,
+        expected_pages=expected_pages,
+        verbose=verbose,
+    )
+
+    # Display results
+    if result.is_valid:
+        typer.secho("✓ Validation passed", fg=typer.colors.GREEN, bold=True)
+        typer.echo(f"  Page count: {result.page_count}")
+    else:
+        typer.secho("✗ Validation failed", fg=typer.colors.YELLOW, bold=True)
+        typer.echo(f"  Page count: {result.page_count}")
+        typer.echo(f"  Issues: {len(result.issues)}")
+
+        if result.issues:
+            typer.echo("\nValidation issues:")
+            display_issues = result.issues if verbose else result.issues[:10]
+            for issue in display_issues:
+                typer.secho(f"  - {issue}", fg=typer.colors.YELLOW)
+            if not verbose and len(result.issues) > 10:
+                typer.echo(f"  ... and {len(result.issues) - 10} more (use --verbose to see all)")
+
+    # Exit with appropriate code
+    sys.exit(0 if result.is_valid else 1)
+
+
+@app.command("batch")
+def batch_command(
     pattern: Annotated[
         Optional[str],
         typer.Argument(help="Glob pattern for selecting resumes (e.g., 'Res2025*.tex')"),
