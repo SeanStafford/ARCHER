@@ -120,17 +120,28 @@ Failed during template generation. Possible causes: invalid LaTeX syntax, missin
 ### `templating_completed`
 Template generation succeeded. LaTeX `.tex` file ready for rendering context to compile.
 
-### `rendering`
-PDF compilation in progress. Rendering context running `pdflatex` to generate final resume PDF.
+### `compiling`
+PDF compilation in progress. Rendering context running `pdflatex` to generate PDF.
 
-### `rendering_failed`
-Failed during PDF compilation. Possible causes: LaTeX syntax errors, missing packages, figure paths incorrect, document too long.
+### `compiling_failed`
+Failed during PDF compilation. Possible causes: LaTeX syntax errors, missing packages, figure paths incorrect.
 
-### `rendering_completed`
-PDF compilation succeeded. Resume PDF generated successfully.
+### `compiling_completed`
+PDF compilation succeeded. PDF file generated, ready for validation.
+
+### `validating`
+PDF validation in progress. Checking page count, content density, and layout constraints.
+
+### `validating_failed`
+PDF validation failed. Possible causes: wrong page count (expected 2 pages), section overflow across pages, professional profile line count incorrect.
+
+### `validating_completed`
+PDF validation passed. Resume meets all quality constraints.
+
+**Note:** The legacy statuses `rendering`, `rendering_failed`, and `rendering_completed` are deprecated as of this change. Historical pipeline events may still reference these statuses, but new compilations use the split compilation/validation phases above.
 
 ### `approved`
-Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `rendering_completed`.
+Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `validating_completed`.
 
 ---
 
@@ -175,13 +186,17 @@ raw → normalized → parsed
 
 ### Generated Resume Flow
 ```
-                                      rendering_completed → ✅approved
-                                               ↑
-                    templating_completed → rendering ↔ ❌rendering_failed
-                              ↑
-    targeting_completed → templating ↔ ❌templating_failed
-             ↑
-pending → targeting ↔ ❌targeting_failed
+                                                       validating_completed → ✅approved
+                                                                 ↑
+                                      compiling_completed → validating ↔ X validating_failed
+                                               ↑                                     ╵
+                    templating_completed → compiling ↔ X compiling_failed            ╵
+                              ↑                                                      ╵
+    targeting_completed → templating ↔ X templating_failed                           ╵
+             ↑                                                                       ╵
+pending → targeting ↔ X targeting_failed                                             ╵
+             ↑                                                                       ╵
+             └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
 ```
 
 ### Manual Interventions
@@ -200,12 +215,14 @@ Any status can transition to:
 3. Always specify `source` when logging status changes (identifies which context/script made the change)
 
 **Status naming pattern:**
-- **Active states**: `{context}` (e.g., `targeting`, `rendering`)
-- **Completion states**: `{context}_completed` (e.g., `targeting_completed`, `rendering_completed`)
-- **Failure states**: `{context}_failed` (e.g., `targeting_failed`, `parsing_failed`)
-- **Terminal states**: No context prefix (e.g., `approved`, `archived`, `cancelled`)
+- **Active states**: `{phase}` or `{context}` (e.g., `targeting`, `compiling`, `validating`)
+- **Completion states**: `{phase}_completed` or `{context}_completed` (e.g., `targeting_completed`, `compiling_completed`)
+- **Failure states**: `{phase}_failed` or `{context}_failed` (e.g., `targeting_failed`, `compiling_failed`)
+- **Terminal states**: No context/phase prefix (e.g., `approved`, `archived`, `cancelled`)
 
-**Context boundary rule**: Each context can only set statuses for its own operations. Rendering context sets `rendering`, `rendering_completed`, or `rendering_failed` — never `completed` or statuses from other contexts.
+**Context boundary rule**: Each context can only set statuses for its own operations, which may include multiple phases. For example, the rendering context uses `compiling_*` and `validating_*` statuses to distinguish LaTeX compilation from PDF validation. Each context never sets terminal statuses like `completed` or statuses from other contexts.
+
+**Multi-phase contexts**: When a context's operations naturally split into distinct phases (e.g., compilation vs validation), use phase-specific status prefixes rather than the context name. This provides better visibility into pipeline progression.
 
 **Adding new statuses:**
 - Add to this document first

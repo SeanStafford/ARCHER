@@ -62,9 +62,12 @@ else:
 **Implementation:** JSON Lines format via `update_resume_status()`
 
 **Events logged:**
-- `rendering` (start)
-- `rendering_completed` (success with metrics)
-- `rendering_failed` (failure with error details)
+- `compiling` (compilation start)
+- `compiling_completed` (compilation success)
+- `compiling_failed` (compilation failure with error details)
+- `validating` (validation start)
+- `validating_completed` (validation success with page count)
+- `validating_failed` (validation failure with quality issues)
 
 ---
 

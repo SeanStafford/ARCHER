@@ -327,8 +327,8 @@ def compile_resume(
     # Log start of compilation (Tier 1)
     log_compilation_start(resume_name, tex_file, num_passes, log_dir)
 
-    # Log start of rendering to pipeline events by setting status to 'rendering' (Tier 2)
-    update_resume_status(updates={resume_name: "rendering"}, source="rendering")
+    # Log start of compilation to pipeline events by setting status to 'compiling' (Tier 2)
+    update_resume_status(updates={resume_name: "compiling"}, source="rendering")
 
     start_time = time.time()
 
@@ -376,7 +376,7 @@ def compile_resume(
 
         # Log success to pipeline events (Tier 2)
         update_resume_status(
-            updates={resume_name: "rendering_completed"},
+            updates={resume_name: "compiling_completed"},
             source="rendering",
             compilation_time_s=round(compilation_time_s, 2),
             warning_count=len(result.warnings),
@@ -389,7 +389,7 @@ def compile_resume(
 
         # Log failure to pipeline events (Tier 2)
         update_resume_status(
-            updates={resume_name: "rendering_failed"},
+            updates={resume_name: "compiling_failed"},
             source="rendering",
             compilation_time_s=round(compilation_time_s, 2),
             error_count=len(result.errors),

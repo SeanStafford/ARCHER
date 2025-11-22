@@ -62,9 +62,12 @@ GENERATED_STATUSES = {
     "templating",
     "templating_failed",
     "templating_completed",
-    "rendering",
-    "rendering_failed",
-    "rendering_completed",
+    "compiling",
+    "compiling_failed",
+    "compiling_completed",
+    "validating",
+    "validating_failed",
+    "validating_completed",
     "approved",
 } | CROSS_CUTTING_STATUSES
 
@@ -74,9 +77,12 @@ EXPERIMENTAL_STATUSES = {
     "templating",
     "templating_failed",
     "templating_completed",
-    "rendering",
-    "rendering_failed",
-    "rendering_completed",
+    "compiling",
+    "compiling_failed",
+    "compiling_completed",
+    "validating",
+    "validating_failed",
+    "validating_completed",
     "approved",
 } | CROSS_CUTTING_STATUSES
 
