@@ -58,14 +58,6 @@ env/
 *.acr
 *.alg
 
-# Generated PDFs (keep in Archive/ for historical resumes, ignore elsewhere)
-/outs/resumes/*.pdf
-/outs/resumes/*.tex
-/*.pdf
-/*.aux
-/*.log
-/*.out
-/*.toc
 
 # Testing
 .pytest_cache
@@ -89,8 +81,9 @@ notebooks/*
 *.tmp
 *.bak
 
-# Logs
+# Logs and other outputs
 outs/logs/**
+outs/results/**
 
 # Project-specific
 archer/contexts/rendering/mystyle/Fonts/*.ttf
@@ -100,7 +93,8 @@ IDEAS.md
 
 # Data - exclude processed resumes but keep fixtures
 data/**/*.db
-data/resume_archive/**/*.tex
-data/resume_archive/**/*.yaml
+data/**/*.tex
+data/**/*.yaml
+data/**/*.pdf
 !data/resume_archive/fixures
 data/figs/
