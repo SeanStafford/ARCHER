@@ -101,7 +101,10 @@ def log_compilation_result(
     """
     if result.success:
         _log_success("Compilation succeeded.")
-        _log_success(f"{resume_name}: {len(result.warnings)} warnings ({elapsed_time:.2f}s)")
+        page_count_info = f"{result.page_count} pages, " if result.page_count is not None else ""
+        _log_success(
+            f"{resume_name}: {page_count_info}{len(result.warnings)} warnings ({elapsed_time:.2f}s)"
+        )
         if result.pdf_path:
             _log_debug(f"  PDF: {result.pdf_path}")
     else:

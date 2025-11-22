@@ -23,6 +23,7 @@ from archer.contexts.rendering.logger import (
     log_compilation_start,
     setup_rendering_logger,
 )
+from archer.utils.pdf_processing import page_count
 from archer.utils.resume_registry import resume_is_registered, update_resume_status
 from archer.utils.timestamp import now, today
 
@@ -50,6 +51,7 @@ class CompilationResult:
         stderr: Standard error from pdflatex
         errors: List of parsed LaTeX errors
         warnings: List of parsed LaTeX warnings
+        page_count: Number of pages in generated PDF (None if not available)
     """
 
     success: bool
@@ -58,6 +60,7 @@ class CompilationResult:
     stderr: str = ""
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    page_count: Optional[int] = None
 
 
 def _parse_latex_log(log_content: str) -> tuple[List[str], List[str]]:
@@ -254,6 +257,9 @@ def compile_latex(
     if figs_symlink.exists() and figs_symlink.is_symlink():
         figs_symlink.unlink()
 
+    # Get page count from generated PDF
+    pdf_page_count = page_count(pdf_path) if pdf_path.exists() else None
+
     return CompilationResult(
         success=success,
         pdf_path=pdf_path if pdf_path.exists() else None,
@@ -261,6 +267,7 @@ def compile_latex(
         stderr=combined_stderr,
         errors=errors,
         warnings=warnings,
+        page_count=pdf_page_count,
     )
 
 
@@ -382,6 +389,7 @@ def compile_resume(
             warning_count=len(result.warnings),
             num_passes=num_passes,
             pdf_path=str(final_pdf),
+            page_count=result.page_count,
         )
     else:  # Compilation failed
         # Keep artifacts for debugging on failure
