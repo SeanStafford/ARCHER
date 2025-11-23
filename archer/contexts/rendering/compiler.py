@@ -23,6 +23,7 @@ from archer.contexts.rendering.logger import (
     log_compilation_start,
     setup_rendering_logger,
 )
+from archer.utils.event_logging import log_pipeline_event
 from archer.utils.pdf_processing import page_count
 from archer.utils.resume_registry import (
     get_resume_status,
@@ -279,6 +280,79 @@ def compile_latex(
     )
 
 
+def log_historical_compilation_in_events_pipeline(
+    resume_name: str,
+    activity: str,
+    status: str,
+    compilation_time_s: float,
+    **extra_fields
+) -> None:
+    """
+    Log compilation activity for historical resumes without changing status.
+
+    Historical resumes are read-only references, so compilations are logged
+    as activities rather than status changes. This provides observability
+    (page count, warnings, compilation time) without polluting registry status.
+
+    Args:
+        resume_name: Resume identifier
+        activity: Activity performed (e.g., "compiling", "compiling_failed")
+        status: Current status of resume (included in event for context)
+        compilation_time_s: Time taken to compile in seconds
+        **extra_fields: Additional metadata (page_count, warning_count, etc.)
+    """
+    log_pipeline_event(
+        event_type="logged_activity",
+        resume_name=resume_name,
+        source="rendering",
+        resume_type="historical",
+        status=status,
+        activity=activity,
+        compilation_time_s=round(compilation_time_s, 2),
+        **extra_fields,
+    )
+
+
+def log_compilation_in_events_pipeline(
+    resume_name: str,
+    outcome: str,
+    compilation_time_s: float,
+    **extra_fields_for_pipeline_event
+) -> None:
+    """
+    Log compilation outcome to pipeline events with type-aware behavior.
+
+    Routes compilation events to appropriate logging mechanism based on resume type:
+    - Historical resumes: logged_activity events (preserves read-only status)
+    - Other resumes: status_change events (updates registry status)
+
+    Args:
+        resume_name: Resume identifier
+        outcome: Compilation outcome status ("compiling_completed" or "compiling_failed")
+        compilation_time_s: Time taken to compile in seconds
+        **extra_fields_for_pipeline_event: Additional metadata to include in event
+            (e.g., page_count, warning_count, error_count, errors)
+    """
+    resume_info = get_resume_status(resume_name)
+
+    if resume_info.get("resume_type") == "historical":
+        log_historical_compilation_in_events_pipeline(
+            resume_name=resume_name,
+            activity=outcome,
+            status=resume_info.get("status"),
+            compilation_time_s=compilation_time_s,
+            **extra_fields_for_pipeline_event,
+        )
+    else:
+        # Experimental/generated/test: update status
+        update_resume_status(
+            updates={resume_name: outcome},
+            source="rendering",
+            compilation_time_s=round(compilation_time_s, 2),
+            **extra_fields_for_pipeline_event,
+        )
+
+
 def compile_resume(
     tex_file: Path,
     output_dir: Optional[Path] = None,
@@ -350,8 +424,15 @@ def compile_resume(
     # Log start of compilation (Tier 1)
     log_compilation_start(resume_name, tex_file, num_passes, log_dir)
 
-    # Log start of compilation to pipeline events by setting status to 'compiling' (Tier 2)
-    update_resume_status(updates={resume_name: "compiling"}, source="rendering")
+    # Log start of compilation to pipeline events (Tier 2)
+    # Historical resumes: logged activity (read-only, no status change)
+    # Others: status change to 'compiling'
+    if resume_type == "historical":
+        _log_debug(
+            "Reference compilation -- pdf compilation does not change resume_status for historical resumes."
+        )
+    else:
+        update_resume_status(updates={resume_name: "compiling"}, source="rendering")
 
     start_time = time.time()
 
@@ -397,27 +478,38 @@ def compile_resume(
         # Update result with new PDF path
         result.pdf_path = final_pdf
 
-        # Log success to pipeline events (Tier 2)
-        update_resume_status(
-            updates={resume_name: "compiling_completed"},
-            source="rendering",
-            compilation_time_s=round(compilation_time_s, 2),
-            warning_count=len(result.warnings),
-            num_passes=num_passes,
-            pdf_path=str(final_pdf),
-            page_count=result.page_count,
-        )
+        # Prepare success metadata for pipeline events
+        # Includes metrics useful for analytics: page count, warnings, compilation stats
+        extra_fields_for_pipeline_event = {
+            "warning_count": len(result.warnings),
+            "num_passes": num_passes,
+            "pdf_path": str(final_pdf),
+            "page_count": result.page_count,
+        }
+
+        outcome = "compiling_completed"
+
     else:  # Compilation failed
         # Keep artifacts for debugging on failure
         _log_debug("Keeping artifacts: compilation failed")
 
-        # Log failure to pipeline events (Tier 2)
-        update_resume_status(
-            updates={resume_name: "compiling_failed"},
-            source="rendering",
-            compilation_time_s=round(compilation_time_s, 2),
-            error_count=len(result.errors),
-            errors=result.errors[:5] if result.errors else [],
-        )
+        # Prepare failure metadata for pipeline events
+        # Includes first 5 errors to keep event size manageable while providing diagnostics
+        extra_fields_for_pipeline_event = {
+            "error_count": len(result.errors),
+            "errors": result.errors[:5] if result.errors else [],
+        }
+
+        outcome = "compiling_failed"
+
+    # Log compilation outcome to pipeline events with type-aware routing
+    # Historical resumes: logged_activity (preserves status)
+    # Other resumes: status_change (updates registry)
+    log_compilation_in_events_pipeline(
+        resume_name=resume_name,
+        outcome=outcome,
+        compilation_time_s=compilation_time_s,
+        **extra_fields_for_pipeline_event,
+    )
 
     return result

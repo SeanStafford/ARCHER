@@ -10,9 +10,7 @@ Each status represents the most recent state of a resume in the ARCHER pipeline.
 
 ARCHER tracks four types of resumes:
 
-### Resume Types
-
-#### `experimental/` - Manually Crafted Resumes
+### `experimental/` - Manually Crafted Resumes
 
 **Purpose**: Resumes created using ARCHER tools in a manual workflow (Day 0 approach).
 
@@ -30,7 +28,7 @@ ARCHER tracks four types of resumes:
 
 **Registry type**: `experimental`
 
-#### `generated/` - Full Pipeline Outputs
+### `generated/` - Full Pipeline Outputs
 
 **Purpose**: Resumes produced by the complete automated ARCHER pipeline (future).
 
@@ -45,7 +43,7 @@ ARCHER tracks four types of resumes:
 
 **Status**: Not yet implemented (requires all four contexts complete)
 
-#### `historical/` - Archive Resumes
+### `historical/` - Archive Resumes
 
 **Purpose**: Original manually-written resumes from `.archive/Resumes/`.
 
@@ -59,7 +57,7 @@ ARCHER tracks four types of resumes:
 
 **Status**: Currently in `data/resume_archive/`, planned migration to `data/resumes/historical/`
 
-#### `test/` - Development Resumes
+### `test/` - Development Resumes
 
 **Purpose**: Test fixtures and validation resumes for ARCHER development.
 
@@ -74,6 +72,20 @@ ARCHER tracks four types of resumes:
 **Naming**: Prefix with `_test_` (e.g., `_test_Res202501_Simple.yaml`)
 
 **Status**: Currently in `data/resume_archive/`, planned migration to `data/resumes/test/`
+
+---
+
+## Pipeline Event Types
+
+ARCHER uses two types of pipeline events to track resume activity. See `docs/PIPELINE_EVENTS_REFERENCE.md` for full details.
+
+### `status_change` Events
+
+Standard pipeline events that track resume state transitions. These update the `status` field in the registry and represent active pipeline progression.
+
+### `logged_activity` Events
+
+Observability events that log operations without changing resume status. These provide full compilation metadata for historical resumes without polluting their registry status.
 
 ---
 
@@ -92,6 +104,18 @@ Successfully converted to structured YAML format. Resume is now available for ta
 
 ### `parsing_failed`
 Failed during LaTeX-to-YAML conversion. Resume remains at last successful stage (normalized `.tex` file exists). Requires manual investigation of parsing errors.
+
+---
+
+### Operations on Historical Resumes
+
+Historical resumes serve as a **read-only content library** for the targeting context. Once parsed, they remain at `parsed` status indefinitely.
+
+**Compilation for Reference:**
+Historical resumes can be compiled to PDF for reference purposes, but this is logged as `logged_activity` events in the pipeline rather than `status_change`, providing observability (page count, warnings, compilation time) without changing the resume's status. This distinction exists because pdfs of historical resumes are for ad-hoc reference only. Historical pdfs are only integrated into the ARCHER pipeline through structured representations that the targeting context uses to inform content decisions.
+
+**Validation Not Applicable:**
+Historical resumes are not validated, because by definition they are already approved. The validation phase exists to catch quality issues before delivery, but historical resumes have already been delivered successfully in the past.
 
 ---
 

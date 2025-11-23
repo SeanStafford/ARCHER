@@ -17,7 +17,11 @@ from archer.contexts.rendering.logger import (
     log_validation_start,
     setup_rendering_logger,
 )
-from archer.utils.resume_registry import resume_is_registered, update_resume_status
+from archer.utils.resume_registry import (
+    get_resume_status,
+    resume_is_registered,
+    update_resume_status,
+)
 from archer.utils.timestamp import now
 
 load_dotenv()
@@ -125,11 +129,23 @@ def validate_resume(
 
     # Early validation before any registry updates
     if not pdf_path.exists():
-        return ValidationResult(is_valid=False, page_count=0, issues=[f"PDF file not found: {pdf_path}"])
+        return ValidationResult(
+            is_valid=False, page_count=0, issues=[f"PDF file not found: {pdf_path}"]
+        )
 
     # Verify resume is registered
     if not resume_is_registered(resume_name):
-        return ValidationResult(is_valid=False, page_count=0, issues=[f"Resume not registered: {resume_name}"])
+        return ValidationResult(
+            is_valid=False, page_count=0, issues=[f"Resume not registered: {resume_name}"]
+        )
+
+    # Reject validation of historical resumes (read-only reference, already approved)
+    if get_resume_status(resume_name).get("resume_type") == "historical":
+        return ValidationResult(
+            is_valid=False,
+            page_count=0,
+            issues=["Cannot validate historical resumes (read-only reference, already approved)"],
+        )
 
     # Create timestamped log directory for this validation
     timestamp = now()

@@ -107,6 +107,40 @@ Manual registration with reason:
 
 ---
 
+### `logged_activity`
+
+**When**: Operation performed on a resume without changing its status (e.g., historical resume compilation)
+
+**Produced by**: `log_pipeline_event()` in `archer/utils/event_logging.py`
+
+**Standard fields**: Yes
+
+**Additional fields**:
+- `resume_type` (str): Type of resume
+- `activity` (str): Activity performed (e.g., `"compiling_completed"`, `"compiling_failed"`)
+- `**metadata` (any): Operation-specific fields (same as status_change events for comparable operations)
+
+**Purpose**: Provides observability for resumes operations that do not rise to the level of status changes without polluting registry status. Created so that historical resumes could remain at `parsed` status indefinitely, while still tracking when they are compiled. Could be generalized to other events, not necessarily just for historical resumes.
+
+**Example - Successful compilation**:
+```json
+{
+  "timestamp": "2025-11-22T14:25:30.789012",
+  "event_type": "logged_activity",
+  "resume_name": "Res202507",
+  "source": "rendering",
+  "resume_type": "historical",
+  "activity": "compiling_completed",
+  "compilation_time_s": 1.4,
+  "warning_count": 52,
+  "num_passes": 2,
+  "page_count": 2,
+  "pdf_path": "data/resumes/historical/compiled/Res202507.pdf"
+}
+```
+
+---
+
 
 ## Source Values
 
