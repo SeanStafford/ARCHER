@@ -16,6 +16,7 @@ from archer.utils.logger import setup_logger as _setup_logger
 load_dotenv()
 
 CONTEXT_PREFIX = "[render]"
+LATEX_COMPILER = os.getenv("LATEX_COMPILER")
 
 
 def setup_rendering_logger(log_dir: Path) -> Path:
@@ -125,17 +126,17 @@ def log_compilation_result(
         if len(result.warnings) > warning_limit:
             _log_debug(f"  ... and {len(result.warnings) - warning_limit} more warnings")
 
-    # Log full pdflatex output in verbose mode (or always on failure)
+    # Log full compiler output in verbose mode (or always on failure)
     # Use opt(raw=True) to bypass format template and preserve original formatting
     # This prevents loguru from adding timestamp/level to every line of multi-line output
     if verbose or not result.success:
         if result.stdout:
             logger.opt(raw=True).debug(
-                f"\n{'=' * 80}\nPDFLATEX STDOUT:\n{'=' * 80}\n{result.stdout}\n"
+                f"\n{'=' * 80}\n{LATEX_COMPILER.upper()} STDOUT:\n{'=' * 80}\n{result.stdout}\n"
             )
         if result.stderr:
             logger.opt(raw=True).debug(
-                f"\n{'=' * 80}\nPDFLATEX STDERR:\n{'=' * 80}\n{result.stderr}\n"
+                f"\n{'=' * 80}\n{LATEX_COMPILER.upper()} STDERR:\n{'=' * 80}\n{result.stderr}\n"
             )
 
 

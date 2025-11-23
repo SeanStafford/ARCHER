@@ -102,14 +102,14 @@ When compilation fails:
 outs/logs/compile_20251114_210621/
 ├── render.log                      ← Detailed log with full stdout/stderr
 ├── Res202506.aux
-├── Res202506.log                   ← pdflatex log for debugging
+├── Res202506.log                   ← xelatex log for debugging
 ├── Res202506.out
 └── Res202506.toc
 ```
 
 **Actions:**
 1. **All artifacts preserved** for debugging
-2. Full pdflatex stdout/stderr logged to `render.log`
+2. Full xelatex stdout/stderr logged to `render.log`
 3. No PDF in compiled/ (compilation failed)
 
 **Result:** Complete debugging context available
@@ -135,7 +135,7 @@ The rendering context owns the LaTeX style files that define resume formatting.
 - **`defaultspacing.sty`** - Default spacing values
 - **`Fonts/`** - Custom font files
 
-**Integration:** pdflatex finds `mystyle/` via `TEXINPUTS` environment variable (set in `.env`).
+**Integration:** xelatex finds `mystyle/` via `TEXINPUTS` environment variable (set in `.env`).
 
 LaTeX files reference styles as:
 ```latex
@@ -156,7 +156,7 @@ System dependencies are declared in `dependencies.txt` files for transparency an
 ### Verify Installation
 
 ```bash
-pdflatex --version
+xelatex --version
 ```
 
 ---
@@ -218,7 +218,7 @@ print(f"Warnings: {len(result.warnings)}")
 for error in result.errors[:5]:
     print(f"  {error}")
 
-# Full pdflatex output (for debugging)
+# Full xelatex output (for debugging)
 print(result.stdout)
 print(result.stderr)
 ```
@@ -247,7 +247,7 @@ Emergency stop
 
 ### Failure conditions
 
-1. pdflatex returns non-zero exit code
+1. xelatex returns non-zero exit code
 2. No PDF generated
 3. LaTeX errors in log
 
@@ -255,7 +255,7 @@ Emergency stop
 
 Warnings are common -- especially overfull/underfull boxes. Success/failure detection ignores warnings.
 
-Success = PDF generated + no errors + pdflatex non-zero
+Success = PDF generated + no errors + xelatex non-zero
 
 
 ## Future Enhancements

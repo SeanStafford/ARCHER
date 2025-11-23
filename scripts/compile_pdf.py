@@ -75,7 +75,7 @@ def compile_command(
         typer.Option(
             "--passes",
             "-p",
-            help="Number of pdflatex passes (default: 2 for cross-references)",
+            help="Number of compiler passes (default: 2 for cross-references)",
             min=1,
             max=5,
         ),
@@ -85,7 +85,7 @@ def compile_command(
         typer.Option(
             "--verbose",
             "-v",
-            help="Show detailed compilation output (pdflatex stdout/stderr)",
+            help="Show detailed compilation output (compiler stdout/stderr)",
         ),
     ] = False,
     keep_artifacts: Annotated[

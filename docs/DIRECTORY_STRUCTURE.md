@@ -161,7 +161,7 @@ outs/
 
 **Characteristics**:
 - Original LaTeX files with full history
-- Can still be compiled manually (`cd .archive && pdflatex Resumes/Res202507.tex`)
+- Can still be compiled manually (`cd .archive && xelatex Resumes/Res202507.tex`)
 - Permissions set to `r-xr-xr-x` (read-only, not writable)
 - Source of truth for historical resume content
 

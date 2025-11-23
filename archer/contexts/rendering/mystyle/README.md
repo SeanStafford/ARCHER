@@ -36,10 +36,11 @@ sudo apt-get install $(grep -v '^#' dependencies.txt | xargs)
 
 ### Verify Installation
 
-Check that pdflatex can find the required packages:
+Check that your LaTeX compiler can find the required packages:
 
 ```bash
-pdflatex --version
+xelatex --version
+# pdflatex --version  # If using pdflatex
 kpsewhich ebgaramond.sty  # Should return a path if installed correctly
 ```
 

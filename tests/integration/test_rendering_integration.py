@@ -10,17 +10,17 @@ import pytest
 
 from archer.contexts.rendering.compiler import compile_latex, compile_resume
 
-# Check if pdflatex is available
-PDFLATEX_AVAILABLE = shutil.which("pdflatex") is not None
-skip_if_no_pdflatex = pytest.mark.skipif(
-    not PDFLATEX_AVAILABLE,
-    reason="pdflatex not installed - install TeX Live, MiKTeX, or MacTeX"
+# Check if xelatex is available
+XELATEX_AVAILABLE = shutil.which("xelatex") is not None
+skip_if_no_xelatex = pytest.mark.skipif(
+    not XELATEX_AVAILABLE,
+    reason="xelatex not installed - install TeX Live, MiKTeX, or MacTeX"
 )
 
 
 @pytest.mark.integration
 @pytest.mark.latex
-@skip_if_no_pdflatex
+@skip_if_no_xelatex
 @pytest.mark.parametrize(
     "resume_name",
     [
@@ -50,7 +50,7 @@ def test_compile_historical_resume(resume_name, tmp_path):
 
 @pytest.mark.integration
 @pytest.mark.latex
-@skip_if_no_pdflatex
+@skip_if_no_xelatex
 def test_compile_with_intentional_error(tmp_path):
     """Test that compilation properly detects and reports errors."""
     broken_tex = tmp_path / "broken.tex"
@@ -74,7 +74,7 @@ This has an \undefinedcommand{test} that should fail.
 
 @pytest.mark.integration
 @pytest.mark.latex
-@skip_if_no_pdflatex
+@skip_if_no_xelatex
 def test_compile_with_artifact_cleanup(tmp_path):
     """Test artifact cleanup after compilation."""
     simple_tex = tmp_path / "simple.tex"
@@ -104,7 +104,7 @@ Hello World
 
 @pytest.mark.integration
 @pytest.mark.latex
-@skip_if_no_pdflatex
+@skip_if_no_xelatex
 def test_compile_with_artifact_preservation(tmp_path):
     """Test artifact preservation when keep_artifacts=True."""
     simple_tex = tmp_path / "simple.tex"
@@ -131,7 +131,7 @@ Hello World
 
 @pytest.mark.integration
 @pytest.mark.latex
-@skip_if_no_pdflatex
+@skip_if_no_xelatex
 def test_compile_multipass_compilation(tmp_path):
     """Test multi-pass compilation for cross-references."""
     tex_with_refs = tmp_path / "refs.tex"

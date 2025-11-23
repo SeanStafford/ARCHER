@@ -107,7 +107,7 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 
 ### 4. Rendering Context
 **Responsibility**: PDF compilation and output management
-- Compiles LaTeX to PDF using `pdflatex`
+- Compiles LaTeX to PDF using compiler specified by `LATEX_COMPILER` in `.env` (e.g. `xelatex`, `pdflatex`)
 - Validates compilation success
 - Manages output files and directory structure
 
@@ -153,7 +153,7 @@ Download and install MiKTeX from https://miktex.org/download
 
 **Verify installation:**
 ```bash
-pdflatex --version
+xelatex --version
 ```
 
 ### Setup

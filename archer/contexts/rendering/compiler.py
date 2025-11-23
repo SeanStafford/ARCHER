@@ -1,7 +1,7 @@
 """
 LaTeX Compilation Module
 
-Handles compilation of .tex files to PDF using pdflatex.
+Handles compilation of .tex files to PDF using a LaTeX compiler.
 """
 
 import os
@@ -42,6 +42,9 @@ KEEP_LATEX_ARTIFACTS = os.getenv("KEEP_LATEX_ARTIFACTS").lower() == "true"
 # LaTeX intermediate files created during compilation
 LATEX_ARTIFACTS = [".aux", ".log", ".out", ".toc"]
 
+# Log file encodings for different LaTeX compilers
+LOG_ENCODING_BY_COMPILER = {"pdflatex": "latin-1", "xelatex": "utf-8"}
+
 
 @dataclass
 class CompilationResult:
@@ -51,8 +54,8 @@ class CompilationResult:
     Attributes:
         success: Whether compilation succeeded
         pdf_path: Path to generated PDF (None if failed)
-        stdout: Standard output from pdflatex
-        stderr: Standard error from pdflatex
+        stdout: Standard output from LaTeX compiler
+        stderr: Standard error from LaTeX compiler
         errors: List of parsed LaTeX errors
         warnings: List of parsed LaTeX warnings
         page_count: Number of pages in generated PDF (None if not available)
@@ -137,14 +140,14 @@ def compile_latex(
     fig_dir: Optional[Path] = FIGS_PATH,
 ) -> CompilationResult:
     """
-    Compile a LaTeX file to PDF using pdflatex.
+    Compile a LaTeX file to PDF using LaTeX compiler.
 
     Pure compilation function - assumes paths are resolved and directories exist.
 
     Args:
         tex_file: Path to the .tex file to compile
         compile_dir: Path to output directory (must exist)
-        num_passes: Number of pdflatex passes (default: 2 for cross-references)
+        num_passes: Number of compiler passes (default: 2 for cross-references)
         keep_artifacts: Keep intermediate files (default: from KEEP_LATEX_ARTIFACTS env)
 
     Returns:
@@ -169,7 +172,7 @@ def compile_latex(
         compile_dir = tex_file.parent.resolve()
     else:
         # Copy tex file to output directory for compilation
-        # pdflatex runs in compile_dir so mystyle/ can be found via TEXINPUTS
+        # Compiler runs in compile_dir so mystyle/ can be found via TEXINPUTS
         tex_file = compile_dir / tex_file.name
         shutil.copy2(original_tex_file, tex_file)
 
@@ -218,7 +221,7 @@ def compile_latex(
         all_stdout.append(result.stdout)
         all_stderr.append(result.stderr)
 
-        # Stop on fatal errors (returncode != 0 means pdflatex crashed)
+        # Stop on fatal errors (returncode != 0 means compiler crashed)
         # Log file parsing below will distinguish errors from warnings
         if result.returncode != 0:
             success = False
@@ -233,8 +236,9 @@ def compile_latex(
     warnings = []
 
     if log_file.exists():
-        # pdflatex writes log files in latin-1 encoding (font metadata contains non-UTF-8)
-        log_content = log_file.read_text(encoding="latin-1")
+        # Choose encoding based on compiler
+        encoding = LOG_ENCODING_BY_COMPILER.get(LATEX_COMPILER)
+        log_content = log_file.read_text(encoding=encoding)
         errors, warnings = _parse_latex_log(log_content)
 
     # Check if PDF was generated
@@ -245,7 +249,7 @@ def compile_latex(
             errors.append("PDF file was not generated")
     elif len(errors) == 0:
         # PDF exists and no LaTeX errors found - consider it a success
-        # even if pdflatex returned non-zero (which can happen for warnings)
+        # even if compiler returned non-zero (which can happen for warnings)
         success = True
 
     # Cleanup artifacts (.aux, .log, .out, .toc)
@@ -302,7 +306,7 @@ def compile_resume(
     Args:
         tex_file: Path to the resume .tex file to compile
         output_dir: Directory for output files (default: None, uses timestamped log directory)
-        num_passes: Number of pdflatex passes (default: 2 for cross-references)
+        num_passes: Number of compiler passes (default: 2 for cross-references)
         verbose: Show detailed warnings/errors in logs (default: False)
         keep_artifacts_on_success: Keep LaTeX artifacts (.aux, .log, etc.) on success (default: False)
 

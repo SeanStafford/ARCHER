@@ -121,7 +121,7 @@ Failed during template generation. Possible causes: invalid LaTeX syntax, missin
 Template generation succeeded. LaTeX `.tex` file ready for rendering context to compile.
 
 ### `compiling`
-PDF compilation in progress. Rendering context running `pdflatex` to generate PDF.
+PDF compilation in progress. Rendering context running LaTeX compiler to generate PDF.
 
 ### `compiling_failed`
 Failed during PDF compilation. Possible causes: LaTeX syntax errors, missing packages, figure paths incorrect.

@@ -277,7 +277,7 @@ outs/logs/
 │   ├── render.log                    # Loguru output with provenance
 │   ├── Res202511_Role_CompanyA/       # Resume-specific artifacts
 │   │   ├── resume.tex
-│   │   ├── resume.log                # pdflatex raw output
+│   │   ├── resume.log                # LaTeX compiler raw output
 │   │   └── resume.pdf
 │   └── Res202512_Position_CompanyB/
 │       └── ...
