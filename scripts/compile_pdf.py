@@ -96,6 +96,13 @@ def compile_command(
             help="Keep LaTeX artifacts (.aux, .log, etc.) on successful compilation",
         ),
     ] = False,
+    no_overwrite: Annotated[
+        bool,
+        typer.Option(
+            "--no-overwrite",
+            help="Prevent overwriting existing compiled PDFs",
+        ),
+    ] = False,
 ):
     """
     Compile a LaTeX resume to PDF.
@@ -133,6 +140,7 @@ def compile_command(
             num_passes=num_passes,
             verbose=verbose,
             keep_artifacts_on_success=keep_artifacts,
+            overwrite_allowed=not no_overwrite,
         )
     except Exception as e:
         typer.secho("\nCompilation failed with exception:", fg=typer.colors.RED, bold=True)
@@ -152,12 +160,15 @@ def compile_command(
             if len(result.warnings) > 10:
                 typer.echo(f"  ... and {len(result.warnings) - 10} more")
     else:
-        typer.secho("✗ Compilation failed", fg=typer.colors.RED, bold=True)
-        typer.echo(f"  Errors: {len(result.errors)}")
+        typer.secho(
+            f"✗ Compilation failed with {len(result.errors)} errors", fg=typer.colors.RED, bold=True
+        )
 
         if result.errors:
             typer.echo("\nErrors:")
             for error in result.errors[:10]:  # Limit to first 10
+                if "Compiled PDF already exists: " in error:
+                    error += " Retry without --no-overwrite to replace the existing PDF."
                 typer.secho(f"  - {error}", fg=typer.colors.RED)
             if len(result.errors) > 10:
                 typer.echo(f"  ... and {len(result.errors) - 10} more")

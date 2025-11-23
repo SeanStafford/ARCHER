@@ -359,6 +359,7 @@ def compile_resume(
     num_passes: int = 2,
     verbose: bool = False,
     keep_artifacts_on_success: bool = False,
+    overwrite_allowed: bool = True,
 ) -> CompilationResult:
     """
     Compile a resume LaTeX file with registry tracking and organized output management.
@@ -383,6 +384,7 @@ def compile_resume(
         num_passes: Number of compiler passes (default: 2 for cross-references)
         verbose: Show detailed warnings/errors in logs (default: False)
         keep_artifacts_on_success: Keep LaTeX artifacts (.aux, .log, etc.) on success (default: False)
+        overwrite_allowed: Allow overwriting existing compiled PDFs (default: True)
 
     Returns:
         CompilationResult with success status and diagnostic information
@@ -407,11 +409,21 @@ def compile_resume(
             success=False, errors=[f"Cannot determine resume type for {resume_name}"]
         )
 
+    # Precondition check for output path conflicts BEFORE compilation (fail fast)
+    compiled_dir = DATA_PATH / "resumes" / resume_type / "compiled"
+    final_pdf = compiled_dir / f"{resume_name}.pdf"
+    if final_pdf.exists() and not overwrite_allowed:
+        return CompilationResult(
+            success=False, errors=[f"Compiled PDF already exists: {final_pdf}."]
+        )
+
     # Create timestamped log directory for this compilation
     timestamp = now()
     log_dir = LOGS_PATH / f"compile_{timestamp}"
     log_dir.mkdir(parents=True, exist_ok=True)
 
+    ## TODO: If using custom output_dir, do not move PDF to compiled_dir? Clarify desired behavior.
+    ##       For example, should this affect pipeline event logging behavior?
     if output_dir is None:
         output_dir = log_dir
     else:
@@ -454,10 +466,12 @@ def compile_resume(
     # Handle success vs failure
     if result.success:
         # Move PDF to resume-type-specific compiled directory
-        compiled_dir = DATA_PATH / "resumes" / resume_type / "compiled"
         compiled_dir.mkdir(parents=True, exist_ok=True)
 
-        final_pdf = compiled_dir / f"{resume_name}.pdf"
+        # Log if overwriting (precondition check already validated this is allowed)
+        if final_pdf.exists():
+            _log_info(f"Overwriting existing PDF: {final_pdf}")
+
         shutil.move(result.pdf_path, final_pdf)
         _log_info(f"PDF saved to: {final_pdf}")
 
