@@ -281,11 +281,7 @@ def compile_latex(
 
 
 def log_historical_compilation_in_events_pipeline(
-    resume_name: str,
-    activity: str,
-    status: str,
-    compilation_time_s: float,
-    **extra_fields
+    resume_name: str, activity: str, status: str, compilation_time_s: float, **extra_fields
 ) -> None:
     """
     Log compilation activity for historical resumes without changing status.
@@ -314,10 +310,7 @@ def log_historical_compilation_in_events_pipeline(
 
 
 def log_compilation_in_events_pipeline(
-    resume_name: str,
-    outcome: str,
-    compilation_time_s: float,
-    **extra_fields_for_pipeline_event
+    resume_name: str, outcome: str, compilation_time_s: float, **extra_fields_for_pipeline_event
 ) -> None:
     """
     Log compilation outcome to pipeline events with type-aware behavior.
