@@ -13,6 +13,7 @@ Commands:
     stats    - Show registry statistics
     status   - Get status of a specific resume
     update   - Manually update resume status
+    locate   - Get file path for a resume by identifier
 """
 
 import os
@@ -27,6 +28,7 @@ from archer.utils.resume_registry import (
     TEST_STATUSES,
     count_resumes,
     get_all_resumes,
+    get_resume_file,
     get_resume_status,
     list_resumes_by_status,
     list_resumes_by_type,
@@ -419,6 +421,44 @@ def update_command(
     except Exception as e:
         typer.secho(f"✗ Failed to update: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
+
+
+@app.command("locate")
+def locate_command(
+    resume_name: str = typer.Argument(
+        ..., help="Resume identifier (e.g. _test_Res202511_Fry_MomCorp)"
+    ),
+    file_type: str = typer.Option(
+        "tex", "--type", "-t", help="File type: tex, pdf, yaml, or raw (default: tex)"
+    ),
+):
+    """
+    Get file path for a resume by identifier.
+
+    Uses the registry to determine resume_type and constructs the expected file path.
+    Shows whether the file exists at the expected location.
+
+    Examples:\n
+
+        $ manage_registry.py locate Res202510             # Locate .tex file
+
+        $ manage_registry.py locate Res202510 --type pdf  # Locate .pdf file
+
+        $ manage_registry.py locate Res202510 -t yaml     # Locate .yaml file
+    """
+    try:
+        file_path = get_resume_file(resume_name, file_type)
+        typer.echo(file_path)
+
+    except FileNotFoundError as e:
+        # Extract expected path from error message
+        expected_path = str(e).split("expected path:\n")[-1]
+        typer.echo(expected_path)
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+    except ValueError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
 
 
 if __name__ == "__main__":

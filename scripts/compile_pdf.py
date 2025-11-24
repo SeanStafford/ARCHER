@@ -11,11 +11,15 @@ Commands:
 
 Examples:\n
 
-    compile_pdf.py compile data/resume_archive/Res202506.tex  # Compile single resume
+    compile_pdf.py compile Res202511                          # Compile using identifier
 
-    compile_pdf.py compile Res202506.tex --verbose            # Verbose output
+    compile_pdf.py compile data/resume_archive/Res202506.tex  # Compile using path
 
-    compile_pdf.py validate path/to/resume.pdf                # Validate PDF
+    compile_pdf.py compile Res202511 --verbose                # Verbose output
+
+    compile_pdf.py validate Res202511                         # Validate using identifier
+
+    compile_pdf.py validate path/to/resume.pdf                # Validate using path
 """
 
 import os
@@ -29,10 +33,10 @@ from typing_extensions import Annotated
 
 from archer.contexts.rendering import compile_resume
 from archer.contexts.rendering.validator import validate_resume
+from archer.utils import get_resume_file
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
-RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 
 app = typer.Typer(
     help="Compile LaTeX resumes to PDF and validate compiled PDFs with registry tracking",
@@ -51,13 +55,10 @@ def main(ctx: typer.Context):
 
 @app.command("compile")
 def compile_command(
-    tex_file: Annotated[
-        Path,
+    tex_source: Annotated[
+        str,
         typer.Argument(
-            help="LaTeX resume file to compile (.tex extension)",
-            exists=True,
-            dir_okay=False,
-            resolve_path=True,
+            help="LaTeX resume file path OR resume identifier",
         ),
     ],
     output_dir: Annotated[
@@ -112,12 +113,23 @@ def compile_command(
 
     Examples:\n
 
-        $ compile_pdf.py compile path/to/resume.tex            # Compile single resume
+        $ compile_pdf.py compile Res202511                     # Compile using identifier
 
-        $ compile_pdf.py compile path/to/resume.tex --verbose  # Verbose output
+        $ compile_pdf.py compile path/to/resume.tex            # Compile using path
+
+        $ compile_pdf.py compile Res202511 --verbose           # Verbose output
 
         $ compile_pdf.py compile path/to/resume.tex --passes 3 # Three compilation passes
     """
+
+    # Infer path from identifier if needed
+    if "/" not in tex_source and "." not in tex_source:
+        # interpret as resume identifier
+        tex_file = get_resume_file(tex_source)
+    else:
+        # interpret as file path
+        tex_file = Path(tex_source)
+
     # Validate file extension
     if tex_file.suffix != ".tex":
         typer.secho(
@@ -179,13 +191,10 @@ def compile_command(
 
 @app.command("validate")
 def validate_command(
-    pdf_file: Annotated[
-        Path,
+    pdf_source: Annotated[
+        str,
         typer.Argument(
-            help="Compiled resume PDF to validate (.pdf extension)",
-            exists=True,
-            dir_okay=False,
-            resolve_path=True,
+            help="Compiled resume PDF path OR resume identifier",
         ),
     ],
     expected_pages: Annotated[
@@ -215,21 +224,30 @@ def validate_command(
 
     Examples:\n
 
-        $ compile_pdf.py validate path/to/resume.pdf            # Validate PDF
+        $ compile_pdf.py validate Res202511                     # Validate using identifier
 
-        $ compile_pdf.py validate path/to/resume.pdf --verbose  # Show all issues
+        $ compile_pdf.py validate path/to/resume.pdf            # Validate using path
+
+        $ compile_pdf.py validate Res202511 --verbose           # Show all issues
 
         $ compile_pdf.py validate path/to/resume.pdf -e 1       # Expect 1 page
     """
+    # Infer path from identifier if needed
+    if "/" not in pdf_source and "." not in pdf_source:
+        # interpret as resume identifier
+        pdf_file = get_resume_file(pdf_source, "pdf")
+        resume_name = pdf_source
+    else:
+        # interpret as file path
+        pdf_file = Path(pdf_source)
+        resume_name = pdf_file.stem
+
     # Validate file extension
     if pdf_file.suffix != ".pdf":
         typer.secho(
             f"Error: File must have .pdf extension: {pdf_file}", fg=typer.colors.RED, err=True
         )
         raise typer.Exit(code=1)
-
-    # Extract resume name from filename
-    resume_name = pdf_file.stem
 
     # Display validation info
     typer.secho(f"\nValidating: {pdf_file.name}", fg=typer.colors.BLUE, bold=True)

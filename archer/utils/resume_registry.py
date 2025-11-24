@@ -37,6 +37,15 @@ from archer.utils.timestamp import now_exact
 load_dotenv()
 REGISTRY_FILE = Path(os.getenv("RESUME_REGISTRY"))
 REGISTRY_COLUMNS = ["resume_name", "resume_type", "status", "last_updated"]
+RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
+DATA_PATH = Path(os.getenv("DATA_PATH"))
+
+RESUME_PATH_By_FILETYPE = {
+    "tex": "",
+    "pdf": "compiled/",
+    "yaml": "structured/",
+    "raw": "raw/",
+}
 
 # Allowed statuses by resume type
 
@@ -339,3 +348,74 @@ def count_resumes(registry_file: Optional[Path] = None) -> Dict[str, int]:
         by_type[resume["resume_type"]] += 1
 
     return {"total": len(all_resumes), "by_status": by_status, "by_type": by_type}
+
+
+def get_resume_file(identifier: str, file_type: str = "tex") -> Path:
+    """
+    Get the file path for a resume by identifier.
+
+    Args:
+        identifier: Resume identifier (e.g. "_test_Res202511_Fry_MomCorp")
+        file_type: File type ("tex", "pdf", "yaml", or "raw"). Defaults to "tex"
+
+    Returns:
+        Path to the resume file
+
+    Raises:
+        ValueError: If resume not registered or file_type invalid
+        FileNotFoundError: If file not found at expected path
+
+    Examples:
+        >>> get_resume_file("Res202506")  # Defaults to "tex"
+        Path('/home/sean/ARCHER/data/resume_archive/Res202506.tex')
+
+        >>> get_resume_file("Res202506", "tex")
+        Path('/home/sean/ARCHER/data/resume_archive/Res202506.tex')
+
+        >>> get_resume_file("Res202506", "pdf")
+        Path('/home/sean/ARCHER/data/resumes/historical/compiled/Res202506.pdf')
+
+        >>> get_resume_file("Res202511", "yaml")
+        Path('/home/sean/ARCHER/data/resumes/experimental/structured/Res202511.yaml')
+    """
+
+    # Determine file extension (raw uses .tex extension)
+    extension = "tex" if file_type == "raw" else file_type
+
+    # Validate file type
+    if file_type not in RESUME_PATH_By_FILETYPE:
+        valid_types = ", ".join(f"'{t}'" for t in RESUME_PATH_By_FILETYPE.keys())
+        raise ValueError(f"Invalid file_type '{file_type}'. Must be one of: {valid_types}")
+
+    # Query registry for resume_type
+    registry_entry = get_resume_status(identifier)
+    if not registry_entry:
+        raise ValueError(f"Resume '{identifier}' not found in registry")
+
+    resume_type = registry_entry["resume_type"]
+
+    # Construct path: data/resumes/{type}/{subdirectory}/{identifier}.{extension}
+    path = (
+        DATA_PATH
+        / "resumes"
+        / resume_type
+        / RESUME_PATH_By_FILETYPE[file_type]
+        / f"{identifier}.{extension}"
+    )
+
+    if not path.exists():
+        # Special case: historical/test files may still live in archive
+        # TODO: Migration these from data/resume_archive
+        if file_type != "pdf" and resume_type in ["historical", "test"]:
+            unmigrated_path = (
+                RESUME_ARCHIVE_PATH
+                / f"{RESUME_PATH_By_FILETYPE[file_type]}{identifier}.{extension}"
+            )
+            if unmigrated_path.exists():
+                return unmigrated_path
+
+        raise FileNotFoundError(
+            f"File for resume '{identifier}' of type '{file_type}' not found at expected path:\n{path}"
+        )
+
+    return path
