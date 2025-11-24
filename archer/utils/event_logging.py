@@ -28,7 +28,7 @@ Usage:
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 
@@ -36,7 +36,16 @@ from archer.utils.timestamp import now_exact
 
 load_dotenv()
 LOGS_PATH = Path(os.getenv("LOGS_PATH", "outs/logs"))
-PIPELINE_EVENTS_FILE = LOGS_PATH / "resume_pipeline_events.log"
+PIPELINE_EVENTS_FILE = Path(os.getenv("PIPELINE_EVENTS_FILE"))
+
+# Event types that mutate registry state
+MUTATIVE_EVENTS = {"registration", "status_change"}
+
+# Map event types to their status field names
+STATUS_FIELD_BY_EVENT_TYPE = {
+    "status_change": "new_status",
+    "registration": "status",
+}
 
 
 def log_pipeline_event(event_type: str, resume_name: str, source: str, **extra_fields) -> None:
@@ -154,3 +163,97 @@ def get_recent_events(
 
     # Return last n events
     return events[-n:] if len(events) > n else events
+
+
+def get_status_from_event(event: Dict) -> str:
+    """Extract status from event based on event type."""
+    event_type = event["event_type"]
+    status_field = STATUS_FIELD_BY_EVENT_TYPE[event_type]
+    return event[status_field]
+
+
+def deduce_registry_from_events(event_order: str = "ascending") -> List[Dict[str, str]]:
+    """
+    Deduce registry state from pipeline events.
+
+    Rebuilds registry by analyzing all pipeline events and determining
+    the correct status and timestamp for each resume based on the most
+    recent mutative event (registration or status_change).
+
+    Args:
+        event_order: Chronological order of events in log ("ascending" or "descending")
+                    Default: "ascending" (oldest first, newest last)
+
+    Returns:
+        List of registry_entry dicts, each containing: resume_name, resume_type, status, and last_updated
+        Sorted by registration order (chronological).
+
+    Raises:
+        ValueError: If event_order is not "ascending" or "descending"
+        ValueError: If events are not in the specified chronological order
+        ValueError: If no mutative events found for a registered resume
+    """
+
+    if event_order not in ("ascending", "descending"):
+        raise ValueError(f"event_order must be 'ascending' or 'descending', got: {event_order}")
+
+    # Load all events
+    events = []
+    with open(PIPELINE_EVENTS_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                event = json.loads(line.strip())
+                events.append(event)
+            except json.JSONDecodeError:
+                # Skip malformed lines
+                continue
+
+    # Initialize registry from registration events (chronological order)
+    registry = []
+    for event in events:
+        if event.get("event_type") == "registration":
+            resume_name = event["resume_name"]
+            resume_type = event["resume_type"]
+            registry.append(
+                {
+                    "resume_name": resume_name,
+                    "resume_type": resume_type,
+                }
+            )
+
+    # Update each resume with most recent mutative event
+    for resume_entry in registry:
+        resume_name = resume_entry["resume_name"]
+        # Get most recent mutative event for this resume
+        pipeline_events = [
+            event
+            for event in events
+            if event.get("resume_name") == resume_name
+            and event.get("event_type") in MUTATIVE_EVENTS
+        ]
+
+        if not pipeline_events:
+            raise ValueError(f"No mutative events found for registered resume: {resume_name}")
+        elif len(pipeline_events) > 1:  # Verify events are in chronological order (sanity check)
+            timestamps = [event["timestamp"] for event in pipeline_events]
+            expected_order = (
+                sorted(timestamps)
+                if event_order == "ascending"
+                else sorted(timestamps, reverse=True)
+            )
+            if timestamps != expected_order:
+                raise ValueError(
+                    f"Events are not in {event_order} chronological order for resume: {resume_name}. "
+                    f"This indicates corruption in the pipeline events log."
+                )
+
+        # Get most recent event based on order
+        most_recent = pipeline_events[-1] if event_order == "ascending" else pipeline_events[0]
+
+        # Extract status from event
+        status = get_status_from_event(most_recent)
+
+        resume_entry["status"] = status
+        resume_entry["last_updated"] = most_recent["timestamp"]
+
+    return registry

@@ -312,24 +312,25 @@ def list_resumes_by_type(resume_type: str) -> List[Dict[str, str]]:
     return resumes
 
 
-def get_all_resumes() -> List[Dict[str, str]]:
+def get_all_resumes(registry_file: Optional[Path] = None) -> List[Dict[str, str]]:
     """Get all registered resumes."""
+    file_path = registry_file if registry_file else REGISTRY_FILE
     resumes = []
-    with open(REGISTRY_FILE, "r", newline="", encoding="utf-8") as f:
+    with open(file_path, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             resumes.append(dict(row))
     return resumes
 
 
-def count_resumes() -> Dict[str, int]:
+def count_resumes(registry_file: Optional[Path] = None) -> Dict[str, int]:
     """
     Get counts of resumes by status and type.
 
     Returns:
         Dict with total count, counts by status, and counts by type
     """
-    all_resumes = get_all_resumes()
+    all_resumes = get_all_resumes(registry_file)
 
     by_status = Counter()
     by_type = Counter()
