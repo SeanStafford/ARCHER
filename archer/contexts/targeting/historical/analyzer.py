@@ -24,6 +24,7 @@ DEFAULT_EXCLUDED_SECTIONS = [
     "Marketable Monikers",
     "Certifiable Pseudonyms",
     "Alliterative Alias",
+    "2 Truths and a Lie",
 ]
 
 

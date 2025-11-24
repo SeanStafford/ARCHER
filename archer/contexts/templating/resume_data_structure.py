@@ -11,7 +11,6 @@ Templating owns:
 Targeting operates on ResumeDocument instances for analysis and content selection.
 """
 
-import re
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,8 +26,6 @@ from archer.contexts.templating.markdown_formatter import (
 )
 from archer.utils.latex_parsing_tools import to_plaintext
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
-
-DEFAULT_BLACKLIST_PATTERNS = ["Truths and a Lie"]
 
 
 @dataclass
@@ -162,7 +159,6 @@ class ResumeDocument:
         self,
         yaml_path: Path,
         mode: str = "markdown",
-        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
     ):
         """
         Load resume from YAML file and simplify to Targeting-focused structure.
@@ -170,7 +166,6 @@ class ResumeDocument:
         Args:
             yaml_path: Path to YAML file (structured resume format)
             mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
-            blacklist_patterns: Optional list of regex patterns to exclude sections by name (default: None)
 
         Returns:
             ResumeDocument instance
@@ -193,7 +188,6 @@ class ResumeDocument:
             raise FileNotFoundError(f"YAML file not found: {yaml_path}")
 
         self.mode = mode
-        self.blacklist_patterns = blacklist_patterns
         yaml_data = OmegaConf.load(yaml_path)
         yaml_dict = OmegaConf.to_container(yaml_data, resolve=True)
 
@@ -233,13 +227,6 @@ class ResumeDocument:
                     metadata = section_data["metadata"]
                     section_name = metadata["name_plaintext"]
 
-                    # Skip section if name matches any blacklist pattern
-                    if any(
-                        re.search(pattern, section_name, re.IGNORECASE)
-                        for pattern in self.blacklist_patterns
-                    ):
-                        continue
-
                     if "subsections" in section_data:
                         # Parse all subsections
                         subsections = [
@@ -263,7 +250,7 @@ class ResumeDocument:
 
     @classmethod
     def from_tex(
-        cls, tex_path: Path, mode: str = "markdown", blacklist_patterns: Optional[List[str]] = None
+        cls, tex_path: Path, mode: str = "markdown"
     ) -> "ResumeDocument":
         """
         Parse a .tex file into a structured ResumeDocument.
@@ -273,7 +260,6 @@ class ResumeDocument:
         Args:
             tex_path: Path to LaTeX resume file
             mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
-            blacklist_patterns: Optional list of regex patterns to exclude sections by name (default: DEFAULT_BLACKLIST_PATTERNS)
 
         Returns:
             ResumeDocument instance
@@ -300,7 +286,7 @@ class ResumeDocument:
             latex_to_yaml(tex_path, tmp_path)
 
             # Load from YAML with specified mode
-            doc = cls(tmp_path, mode=mode, blacklist_patterns=blacklist_patterns)
+            doc = cls(tmp_path, mode=mode)
 
             # Clean up temp file
             tmp_path.unlink()
@@ -596,7 +582,6 @@ class ResumeDocumentArchive:
         self,
         mode: str = "available",
         format_mode: str = "markdown",
-        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
     ) -> List[ResumeDocument]:
         """
         Load resume documents from archive.
@@ -606,7 +591,6 @@ class ResumeDocumentArchive:
                 - "available": Load only pre-converted YAMLs from structured/
                 - "all": Load all .tex files, converting if needed
             format_mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
-            blacklist_patterns: Optional list of regex patterns to exclude sections by name (default: DEFAULT_BLACKLIST_PATTERNS)
 
         Returns:
             List of successfully loaded ResumeDocument instances
@@ -618,9 +602,9 @@ class ResumeDocumentArchive:
             raise ValueError(f"Invalid mode: {mode}. Must be 'available' or 'all'")
 
         if mode == "available":
-            docs = self._load_available(format_mode, blacklist_patterns)
+            docs = self._load_available(format_mode)
         else:
-            docs = self._load_all(format_mode, blacklist_patterns)
+            docs = self._load_all(format_mode)
 
         # Store documents in dict keyed by filename
         self.documents = {doc.filename: doc for doc in docs}
@@ -629,7 +613,6 @@ class ResumeDocumentArchive:
     def _load_available(
         self,
         format_mode: str = "markdown",
-        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
     ) -> List[ResumeDocument]:
         """Load only pre-converted YAMLs from structured/ directory."""
         if not self.structured_path.exists():
@@ -647,7 +630,7 @@ class ResumeDocumentArchive:
         for yaml_file in yaml_files:
             try:
                 doc = ResumeDocument(
-                    yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                    yaml_file, mode=format_mode
                 )
                 documents.append(doc)
             except Exception as e:
@@ -664,7 +647,6 @@ class ResumeDocumentArchive:
     def _load_all(
         self,
         format_mode: str = "markdown",
-        blacklist_patterns: List[str] = DEFAULT_BLACKLIST_PATTERNS,
     ) -> List[ResumeDocument]:
         """Load all resumes, converting .tex files if needed."""
         # Get all .tex files
@@ -685,12 +667,12 @@ class ResumeDocumentArchive:
                     # Load from YAML
                     yaml_file = self.structured_path / f"{tex_file.stem}.yaml"
                     doc = ResumeDocument(
-                        yaml_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                        yaml_file, mode=format_mode
                     )
                 else:
                     # Convert from .tex
                     doc = ResumeDocument.from_tex(
-                        tex_file, mode=format_mode, blacklist_patterns=blacklist_patterns
+                        tex_file, mode=format_mode
                     )
                 documents.append(doc)
             except Exception as e:
