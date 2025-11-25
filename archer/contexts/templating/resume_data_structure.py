@@ -249,9 +249,7 @@ class ResumeDocument:
                     self.sections.append(section)
 
     @classmethod
-    def from_tex(
-        cls, tex_path: Path, mode: str = "markdown"
-    ) -> "ResumeDocument":
+    def from_tex(cls, tex_path: Path, mode: str = "markdown") -> "ResumeDocument":
         """
         Parse a .tex file into a structured ResumeDocument.
 
@@ -629,9 +627,7 @@ class ResumeDocumentArchive:
 
         for yaml_file in yaml_files:
             try:
-                doc = ResumeDocument(
-                    yaml_file, mode=format_mode
-                )
+                doc = ResumeDocument(yaml_file, mode=format_mode)
                 documents.append(doc)
             except Exception as e:
                 errors.append((yaml_file.name, str(e)))
@@ -666,14 +662,10 @@ class ResumeDocumentArchive:
                 if tex_file.stem in existing_yamls:
                     # Load from YAML
                     yaml_file = self.structured_path / f"{tex_file.stem}.yaml"
-                    doc = ResumeDocument(
-                        yaml_file, mode=format_mode
-                    )
+                    doc = ResumeDocument(yaml_file, mode=format_mode)
                 else:
                     # Convert from .tex
-                    doc = ResumeDocument.from_tex(
-                        tex_file, mode=format_mode
-                    )
+                    doc = ResumeDocument.from_tex(tex_file, mode=format_mode)
                 documents.append(doc)
             except Exception as e:
                 errors.append((tex_file.name, str(e)))
