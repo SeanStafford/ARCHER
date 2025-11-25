@@ -24,7 +24,13 @@ from archer.contexts.templating.markdown_formatter import (
     format_subsections_markdown,
     format_work_experience_markdown,
 )
-from archer.utils.latex_parsing_tools import to_plaintext
+from archer.contexts.templating.registries import TemplateRegistry
+from archer.utils.latex_parsing_tools import (
+    LaTeXPatterns,
+    extract_environment_content,
+    parse_itemize_content,
+    to_plaintext,
+)
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
 
 
@@ -419,42 +425,28 @@ class ResumeDocument:
         }
 
     def _parse_education(self, section_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse education section, respecting mode.
+        """Parse education section by rendering the Jinja template.
+
+        NOTE:  The Education section is special in that it can never change on any resumes.
+        Therefore, unlike other sections where content lives in YAML, education content
+        is hardcoded in template/types/education/template.tex.jinja. The YAML only
+        stores metadata flags (include_dissertation, include_minor, use_icon_bullets).
+        We render the template to get actual content, then parse the resulting LaTeX.
 
         Args:
-            section_data: Education data from YAML
-            section_name: Section heading name (e.g., "Education")
+            section_data: Education data from YAML (contains metadata flags only)
         """
         metadata = section_data.get("metadata", {})
-        content = section_data.get("content", {})
 
-        # Convert metadata fields based on mode
-        if self.mode == "markdown":
-            institution = latex_to_markdown(metadata.get("institution", ""))
-            degree = latex_to_markdown(metadata.get("degree", ""))
-            field = latex_to_markdown(metadata.get("field", ""))
-            dates = latex_to_markdown(metadata.get("dates", ""))
-        else:  # plaintext
-            institution = to_plaintext(metadata.get("institution", ""))
-            degree = to_plaintext(metadata.get("degree", ""))
-            field = to_plaintext(metadata.get("field", ""))
-            dates = to_plaintext(metadata.get("dates", ""))
+        # Render the education template to get actual content
+        template = TemplateRegistry().get_template("education")
+        rendered = template.render({"metadata": metadata})
 
-        # Extract items based on mode
-        if self.mode == "markdown":
-            items = [latex_to_markdown(b["latex_raw"]) for b in content.get("bullets", [])]
-        else:  # plaintext
-            items = [b["plaintext"] for b in content.get("bullets", [])]
+        # Extract itemize content and parse entries
+        content, _, _ = extract_environment_content(rendered, "itemize")
+        entries = parse_itemize_content(content, LaTeXPatterns.ITEM_ANY)
 
-        data = {
-            "institution": institution,
-            "degree": degree,
-            "field": field,
-            "dates": dates,
-            "items": items,
-        }
-
-        return data
+        return {"items": [e["plaintext"] for e in entries]}
 
     def get_section(self, name: str, case_sensitive: bool = False) -> ResumeSection:
         """

@@ -7,10 +7,3 @@ operations:
   type_field:
     extract_literal: type
     value: education
-
-# Complex multi-level nesting requires custom parser:
-# 1. Outer itemize with leftmargin=0pt
-# 2. Institution blocks: \item[] {\scshape Name} \hfill Location
-# 3. Nested itemize for degrees
-# 4. Degree items: \item[\faUserGraduate] Degree \hfill Date
-# 5. Optional nested itemizeSecond for details

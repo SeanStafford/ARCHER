@@ -647,7 +647,7 @@ def remove_command_at_end(text: str, command: str) -> str:
     return re.sub(pattern, "", text)
 
 
-def to_plaintext(latex_str: str) -> str:
+def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
     """
     Strip ALL LaTeX commands from text, returning pure plaintext.
 
@@ -657,6 +657,7 @@ def to_plaintext(latex_str: str) -> str:
     - Literal braces used for grouping ({text})
     - All other backslash commands
     - Extra whitespace
+    - LaTeX optional parameters like [leftmargin=0pt] (if strip_latex_params=True)
 
     Converts to plaintext equivalents:
     - Escaped braces (\\{ and \\}) become literal { and }
@@ -669,6 +670,7 @@ def to_plaintext(latex_str: str) -> str:
 
     Args:
         latex_str: LaTeX string with formatting commands
+        strip_latex_params: If True, remove bracket params containing = (default: True)
 
     Returns:
         Plain text with all LaTeX commands removed
@@ -746,6 +748,11 @@ def to_plaintext(latex_str: str) -> str:
     result = re.sub(LaTeXPatterns.ANY_COMMAND_WITH_BRACES, "", result)
     # Then remove commands without braces
     result = re.sub(LaTeXPatterns.ANY_COMMAND_NO_BRACES, "", result)
+
+    # Remove LaTeX optional parameters (brackets containing =, like [leftmargin=0pt])
+    # These are left behind after \begin{env} is stripped. Content brackets like [1] are preserved.
+    if strip_latex_params:
+        result = re.sub(r"\[[^\]]*=[^\]]*\]", "", result)
 
     # Remove literal braces used for grouping (not escaped braces)
     # Escaped braces (\{ and \}) should be converted to literal { and }
