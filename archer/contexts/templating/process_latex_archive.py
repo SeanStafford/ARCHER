@@ -117,6 +117,7 @@ def normalize_sean_resume_structure(content: str) -> str:
     13. Collapse multiple spaces to single space after \\item commands
     14. Remove trailing % with only whitespace before it on line
     15. Remove \\vspace between nested project environments (itemizeAProject, itemizeKeyProject)
+    16. Add newline after \\\\ if not already present
 
     Args:
         content: The LaTeX content to normalize
@@ -203,6 +204,11 @@ def normalize_sean_resume_structure(content: str) -> str:
         r"\1\n\n\n\2",
         result,
     )
+
+    # Rule 16: Add newline after \\ if not already present
+    # Matches: \\ followed by spaces/tabs → \\\n
+    # This ensures consistent line breaks
+    result = re.sub(r"\\\\[ \t]+", r"\\\\\n", result)
 
     return result
 
