@@ -13,7 +13,7 @@ operations:
   # Pattern matches: anything that's not a pipe, then looks ahead for pipe or end
   items_raw:
     operation: extract_regex
-    regex_pattern: '\s*(?P<item>[^|]+?)\s*(?=\||$)'
+    regex_pattern: '\s*(?P<item>[^|]+?)\s*(?=\||$|\n)'
     output_context: items_strings
 
   # Transform strings to dicts with {latex_raw, plaintext}
