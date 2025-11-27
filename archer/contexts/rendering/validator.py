@@ -1,23 +1,29 @@
 """
-PDF validation for compiled resumes.
+Resume validation with actionable feedback for targeting.
 
-Validates PDF quality including page count, content density, and layout constraints.
+Validates compiled resumes against their structured YAML using layout diagnostics.
+Generates actionable feedback reports when validation fails, enabling the
+targeting context to make efficient adjustments in the feedback loop.
 """
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from PyPDF2 import PdfReader
 
+from archer.contexts.rendering.layout_diagnostics import (
+    DocumentDiagnostics,
+    analyze_layout,
+)
 from archer.contexts.rendering.logger import (
     log_validation_result,
     log_validation_start,
     setup_rendering_logger,
 )
 from archer.utils.resume_registry import (
+    get_resume_file,
     get_resume_status,
     resume_is_registered,
     update_resume_status,
@@ -32,120 +38,117 @@ LOGS_PATH = Path(os.getenv("LOGS_PATH"))
 @dataclass
 class ValidationResult:
     """
-    Result of PDF validation.
+    Result of resume validation.
 
     Attributes:
-        is_valid: Whether the PDF passes all validation checks
-        page_count: Number of pages in the PDF
-        issues: List of validation issues found (warnings or errors)
+        is_valid: Whether the resume passes all validation checks
+        diagnostics: Layout diagnostics from PDF/YAML comparison
+        feedback: Actionable feedback for targeting (only if invalid)
     """
 
     is_valid: bool
-    page_count: int
-    issues: List[str] = field(default_factory=list)
+    diagnostics: DocumentDiagnostics
+    feedback: Optional[Dict[str, str]] = None
+
+    @property
+    def issues(self) -> List[str]:
+        """All issues from diagnostics hierarchy."""
+        return self.diagnostics.get_inherited_issues()
+
+    @property
+    def page_count(self) -> int:
+        """Actual page count from PDF."""
+        return self.diagnostics.actual_page_count
 
 
-def validate_pdf(pdf_path: Path, expected_pages: int = 2) -> ValidationResult:
+def generate_feedback_report(diagnostics: DocumentDiagnostics) -> str:
     """
-    Validate a compiled resume PDF.
+    Generate actionable feedback for the targeting context.
 
-    Checks:
-    - PDF file exists and is readable
-    - Page count matches expected value (default: 2 pages)
-
-    Args:
-        pdf_path: Path to the PDF file to validate
-        expected_pages: Expected number of pages (default: 2 for ARCHER resumes)
-
-    Returns:
-        ValidationResult with validation status and any issues found
-
-    Example:
-        >>> result = validate_pdf(Path("resume.pdf"))
-        >>> if result.is_valid:
-        ...     print(f"Valid PDF with {result.page_count} pages")
-        ... else:
-        ...     print(f"Issues: {result.issues}")
+    Reports:
+    - Sections not found (may indicate horizontal overflow)
+    - Column overflows with list of sections in that column
     """
-    issues = []
-    page_count = 0
+    lines = []
 
-    # Check if PDF exists
-    if not pdf_path.exists():
-        return ValidationResult(is_valid=False, page_count=0, issues=["PDF file not found"])
+    recommendations_counter = 0
+    recommendations_counter_str = "\n#{counter}"
 
-    # Check if PDF is readable and count pages
-    try:
-        reader = PdfReader(str(pdf_path))
-        page_count = len(reader.pages)
+    # Collect all sections not found (across all pages/columns)
+    for page_diag in diagnostics.components:
+        for column_diag in page_diag.components:
+            for section_diag in column_diag.components:
+                if not section_diag.end_found:
+                    section = section_diag.section_name
+                    region = section_diag.region_name
+                    page = section_diag.intended_page
 
-    except Exception as e:
-        return ValidationResult(
-            is_valid=False, page_count=0, issues=[f"Failed to read PDF: {str(e)}"]
-        )
+                    recommendations_counter += 1
+                    lines.append(
+                        recommendations_counter_str.format(counter=recommendations_counter)
+                    )
 
-    # Validate page count
-    if page_count != expected_pages:
-        issue = f"Page count mismatch: expected {expected_pages} pages, got {page_count} pages"
-        issues.append(issue)
+                    lines.append(
+                        f"issue:section_missing::section:{section}::region:{region}::page:{page}"
+                    )
+                    lines.append(f"action: Check for horizontal overflow in section '{section}'")
 
-    # Determine overall validity
-    is_valid = len(issues) == 0
+    # Report column overflows
+    for page_diag in diagnostics.components:
+        for column_diag in page_diag.components:
+            if column_diag.overflow_amount > 0:
+                page_num = page_diag.intended_page_number
+                region = column_diag.region_name
 
-    return ValidationResult(is_valid=is_valid, page_count=page_count, issues=issues)
+                recommendations_counter += 1
+                lines.append(recommendations_counter_str.format(counter=recommendations_counter))
+                lines.append(
+                    f"issue:column_overflow::region:{region}::page:{page_num}::overflow_amount:{column_diag.overflow_amount}"
+                )
+                sections_string = ", ".join(f"'{s.section_name}'" for s in column_diag.components)
+                lines.append(
+                    f"action: Shorten one or more section(s) in this column: {sections_string}"
+                )
+
+    return "\n".join(lines)
 
 
-def validate_resume(
-    resume_name: str,
-    pdf_path: Path,
-    expected_pages: int = 2,
-    verbose: bool = False,
-) -> ValidationResult:
+def validate_resume(resume_name: str) -> ValidationResult:
     """
-    Validate a compiled resume PDF with registry tracking and logging.
+    Validate a compiled resume against its structured YAML.
 
-    Orchestration function that wraps validate_pdf() with ARCHER-specific
-    resume tracking via the registry system. Logs status changes to the
-    pipeline event log (Tier 2 logging) and detailed validation results
-    to render.log (Tier 1 logging).
+    Orchestration function that:
+    1. Resolves file paths from the registry
+    2. Runs layout diagnostics (PDF vs YAML comparison)
+    3. Generates actionable feedback if validation fails
+    4. Logs to both Tier 1 (render.log) and Tier 2 (pipeline events)
 
     Args:
         resume_name: Resume identifier (must be registered)
-        pdf_path: Path to the PDF file to validate
-        expected_pages: Expected number of pages (default: 2 for ARCHER resumes)
-        verbose: Show detailed validation issues (default: False)
 
     Returns:
-        ValidationResult with validation status and any issues found
+        ValidationResult with diagnostics and feedback (if invalid)
 
     Example:
-        >>> from pathlib import Path
-        >>> result = validate_resume(
-        ...     "Res202511_MLEng", Path("data/resumes/experimental/compiled/Res202511_MLEng.pdf")
-        ... )
-        >>> print(f"Valid: {result.is_valid}, Pages: {result.page_count}")
+        >>> result = validate_resume("Res202511_MLEng")
+        >>> if result.is_valid:
+        ...     print("Ready for final approval")
+        ... else:
+        ...     print(result.feedback)
     """
-    pdf_path = Path(pdf_path).resolve()
-
-    # Early validation before any registry updates
-    if not pdf_path.exists():
-        return ValidationResult(
-            is_valid=False, page_count=0, issues=[f"PDF file not found: {pdf_path}"]
-        )
-
     # Verify resume is registered
     if not resume_is_registered(resume_name):
-        return ValidationResult(
-            is_valid=False, page_count=0, issues=[f"Resume not registered: {resume_name}"]
-        )
+        raise ValueError(f"Resume not registered: {resume_name}")
 
     # Reject validation of historical resumes (read-only reference, already approved)
     if get_resume_status(resume_name).get("resume_type") == "historical":
-        return ValidationResult(
-            is_valid=False,
-            page_count=0,
-            issues=["Cannot validate historical resumes (read-only reference, already approved)"],
+        raise ValueError(
+            "Cannot validate historical resumes (read-only reference, already approved)"
         )
+
+    # Get file paths from registry
+    yaml_path = get_resume_file(resume_name, "yaml")
+    pdf_path = get_resume_file(resume_name, "pdf")
 
     # Create timestamped log directory for this validation
     timestamp = now()
@@ -153,23 +156,32 @@ def validate_resume(
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Setup loguru logger with provenance
-    setup_rendering_logger(log_dir)
+    log_file = setup_rendering_logger(log_dir)
 
     # Create symlink in log directory pointing to PDF being validated
     pdf_symlink = log_dir / "resume.pdf"
     pdf_symlink.symlink_to(pdf_path)
 
     # Log start of validation (Tier 1)
-    log_validation_start(resume_name, pdf_path)
+    log_validation_start(resume_name, pdf_path, log_file)
 
-    # Log start of validation to pipeline events by setting status to 'validating' (Tier 2)
+    # Log start of validation to pipeline events (Tier 2)
     update_resume_status(updates={resume_name: "validating"}, source="rendering")
 
-    # Perform validation
-    result = validate_pdf(pdf_path, expected_pages=expected_pages)
+    # Run layout diagnostics
+    diagnostics = analyze_layout(yaml_path, pdf_path)
+
+    # Generate feedback if invalid
+    feedback = None if diagnostics.is_valid else generate_feedback_report(diagnostics)
+
+    result = ValidationResult(
+        is_valid=diagnostics.is_valid,
+        diagnostics=diagnostics,
+        feedback=feedback,
+    )
 
     # Log validation result (Tier 1)
-    log_validation_result(resume_name, result, verbose=verbose)
+    log_validation_result(resume_name, result)
 
     # Log result to pipeline events (Tier 2)
     if result.is_valid:

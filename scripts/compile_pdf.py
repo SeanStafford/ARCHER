@@ -191,96 +191,47 @@ def compile_command(
 
 @app.command("validate")
 def validate_command(
-    pdf_source: Annotated[
+    resume_identifier: Annotated[
         str,
         typer.Argument(
-            help="Compiled resume PDF path OR resume identifier",
+            help="Resume identifier (must be registered)",
         ),
     ],
-    expected_pages: Annotated[
-        int,
-        typer.Option(
-            "--expected-pages",
-            "-e",
-            help="Expected number of pages (default: 2 for ARCHER resumes)",
-            min=1,
-            max=10,
-        ),
-    ] = 2,
-    verbose: Annotated[
-        bool,
-        typer.Option(
-            "--verbose",
-            "-v",
-            help="Show detailed validation output (all issues)",
-        ),
-    ] = False,
 ):
     """
-    Validate a compiled resume PDF.
+    Validate a compiled resume against its structured YAML.
 
-    Checks PDF quality including page count and other layout constraints.
-    Requires the resume to be registered in the registry.
+    Compares the PDF layout against expected structure from YAML to detect
+    overflow, displaced sections, and page count issues. Generates actionable
+    feedback for the targeting context when validation fails.
 
     Examples:\n
 
-        $ compile_pdf.py validate Res202511                     # Validate using identifier
+        $ compile_pdf.py validate Res202511                     # Validate resume
 
-        $ compile_pdf.py validate path/to/resume.pdf            # Validate using path
+        $ compile_pdf.py validate _test_Res202511_Fry_MomCorp   # Validate test resume
 
-        $ compile_pdf.py validate Res202511 --verbose           # Show all issues
-
-        $ compile_pdf.py validate path/to/resume.pdf -e 1       # Expect 1 page
     """
-    # Infer path from identifier if needed
-    if "/" not in pdf_source and "." not in pdf_source:
-        # interpret as resume identifier
-        pdf_file = get_resume_file(pdf_source, "pdf")
-        resume_name = pdf_source
-    else:
-        # interpret as file path
-        pdf_file = Path(pdf_source)
-        resume_name = pdf_file.stem
-
-    # Validate file extension
-    if pdf_file.suffix != ".pdf":
-        typer.secho(
-            f"Error: File must have .pdf extension: {pdf_file}", fg=typer.colors.RED, err=True
-        )
-        raise typer.Exit(code=1)
-
     # Display validation info
-    typer.secho(f"\nValidating: {pdf_file.name}", fg=typer.colors.BLUE, bold=True)
-    typer.echo(f"Resume name: {resume_name}")
-    typer.echo(f"Expected pages: {expected_pages}")
+    typer.secho(f"\nValidating: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
     typer.echo("")
 
     # Validate the resume
-    result = validate_resume(
-        resume_name=resume_name,
-        pdf_path=pdf_file,
-        expected_pages=expected_pages,
-        verbose=verbose,
-    )
+    try:
+        result = validate_resume(resume_name=resume_identifier)
+    except ValueError as e:
+        typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
     # Display results
     if result.is_valid:
-        typer.secho("✓ Validation passed", fg=typer.colors.GREEN, bold=True)
-        typer.echo(f"  Page count: {result.page_count}")
+        typer.secho("\n✓ Validation passed", fg=typer.colors.GREEN, bold=True)
+        typer.echo(f"  Page count: {result.page_count}\n")
     else:
-        typer.secho("✗ Validation failed", fg=typer.colors.YELLOW, bold=True)
+        typer.secho("\n✗ Validation failed", fg=typer.colors.RED, bold=True)
         typer.echo(f"  Page count: {result.page_count}")
-        typer.echo(f"  Issues: {len(result.issues)}")
+        typer.echo(f"  Issues: {len(result.issues)}\n")
 
-        if result.issues:
-            typer.echo("\nValidation issues:")
-            display_issues = result.issues if verbose else result.issues[:10]
-            for issue in display_issues:
-                typer.secho(f"  - {issue}", fg=typer.colors.YELLOW)
-            if not verbose and len(result.issues) > 10:
-                typer.echo(f"  ... and {len(result.issues) - 10} more (use --verbose to see all)")
-
-    # Exit with appropriate code
     sys.exit(0 if result.is_valid else 1)
 
 

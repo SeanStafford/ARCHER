@@ -140,24 +140,23 @@ def log_compilation_result(
             )
 
 
-def log_validation_start(resume_name: str, pdf_path: Path) -> None:
+def log_validation_start(resume_name: str, pdf_path: Path, log_file: Path) -> None:
     """Log start of PDF validation."""
     _log_info(f"Starting PDF validation: {resume_name}")
+    _log_info(f"  Log file: {log_file}")
     _log_debug(f"  PDF: {pdf_path}")
 
 
 def log_validation_result(
     resume_name: str,
     validation_result,  # ValidationResult
-    verbose: bool = False,
 ) -> None:
     """
-    Log validation result with diagnostics.
+    Log validation result with diagnostics and feedback.
 
     Args:
         resume_name: Resume identifier
-        validation_result: ValidationResult from validate_pdf()
-        verbose: Show detailed issues (default: False)
+        validation_result: ValidationResult from validate_resume()
     """
     # Always log page count
     _log_info(f"{resume_name}: {validation_result.page_count} pages")
@@ -166,8 +165,9 @@ def log_validation_result(
         _log_success("Validation passed.")
     else:
         _log_warning("Validation failed.")
-        issue_limit = 10 if verbose else 5
-        for i, issue in enumerate(validation_result.issues[:issue_limit], 1):
+        for i, issue in enumerate(validation_result.issues, 1):
             _log_warning(f"  Issue {i}: {issue}")
-        if len(validation_result.issues) > issue_limit:
-            _log_warning(f"  ... and {len(validation_result.issues) - issue_limit} more issues")
+
+        # Log feedback report for targeting context
+        if validation_result.feedback:
+            _log_info("\n\nRECOMMENDATIONS\n\n" + validation_result.feedback)
