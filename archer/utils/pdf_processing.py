@@ -229,23 +229,6 @@ class PDFDocument:
 
         return page_data[column]
 
-    def find(
-        self, text: str, whole_line: bool = False, column: Optional[int] = None
-    ) -> Optional[Tuple[int, int, int]]:
-        """
-        Find first occurrence of text in the document.
-
-        Args:
-            text: Text to search for (normalized: lowercase, alphanumeric only)
-            whole_line: If True, text must match entire line. If False, substring match.
-            column: Limit search to specific column (None = all columns)
-
-        Returns:
-            Tuple of (page, column, line_index) for first match, or None.
-        """
-        result = self.find_all(text, whole_line=whole_line, column=column, limit=1)
-        return result[0] if result else None
-
     def find_all(
         self,
         text: str,
@@ -269,7 +252,7 @@ class PDFDocument:
         if self._pages_cache is None:
             return []
 
-        results: List[Tuple[int, int, int]] = []
+        results = []
         text_norm = normalize_for_matching(text)
 
         for page_num in sorted(self._pages_cache.keys()):
@@ -290,9 +273,55 @@ class PDFDocument:
 
         return results
 
+    def find_first(
+        self, text: str, whole_line: bool = False, column: Optional[int] = None
+    ) -> Optional[Tuple[int, int, int]]:
+        """
+        Find first occurrence of text in the document.
+
+        Args:
+            text: Text to search for (normalized: lowercase, alphanumeric only)
+            whole_line: If True, text must match entire line. If False, substring match.
+            column: Limit search to specific column (None = all columns)
+
+        Returns:
+            Tuple of (page, column, line_index) for first match, or None.
+        """
+        result = self.find_all(text, whole_line=whole_line, column=column, limit=1)
+        return result[0] if result else None
+
     def iter_pages(self) -> Iterator[int]:
         """Iterate over page numbers (1-indexed)."""
         self._ensure_loaded()
         if self._pages_cache is None:
             return iter([])
         return iter(sorted(self._pages_cache.keys()))
+
+    def get_character_stream(self, page: int, column: int = 0) -> str:
+        """
+        Get normalized "character stream" for a page/column.
+
+        Joins all lines and reduces to lowercase alphanumeric only.
+        Useful for detecting content with unknown line wrapping.
+
+        Args:
+            page: Page (1-indexed)
+            column: Column index (0-indexed)
+        """
+        lines = self.get_lines(page, column)
+        return normalize_for_matching(" ".join(lines))
+
+    def get_multipage_character_stream(
+        self, start_page: int, end_page: int, column: int = 0
+    ) -> str:
+        """
+        Get normalized character stream across multiple consecutive pages.
+
+        Args:
+            start_page: First page (1-indexed, inclusive)
+            end_page: Last page (1-indexed, inclusive)
+            column: Column index (0-indexed)
+        """
+        return "".join(
+            self.get_character_stream(page, column) for page in range(start_page, end_page + 1)
+        )

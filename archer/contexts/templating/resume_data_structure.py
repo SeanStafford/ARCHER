@@ -11,6 +11,7 @@ Templating owns:
 Targeting operates on ResumeDocument instances for analysis and content selection.
 """
 
+import re
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -213,6 +214,9 @@ class ResumeDocument:
         self.source_path = str(yaml_path)
         self.filename = yaml_path.stem
         self.date = metadata_dict.get("date", "")
+
+        # Store metadata for layout properties
+        self._metadata = metadata_dict
 
         self._load_sections(doc)
 
@@ -530,6 +534,27 @@ class ResumeDocument:
             parts.append(section.text)
 
         return "\n\n".join(parts)
+
+    @property
+    def left_column_ratio(self) -> Optional[float]:
+        """
+        Extract left column width ratio from setlengths.leftbarwidth.
+
+        Parses values like '0.275\\paperwidth' to extract the numeric ratio.
+
+        Returns:
+            Float ratio (e.g., 0.275) or None if not found/parseable.
+        """
+        leftbarwidth = self._metadata.get("setlengths", {}).get("leftbarwidth", "")
+        match = re.match(r"([\d.]+)", leftbarwidth)
+        return float(match.group(1)) if match else None
+
+    @property
+    def page_count(self) -> int:
+        """Number of pages in the document based on section assignments."""
+        if not self.sections:
+            return 0
+        return max(s.page_number for s in self.sections)
 
     @property
     def table_of_contents(self) -> str:
