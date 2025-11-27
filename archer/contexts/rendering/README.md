@@ -258,26 +258,47 @@ Warnings are common -- especially overfull/underfull boxes. Success/failure dete
 Success = PDF generated + no errors + xelatex non-zero
 
 
+## Layout Diagnostics
+
+After compilation, `layout_diagnostics.py` validates PDF layout against the expected structure from YAML.
+
+```python
+from archer.contexts.rendering.layout_diagnostics import analyze_layout
+
+diagnostics = analyze_layout(yaml_path, pdf_path)
+
+if diagnostics.is_valid:
+    print("Layout OK")
+else:
+    for issue in diagnostics.get_inherited_issues():
+        print(f"  - {issue}")
+```
+
+**Detects:**
+- Page overflow (content flowing to subsequent pages)
+- Cascade effects (overflow shifting all subsequent content)
+- Missing sections (header/content not found where expected)
+
+**Returns:** Hierarchical diagnostics tree (Document → Page → Column → Section) with `is_valid` property and `get_inherited_issues()` for all issues.
+
+See `docs/LAYOUT_DIAGNOSTICS_REFERENCE.md` for full documentation.
+
+---
+
 ## Future Enhancements
 
 Potential improvements (not yet implemented):
 
-1. **PDF validation**
-   - Page count verification (enforce 2-page limit)
-   - Content verification (extract text, check for expected sections)
-   - Visual comparison (diff against reference PDFs)
+1. **Layout diagnostics extensions**
+   - Overfull box analysis via LaTeX log parsing (horizontal overflow detection)
+   - Bottom margin checking (content too close to page edge)
+   - Professional profile validation (full-width region)
 
 2. **Performance optimization**
    - Parallel compilation for batch operations
    - Incremental compilation (reuse .aux files)
-   - Caching of unchanged resumes
 
-3. **Advanced diagnostics**
-   - Overfull/underfull box analysis with line numbers
-   - Font warning detection
-   - Package conflict resolution
-
-4. **Retry logic**
+3. **Retry logic**
    - Automatic retry on transient failures
    - Fallback to single-pass compilation
 
