@@ -13,8 +13,20 @@ from loguru import logger
 
 load_dotenv()
 
+# Default level colors for console output
+LEVEL_COLORS = {
+    "WARNING": "<white>",
+    "ERROR": "<red>",
+    "CRITICAL": "<bold><red>",
+}
 
-def setup_logger(context_name: str, log_dir: Path, extra_provenance: dict = None) -> Path:
+
+def setup_logger(
+    context_name: str,
+    log_dir: Path,
+    extra_provenance: dict = None,
+    level_colors: dict = {},
+) -> Path:
     """
     Configure loguru for a context with provenance tracking.
 
@@ -25,6 +37,7 @@ def setup_logger(context_name: str, log_dir: Path, extra_provenance: dict = None
         context_name: Context identifier (e.g., "render", "template", "target")
         log_dir: Directory for this logging session
         extra_provenance: Additional key-value pairs for provenance header
+        level_colors: Override default level colors (e.g., {"INFO": "<cyan>"})
 
     Returns:
         Path to log file
@@ -44,15 +57,20 @@ def setup_logger(context_name: str, log_dir: Path, extra_provenance: dict = None
     # Remove default logger
     logger.remove()
 
+    # Apply level colors (defaults + overrides)
+    colors = {**LEVEL_COLORS, **level_colors}
+    for level_name, color in colors.items():
+        logger.level(level_name, color=color)
+
     # Add file handler - captures everything (DEBUG level)
     logger.add(
         log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level: <7} | {message}", level="DEBUG"
     )
 
-    # Add console handler - only INFO and above
+    # Add console handler - only INFO and above, colorized by level
     logger.add(
         sys.stdout,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <7} | {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | <level>{level: <7}</level> | <level>{message}</level>",
         level="INFO",
         colorize=True,
     )

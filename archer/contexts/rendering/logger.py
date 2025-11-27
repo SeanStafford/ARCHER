@@ -41,6 +41,7 @@ def setup_rendering_logger(log_dir: Path) -> Path:
         context_name="render",
         log_dir=log_dir,
         extra_provenance={"LaTeX compiler": os.getenv("LATEX_COMPILER")},
+        level_colors={"WARNING": "<red>"},
     )
 
 
