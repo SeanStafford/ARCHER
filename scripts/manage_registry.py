@@ -14,9 +14,11 @@ Commands:
     status   - Get status of a specific resume
     update   - Manually update resume status
     locate   - Get file path for a resume by identifier
+    approve  - Approve resume and copy PDF to dated results directory
 """
 
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -37,11 +39,13 @@ from archer.utils.resume_registry import (
     resume_is_registered,
     update_resume_status,
 )
+from archer.utils.timestamp import today
 
 load_dotenv()
 RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 STRUCTURED_ARCHIVE_PATH = Path(os.getenv("STRUCTURED_ARCHIVE_PATH"))
 RAW_ARCHIVE_PATH = Path(os.getenv("RAW_ARCHIVE_PATH"))
+RESULTS_PATH = Path(os.getenv("RESULTS_PATH"))
 
 app = typer.Typer(
     add_completion=False,
@@ -459,6 +463,71 @@ def locate_command(
     except ValueError as e:
         typer.secho(str(e), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2)
+
+
+@app.command("approve")
+def approve_command(
+    resume_name: str = typer.Argument(..., help="Resume identifier to approve"),
+):
+    """
+    Approve a resume and copy PDF to dated results directory.
+
+    Locates the PDF for the given resume identifier, copies it to
+    outs/results/{YYYYMMDD}/, and updates the registry status to 'approved'.
+
+    Examples:\n
+
+        $ manage_registry.py approve _test_Res202511_Fry_MomCorp
+    """
+    # Verify resume is registered
+    if not resume_is_registered(resume_name):
+        typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    # Get current status
+    entry = get_resume_status(resume_name)
+    old_status = entry["status"]
+
+    if old_status == "approved":
+        typer.secho("Resume is already approved", fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(code=0)
+
+    # Locate the PDF file
+    try:
+        pdf_path = get_resume_file(resume_name, "pdf")
+    except FileNotFoundError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+    except ValueError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    # Create dated results directory
+    today_dir = RESULTS_PATH / today()
+    today_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy PDF to results directory
+    dest_path = today_dir / pdf_path.name
+    try:
+        shutil.copy2(pdf_path, dest_path)
+        typer.echo(f"Copied: {pdf_path.name} → {today_dir}/")
+    except Exception as e:
+        typer.secho(f"✗ Failed to copy PDF: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    # Update status to approved
+    try:
+        extra_fields = {"dest_path": str(dest_path)}
+
+        update_resume_status(updates={resume_name: "approved"}, source="cli", **extra_fields)
+
+        typer.secho(f"✓ Approved {resume_name}: {old_status} → approved", fg=typer.colors.GREEN)
+
+        typer.echo(f"  PDF: {dest_path}")
+
+    except Exception as e:
+        typer.secho(f"✗ Failed to update status: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

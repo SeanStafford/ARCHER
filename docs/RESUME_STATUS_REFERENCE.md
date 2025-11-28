@@ -165,7 +165,7 @@ PDF validation passed. Resume meets all quality constraints.
 **Note:** The legacy statuses `rendering`, `rendering_failed`, and `rendering_completed` are deprecated as of this change. Historical pipeline events may still reference these statuses, but new compilations use the split compilation/validation phases above.
 
 ### `approved`
-Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `validating_completed`.
+Resume has been approved for delivery. Terminal state indicating human sign-off or automated validation passed. Set by orchestrator or manual review after `validating_completed`. The `manage_registry.py approve` command sets this status and copies the PDF to `outs/results/{YYYYMMDD}/`.
 
 ---
 
