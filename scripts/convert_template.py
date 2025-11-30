@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from omegaconf import OmegaConf
 
 from archer.contexts.templating import clean_yaml, validate_roundtrip_conversion
+from archer.contexts.templating.converter import yaml_to_latex_experimental
 from archer.utils.timestamp import now
 
 load_dotenv()
@@ -158,6 +159,43 @@ def clean_command(
             typer.secho(f"\n✓ Success! Cleaned YAML saved to: {output_path}", fg=typer.colors.GREEN)
         else:
             typer.echo("\nDry run complete. Run without --dry-run to apply changes.")
+
+    except Exception as e:
+        typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
+@app.command("generate")
+def generate_command(
+    resume_identifier: str = typer.Argument(
+        ...,
+        help="Resume identifier (must be registered)",
+    ),
+):
+    """
+    Generate LaTeX from a structured YAML resume.
+
+    Converts YAML to LaTeX for experimental or test resumes. The resume must be
+    registered and have status 'drafting_completed' (for experimental) or any
+    status (for test).
+
+    Examples:\n
+
+        $ convert_template.py generate _test_Res202511_Fry
+    """
+    typer.secho(f"\nGenerating LaTeX: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
+
+    try:
+        output_path = yaml_to_latex_experimental(resume_identifier)
+        typer.secho(f"\n✓ Success! LaTeX saved to: {output_path}", fg=typer.colors.GREEN)
+
+    except ValueError as e:
+        typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    except FileNotFoundError as e:
+        typer.secho(f"\n✗ File not found: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
     except Exception as e:
         typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)

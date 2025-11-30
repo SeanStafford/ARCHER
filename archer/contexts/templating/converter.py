@@ -24,6 +24,7 @@ from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
 from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
 from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.latex_parsing_tools import to_latex
+from archer.utils.resume_registry import get_resume_file, get_resume_status, resume_is_registered
 from archer.utils.text_processing import get_meaningful_diff
 
 # Field pairs: (LaTeX-formatted field, plaintext field)
@@ -167,6 +168,45 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
         output_path.write_text(latex, encoding="utf-8")
 
     return latex
+
+
+# TEMPORARY: This function is a stand-in for the experimental workflow until
+# templating context gets proper two-tier logging (logger.py + pipeline events).
+def yaml_to_latex_experimental(resume_name: str) -> Path:
+    """
+    Convert YAML to LaTeX for experimental/test resumes using registry lookup.
+
+    Returns the path to the generated .tex file.
+
+    Raises:
+        ValueError: If resume not registered or has invalid type/status
+    """
+    if not resume_is_registered(resume_name):
+        raise ValueError(f"Resume '{resume_name}' not registered")
+
+    status_info = get_resume_status(resume_name)
+    resume_type = status_info["resume_type"]
+    resume_status = status_info["status"]
+
+    # Validate type/status constraints
+    is_valid = (
+        resume_type == "experimental" and resume_status == "drafting_completed"
+    ) or resume_type == "test"
+    if not is_valid:
+        raise ValueError(
+            f"Cannot generate LaTeX for '{resume_name}': "
+            f"type='{resume_type}', status='{resume_status}'. "
+            f"Must be (experimental + drafting_completed) or test."
+        )
+
+    yaml_path = get_resume_file(resume_name, "yaml")
+
+    # Output to data/resumes/{type}/raw/{name}.tex (yaml is in structured/, tex goes to raw/)
+    output_path = yaml_path.parent.parent / "raw" / f"{resume_name}.tex"
+    # output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    yaml_to_latex(yaml_path, output_path)
+    return output_path
 
 
 def latex_to_yaml(latex_path: Path, output_path: Path = None) -> Dict[str, Any]:
