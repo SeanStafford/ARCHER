@@ -28,7 +28,7 @@ import typer
 from dotenv import load_dotenv
 from typing_extensions import Annotated
 
-from archer.contexts.templating.process_latex_archive import process_file
+from archer.contexts.templating.normalizer import process_file
 from archer.utils.clean_latex import CommentType
 
 load_dotenv()

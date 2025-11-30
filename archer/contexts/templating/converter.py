@@ -34,7 +34,7 @@ from archer.contexts.templating.logger import (
     log_conversion_start,
     setup_templating_logger,
 )
-from archer.contexts.templating.process_latex_archive import process_file
+from archer.contexts.templating.normalizer import process_file
 from archer.utils.latex_parsing_tools import to_latex
 from archer.utils.resume_registry import (
     get_resume_file,
