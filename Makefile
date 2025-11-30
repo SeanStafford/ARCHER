@@ -219,7 +219,7 @@ clean-logs:
 	TYPE=$${TYPE:-all}; \
 	LOGS_DIR="outs/logs"; \
 	if [ "$$TYPE" = "all" ]; then \
-		LOG_TYPES="convert render roundtrip test"; \
+		LOG_TYPES="convert render roundtrip test validate compile generate parse"; \
 	else \
 		LOG_TYPES="$$TYPE"; \
 	fi; \
