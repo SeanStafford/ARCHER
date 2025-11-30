@@ -106,12 +106,12 @@ ARCHER's architecture is inspired by **Domain-Driven Design** with four bounded 
 **Never**: Makes content prioritization decisions
 
 ### 4. Rendering Context
-**Responsibility**: PDF compilation and output management
+**Responsibility**: PDF compilation, validation, and output management
 - Compiles LaTeX to PDF using compiler specified by `LATEX_COMPILER` in `.env` (e.g. `xelatex`, `pdflatex`)
-- Validates compilation success
+- Validates PDF layout against expected structure from YAML
 - Manages output files and directory structure
 
-**Owns**: LaTeX compilation, PDF generation, output management
+**Owns**: LaTeX compilation, PDF validation, output management
 **Never**: Modifies template content
 
 ### Context Communication
@@ -346,9 +346,9 @@ ARCHER uses a two-tier logging system designed for both debugging and pipeline c
 
 **View logs:**
 ```bash
-make logs                    # Last 10 pipeline events
-make logs RESUME=Res202511   # Events for specific resume
-make track RESUME=Res202511  # Status timeline for resume
+make logs                                        # Last 10 pipeline events
+make logs RESUME=_test_Res202511_Fry_MomCorp     # Events for specific resume
+make track RESUME=_test_Res202511_Fry_MomCorp    # Status timeline for resume
 ```
 
 See `docs/LOGGING_ARCHITECTURE.md` for complete documentation.
@@ -370,6 +370,7 @@ See `docs/LOGGING_ARCHITECTURE.md` for complete documentation.
 
 **Rendering Context**:
 - LaTeX compilation with error detection
+- PDF layout validation against YAML structure
 - Success-based artifact cleanup
 - Output management with dated results directories
 - LaTeX formatting system in `rendering/mystyle/`

@@ -8,23 +8,36 @@ The Rendering context handles **LaTeX compilation** and PDF generation for resum
 ## Quick Overview
 
 ```python
-from archer.contexts.rendering import compile_resume
-from pathlib import Path
+from archer.contexts.rendering import compile_resume, validate_resume
 
-# High-level: Compile with registry tracking and logging
-result = compile_resume(
-    tex_file=Path("data/resume_archive/Res202506.tex")
-)
-
+# Compile LaTeX to PDF (with registry tracking)
+result = compile_resume(resume_name="_test_Res202511_Fry_MomCorp")
 if result.success:
     print(f"PDF generated: {result.pdf_path}")
+
+# Validate PDF layout against YAML structure
+result = validate_resume(resume_name="_test_Res202511_Fry_MomCorp")
+if result.success:
+    print(f"Valid: {result.page_count} pages")
 else:
-    print(f"Compilation failed: {result.errors}")
+    print(f"Issues: {result.issues}")
+```
+
+### CLI Commands
+
+```bash
+# Compile LaTeX to PDF
+python scripts/compile_pdf.py compile Res202511
+
+# Validate PDF layout
+python scripts/compile_pdf.py validate Res202511
 ```
 
 ---
 
 ## Architecture
+
+### Compilation
 
 **`compile_latex()` - Pure Compilation**
 - Low-level LaTeX compilation function
@@ -33,15 +46,27 @@ else:
 - Used by: `compile_resume()`, tests, standalone scripts
 - Returns: `CompilationResult`
 
-**`compile_resume()` - Orchestration**
-- High-level wrapper for ARCHER resume compilation
+**`compile_resume(resume_name)` - Orchestration**
+- Takes `resume_name: str` (must be registered in registry)
 - Integrates registry tracking (Tier 2 logging)
 - Detailed loguru logging (Tier 1 logging)
 - Organized output management
 - Success-based artifact cleanup
+- Pre-validation raises `ValueError` if resume not registered or invalid type
 - Used by: Production resume generation, main pipeline
 
-**Design rationale:** Separation of concerns - pure compilation logic vs. ARCHER-specific orchestration.
+### Validation
+
+**`validate_resume(resume_name)` - Orchestration**
+- Takes `resume_name: str` (must be registered in registry)
+- Validates PDF layout against expected structure from YAML
+- Uses `layout_diagnostics.py` for hierarchical PDF analysis
+- Generates human-readable feedback report on failure
+- Integrates registry tracking (`validating` → `validating_completed`/`validating_failed`)
+- Pre-validation raises `ValueError` if resume not registered or PDF not found
+- Returns: `ValidationResult` with `success`, `page_count`, `issues`, `feedback_report`
+
+**Design rationale:** Separation of concerns - pure compilation/diagnostics vs. ARCHER-specific orchestration.
 
 ---
 
@@ -82,8 +107,8 @@ outs/logs/compile_20251114_210621/
 ├── render.log                       # Minimal log
 └── resume.pdf  →  Symlink to data/resumes/{type}/compiled/
 
-data/resumes/experimental/compiled/
-└── Res202506_MLEng.pdf              # Final compiled PDF
+data/resumes/test/compiled/
+└── _test_Res202511_Fry_MomCorp.pdf  # Final compiled PDF
 ```
 
 **Actions:**
@@ -100,11 +125,11 @@ When compilation fails:
 
 ```
 outs/logs/compile_20251114_210621/
-├── render.log                      ← Detailed log with full stdout/stderr
-├── Res202506.aux
-├── Res202506.log                   ← xelatex log for debugging
-├── Res202506.out
-└── Res202506.toc
+├── render.log                                   ← Detailed log with full stdout/stderr
+├── _test_Res202511_Fry_MomCorp.aux
+├── _test_Res202511_Fry_MomCorp.log              ← xelatex log for debugging
+├── _test_Res202511_Fry_MomCorp.out
+└── _test_Res202511_Fry_MomCorp.toc
 ```
 
 **Actions:**
@@ -163,15 +188,12 @@ xelatex --version
 
 ## Usage Examples
 
-### Basic Compilation (Production)
+### Compilation
 
 ```python
 from archer.contexts.rendering import compile_resume
-from pathlib import Path
 
-result = compile_resume(
-    tex_file=Path("data/resume_archive/Res202506.tex")
-)
+result = compile_resume(resume_name="_test_Res202511_Fry_MomCorp")
 
 if result.success:
     print(f"✓ PDF: {result.pdf_path}")
@@ -182,19 +204,28 @@ else:
         print(f"  - {error}")
 ```
 
-### Custom Output Directory
+### Validation
 
 ```python
-result = compile_resume(
-    tex_file=Path("resume.tex"),
-    output_dir=Path("custom/output/dir")
-)
+from archer.contexts.rendering import validate_resume
+
+result = validate_resume(resume_name="_test_Res202511_Fry_MomCorp")
+
+if result.success:
+    print(f"✓ Valid: {result.page_count} pages")
+else:
+    print(f"✗ Validation failed")
+    for issue in result.issues:
+        print(f"  - {issue}")
+    # Human-readable report for debugging
+    print(result.feedback_report)
 ```
 
 ### Low-Level Compilation (No Tracking)
 
 ```python
 from archer.contexts.rendering.compiler import compile_latex
+from pathlib import Path
 
 result = compile_latex(
     tex_file=Path("test.tex"),
@@ -207,10 +238,11 @@ result = compile_latex(
 ### Accessing Compilation Details
 
 ```python
-result = compile_resume(tex_file)
+result = compile_resume(resume_name="_test_Res202511_Fry_MomCorp")
 
 print(f"Success: {result.success}")
 print(f"PDF: {result.pdf_path}")
+print(f"Log dir: {result.compile_dir}")
 print(f"Errors: {len(result.errors)}")
 print(f"Warnings: {len(result.warnings)}")
 

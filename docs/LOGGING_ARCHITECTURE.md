@@ -357,7 +357,9 @@ tail -n 20 outs/logs/resume_pipeline_events.log | jq
 **Implemented:**
 - `archer/utils/event_logging.py` - Tier 2 event logging
 - `archer/utils/logger.py` - Tier 1 generic setup
-- `archer/contexts/rendering/logger.py` - Example context wrapper
+- `archer/contexts/rendering/logger.py` - Rendering context wrapper
+- `archer/contexts/templating/logger.py` - Templating context wrapper
+- `docs/ORCHESTRATION_AND_CLI_PATTERNS.md` - Full orchestration pattern (logging + registry + CLI)
 - `docs/RESUME_STATUS_REFERENCE.md` - Status definitions
 - `docs/PIPELINE_EVENTS_REFERENCE.md` - Event schema
 - `scripts/tail_log.py` - Shows how to read Tier 2 events

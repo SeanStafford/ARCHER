@@ -6,14 +6,42 @@ The Templating context owns the structured representation of resume documents an
 
 ## Quick Overview
 
+### Pipeline Operations (with registry tracking)
+
+```python
+from archer.contexts.templating import parse_resume, generate_resume
+
+# LaTeX → YAML (for historical resumes)
+result = parse_resume("_test_Res202511_Fry_MomCorp")
+if result.success:
+    print(f"Parsed: {result.output_path}")
+
+# YAML → LaTeX (for experimental/generated resumes)
+result = generate_resume("_test_Res202511_Fry_MomCorp")
+if result.success:
+    print(f"Generated: {result.output_path}")
+```
+
+### Pure Functions (no tracking)
+
 ```python
 from archer.contexts.templating.converter import yaml_to_latex, latex_to_yaml
 
-# LaTeX → YAML
-yaml_data = latex_to_yaml("resume.tex")  # Returns dict
+# LaTeX → YAML (returns dict)
+yaml_data = latex_to_yaml("resume.tex")
 
-# YAML → LaTeX
-latex_output = yaml_to_latex(yaml_data)  # Returns string
+# YAML → LaTeX (returns string)
+latex_output = yaml_to_latex(yaml_data)
+```
+
+### CLI Commands
+
+```bash
+# Parse LaTeX to YAML
+python scripts/convert_template.py parse Res202511
+
+# Generate LaTeX from YAML
+python scripts/convert_template.py generate Res202511
 ```
 
 For direct access to converter classes (e.g., in tests):
@@ -227,9 +255,17 @@ doc = ResumeDocument("resume.yaml", mode="plaintext")
 
 ### Module Structure
 
-**`converter.py`** - Public API and utility functions
-- `yaml_to_latex()` - File-based YAML → LaTeX conversion
-- `latex_to_yaml()` - File-based LaTeX → YAML conversion
+**`converter.py`** - Public API, orchestration, and utility functions
+- `parse_resume()` - Orchestration: LaTeX → YAML with registry tracking
+- `generate_resume()` - Orchestration: YAML → LaTeX with registry tracking
+- `yaml_to_latex()` - Pure function: YAML → LaTeX conversion
+- `latex_to_yaml()` - Pure function: LaTeX → YAML conversion
+- `ConversionResult` - Result dataclass with success, paths, timing, validation info
+- `ConversionConfig` - Configuration dataclass for direction-specific settings
+
+**`logger.py`** - Context-specific logging with `[template]` prefix
+- `setup_templating_logger()` - Initialize logging for conversion operations
+- `log_conversion_start()`, `log_conversion_result()` - High-level helpers
 
 **`latex_generator.py`** - Template-based LaTeX generation
 - `YAMLToLaTeXConverter` class
@@ -456,23 +492,6 @@ Synthetic fixtures hide real-world variation. Historical resumes contain:
 - `../utils/latex_parsing_tools.py` - Reusable parsing helpers (zero project dependencies)
 
 ## Usage Examples
-
-### Convert Historical Resume
-
-```python
-from archer.contexts.templating.converter import yaml_to_latex, latex_to_yaml
-from pathlib import Path
-
-# Parse existing resume
-yaml_data = latex_to_yaml(Path("data/resume_archive/Res202410_SomeCompany.tex"))
-
-# Modify content (e.g., via Targeting context)
-yaml_data["document"]["pages"][0]["regions"]["main_column"]["sections"][0]["content"]["bullets"][0]["latex_raw"] = "Updated bullet"
-
-# Generate new resume
-new_latex = yaml_to_latex(yaml_data)
-Path("outs/resumes/modified_resume.tex").write_text(new_latex)
-```
 
 ### Type-Specific Conversion (for testing/debugging)
 
