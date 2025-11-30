@@ -350,20 +350,22 @@ def count_resumes(registry_file: Optional[Path] = None) -> Dict[str, int]:
     return {"total": len(all_resumes), "by_status": by_status, "by_type": by_type}
 
 
-def get_resume_file(identifier: str, file_type: str = "tex") -> Path:
+def get_resume_file(identifier: str, file_type: str = "tex", file_expected: bool = True) -> Path:
     """
     Get the file path for a resume by identifier.
 
     Args:
         identifier: Resume identifier (e.g. "_test_Res202511_Fry_MomCorp")
         file_type: File type ("tex", "pdf", "yaml", or "raw"). Defaults to "tex"
+        file_expected: If True (default), raise FileNotFoundError when file doesn't exist.
+                       If False, return expected path and log warning if file is missing.
 
     Returns:
-        Path to the resume file
+        Path to the resume file (or expected path if file_expected=False)
 
     Raises:
         ValueError: If resume not registered or file_type invalid
-        FileNotFoundError: If file not found at expected path
+        FileNotFoundError: If file_expected=True and file not found at expected path
 
     Examples:
         >>> get_resume_file("Res202506")  # Defaults to "tex"
@@ -413,9 +415,9 @@ def get_resume_file(identifier: str, file_type: str = "tex") -> Path:
             )
             if unmigrated_path.exists():
                 return unmigrated_path
-
-        raise FileNotFoundError(
-            f"File for resume '{identifier}' of type '{file_type}' not found at expected path:\n{path}"
-        )
+        if file_expected:
+            raise FileNotFoundError(
+                f"File for resume '{identifier}' of type '{file_type}' not found at expected path:\n{path}"
+            )
 
     return path
