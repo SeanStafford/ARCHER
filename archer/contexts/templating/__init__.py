@@ -13,10 +13,11 @@ Never: Makes content prioritization decisions
 """
 
 from archer.contexts.templating.converter import (
+    ConversionResult,
     clean_yaml,
-    latex_to_yaml,
+    generate_resume,
+    parse_resume,
     validate_roundtrip_conversion,
-    yaml_to_latex,
 )
 from archer.contexts.templating.resume_data_structure import (
     ResumeDocument,
@@ -25,10 +26,13 @@ from archer.contexts.templating.resume_data_structure import (
 from archer.contexts.templating.resume_database import ResumeDatabase
 
 __all__ = [
-    "yaml_to_latex",
-    "latex_to_yaml",
+    # Helpers and orchestrators for bidirectional conversion
     "clean_yaml",
     "validate_roundtrip_conversion",
+    "parse_resume",
+    "generate_resume",
+    "ConversionResult",
+    # Data structure classes
     "ResumeDocument",
     "ResumeDocumentArchive",
     "ResumeDatabase",

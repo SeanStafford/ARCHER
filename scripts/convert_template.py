@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-Command-line interface for converting LaTeX resumes to structured YAML format.
+Command-line interface for LaTeX <-> YAML resume conversion.
 
-Validates conversions through roundtrip testing and saves validated YAMLs to
-data/resume_archive/structured/ for use by the Targeting context.
+Subcommands:
+- parse: Convert LaTeX to YAML with roundtrip validation (for historical/test resumes)
+- generate: Convert YAML to LaTeX (for experimental/test resumes)
+- clean: Normalize YAML structure for LaTeX generation
+- list: List available resumes in the archive
+- batch: Batch convert with validation
 """
 
 import os
@@ -13,14 +17,27 @@ import typer
 from dotenv import load_dotenv
 from omegaconf import OmegaConf
 
-from archer.contexts.templating import clean_yaml, validate_roundtrip_conversion
-from archer.contexts.templating.converter import yaml_to_latex_experimental
+from archer.contexts.templating import (
+    clean_yaml,
+    generate_resume,
+    parse_resume,
+    validate_roundtrip_conversion,
+)
 from archer.utils.timestamp import now
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
 RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 LOGS_PATH = Path(os.getenv("LOGS_PATH"))
+
+
+def display_path(path: Path) -> str:
+    """Return path relative to PROJECT_ROOT for cleaner display."""
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
 
 # Validation thresholds
 DEFAULT_MAX_LATEX_DIFFS = 6
@@ -165,51 +182,31 @@ def clean_command(
         raise typer.Exit(code=1)
 
 
+def print_roundtrip_validation_results(result, max_latex_diffs, max_yaml_diffs):
+    """Helper to print roundtrip validation results."""
+
+    latex_status = (
+        "?" if result.latex_diffs is None else "✓" if result.latex_diffs <= max_latex_diffs else "✗"
+    )
+    latex_info = (
+        "diff info unavailable" if result.latex_diffs is None else f"{result.latex_diffs} diffs"
+    )
+    yaml_status = (
+        "?" if result.yaml_diffs is None else "✓" if result.yaml_diffs <= max_yaml_diffs else "✗"
+    )
+    yaml_info = (
+        "diff info unavailable" if result.yaml_diffs is None else f"{result.yaml_diffs} diffs"
+    )
+
+    typer.echo(f"  LaTeX roundtrip: {latex_status} ({latex_info})")
+    typer.echo(f"  YAML  roundtrip: {yaml_status} ({yaml_info})")
+
+
 @app.command("generate")
 def generate_command(
     resume_identifier: str = typer.Argument(
         ...,
         help="Resume identifier (must be registered)",
-    ),
-):
-    """
-    Generate LaTeX from a structured YAML resume.
-
-    Converts YAML to LaTeX for experimental or test resumes. The resume must be
-    registered and have status 'drafting_completed' (for experimental) or any
-    status (for test).
-
-    Examples:\n
-
-        $ convert_template.py generate _test_Res202511_Fry
-    """
-    typer.secho(f"\nGenerating LaTeX: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
-
-    try:
-        output_path = yaml_to_latex_experimental(resume_identifier)
-        typer.secho(f"\n✓ Success! LaTeX saved to: {output_path}", fg=typer.colors.GREEN)
-
-    except ValueError as e:
-        typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-    except FileNotFoundError as e:
-        typer.secho(f"\n✗ File not found: {e}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-    except Exception as e:
-        typer.secho(f"\n✗ Error: {e}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-
-@app.command("convert")
-def convert_command(
-    tex_file: Path = typer.Argument(
-        ...,
-        help="Path to .tex file to convert",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
     ),
     max_latex_diffs: int = typer.Option(
         DEFAULT_MAX_LATEX_DIFFS,
@@ -225,123 +222,146 @@ def convert_command(
         help="Maximum YAML differences allowed for validation",
         min=0,
     ),
-    verbose: bool = typer.Option(
+    no_overwrite: bool = typer.Option(
         False,
-        "--verbose",
-        "-v",
-        help="Show detailed progress",
+        "--no-overwrite",
+        help="Prevent overwriting existing output files",
     ),
 ):
     """
-    Convert a single LaTeX resume to YAML with validation.
+    Generate LaTeX from a structured YAML resume with validation.
 
-    On success, saves YAML to data/resume_archive/structured/.
-    On failure, saves artifacts to outs/logs/convert_TIMESTAMP/.
+    Converts YAML to LaTeX for experimental or test resumes with registry tracking.
+    Validates via YAML → LaTeX → YAML roundtrip testing.
+
+    The resume must be registered and have the correct status:\n
+    - experimental: must be 'drafting_completed'\n
+    - generated: must be 'targeting_completed'\n
+    - test: any status allowed\n
+    - historical: not allowed (wrong direction)
+
+    Logs are saved to outs/logs/generate_TIMESTAMP/.
 
     Examples:\n
 
-        $ python scripts/convert_template.py convert path/to/resume.tex            # Convert specific file
+        $ python scripts/convert_template.py generate _test_Res202511_Fry
 
-        $ python scripts/convert_template.py convert path/to/resume.tex -l 0 -y 0  # Strict validation (0 diffs for both)
-
-        $ python scripts/convert_template.py convert path/to/resume.tex -v         # Verbose output
+        $ python scripts/convert_template.py generate _test_Res202511_Fry --no-overwrite
     """
-    # Validate file extension
-    if tex_file.suffix != ".tex":
-        typer.secho(
-            f"Error: File must have .tex extension: {tex_file}", fg=typer.colors.RED, err=True
+    typer.secho(f"\nGenerating LaTeX: {resume_identifier}\n", fg=typer.colors.BLUE, bold=True)
+
+    try:
+        result = generate_resume(
+            resume_identifier,
+            max_latex_diffs=max_latex_diffs,
+            max_yaml_diffs=max_yaml_diffs,
+            allow_overwrite=not no_overwrite,
         )
+    except ValueError as e:
+        typer.secho(f"Error: {e}\n", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
-    typer.secho(f"\nConverting: {tex_file.name}", fg=typer.colors.BLUE, bold=True)
-    typer.echo(f"Validation thresholds: LaTeX ≤{max_latex_diffs}, YAML ≤{max_yaml_diffs}")
+    if result.success:
+        typer.secho("\n✓ LaTeX generation succeeded", fg=typer.colors.GREEN)
+        typer.echo(f"  Time: {result.time_s:.2f}s")
+        typer.echo(f"  tex file: {display_path(result.output_path)}")
 
-    # Create log directory
-    timestamp = now()
-    work_dir = LOGS_PATH / f"convert_{timestamp}"
-    work_dir.mkdir(exist_ok=True, parents=True)
+    else:
+        typer.secho("\n✗ LaTeX generation failed", fg=typer.colors.RED, err=True)
+        # typer.secho(f"  Error: {result.error}", err=True)
+        if result.log_dir:
+            typer.echo(f"  Artifacts saved to: {display_path(result.log_dir)}")
 
-    typer.echo(f"Log directory: {work_dir}\n")
+    # Display validation info
+    print_roundtrip_validation_results(result, max_latex_diffs, max_yaml_diffs)
 
-    # Open log file
-    log_file = work_dir / "convert.log"
-    with open(log_file, "w", encoding="utf-8") as log:
-        log.write(f"Conversion Log - {timestamp}\n")
-        log.write("=" * 80 + "\n")
-        log.write(f"File: {tex_file.name}\n")
-        log.write(f"Max LaTeX diffs: {max_latex_diffs}\n")
-        log.write(f"Max YAML diffs: {max_yaml_diffs}\n")
-        log.write("=" * 80 + "\n\n")
+    if result.log_dir:
+        typer.echo(f"  Log: {display_path(result.log_dir / 'template.log')}")
+    typer.echo("")
 
-        try:
-            result = validate_roundtrip_conversion(
-                tex_file, work_dir, max_latex_diffs, max_yaml_diffs
-            )
+    # Exit with appropriate code
+    raise typer.Exit(code=0 if result.success else 1)
 
-            # Log results
-            if result["error"]:
-                log.write(f"ERROR: {result['error']}\n")
-                typer.secho(f"✗ Error: {result['error']}", fg=typer.colors.RED)
-                typer.echo(f"Artifacts saved to: {work_dir}")
-                raise typer.Exit(code=1)
 
-            latex_status = "✓" if result["latex_roundtrip"]["success"] else "✗"
-            yaml_status = "✓" if result["yaml_roundtrip"]["success"] else "✗"
-            latex_diffs = result["latex_roundtrip"]["num_diffs"]
-            yaml_diffs = result["yaml_roundtrip"]["num_diffs"]
+@app.command("parse")
+def parse_command(
+    resume_identifier: str = typer.Argument(
+        ...,
+        help="Resume identifier (must be registered)",
+    ),
+    max_latex_diffs: int = typer.Option(
+        DEFAULT_MAX_LATEX_DIFFS,
+        "--max-latex-diffs",
+        "-l",
+        help="Maximum LaTeX differences allowed for validation",
+        min=0,
+    ),
+    max_yaml_diffs: int = typer.Option(
+        DEFAULT_MAX_YAML_DIFFS,
+        "--max-yaml-diffs",
+        "-y",
+        help="Maximum YAML differences allowed for validation",
+        min=0,
+    ),
+    no_overwrite: bool = typer.Option(
+        False,
+        "--no-overwrite",
+        help="Prevent overwriting existing output files",
+    ),
+):
+    """
+    Parse a LaTeX resume to YAML with roundtrip validation.
 
-            log.write(
-                f"LaTeX roundtrip: {'PASS' if result['latex_roundtrip']['success'] else 'FAIL'} ({latex_diffs} diffs)\n"
-            )
-            log.write(
-                f"YAML roundtrip:  {'PASS' if result['yaml_roundtrip']['success'] else 'FAIL'} ({yaml_diffs} diffs)\n"
-            )
-            log.write(f"Time: {result['time_ms']:.0f}ms\n")
+    Validates the conversion via LaTeX → YAML → LaTeX roundtrip testing.
+    On success, saves YAML to data/resume_archive/structured/.
+    On failure, saves artifacts to outs/logs/parse_TIMESTAMP/.
 
-            typer.echo(f"LaTeX roundtrip: {latex_status} ({latex_diffs} diffs)")
-            typer.echo(f"YAML roundtrip:  {yaml_status} ({yaml_diffs} diffs)")
-            typer.echo(f"Time: {result['time_ms']:.0f}ms")
+    The resume must be registered and have the correct status:\n
+    - historical: must be 'normalized' or 'parsing_failed'\n
+    - test: any status allowed\n
+    - experimental/generated: not allowed (wrong direction)
 
-            if result["validation_passed"]:
-                # Save YAML to structured directory
-                structured_dir = RESUME_ARCHIVE_PATH / "structured"
-                structured_dir.mkdir(exist_ok=True, parents=True)
-                output_yaml = structured_dir / f"{tex_file.stem}.yaml"
+    Examples:\n
 
-                parsed_yaml = work_dir / f"{tex_file.stem}_parsed.yaml"
-                output_yaml.write_text(parsed_yaml.read_text())
+        $ python scripts/convert_template.py parse Res202506_MLEng_Company
 
-                log.write("\nValidation: PASSED\n")
-                log.write(f"Saved: {output_yaml}\n")
+        $ python scripts/convert_template.py parse _test_Res202511_Fry -l 0 -y 0  # Strict validation
 
-                typer.secho(f"\n✓ Success! YAML saved to: {output_yaml}", fg=typer.colors.GREEN)
+        $ python scripts/convert_template.py parse Res202506 --no-overwrite
+    """
 
-                # Clean up intermediate files but keep log
-                import shutil
+    typer.secho(f"\nParsing YAML from LaTeX: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
+    typer.echo("")
 
-                for item in work_dir.iterdir():
-                    if item.name != "convert.log":
-                        if item.is_file():
-                            item.unlink()
-                        elif item.is_dir():
-                            shutil.rmtree(item)
+    try:
+        result = parse_resume(
+            resume_identifier,
+            max_latex_diffs=max_latex_diffs,
+            max_yaml_diffs=max_yaml_diffs,
+            allow_overwrite=not no_overwrite,
+        )
+    except ValueError as e:
+        typer.secho(f"Error: {e}\n", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
-                typer.echo(f"Log saved to: {log_file}")
+    if result.success:
+        typer.secho("\n✓ YAML parsing succeeded", fg=typer.colors.GREEN)
+        typer.echo(f"  Time: {result.time_s:.2f}s")
+        typer.echo(f"  YAML: {display_path(result.output_path)}")
+    else:
+        typer.secho("\n✗ YAML parsing failed", fg=typer.colors.RED, err=True)
+        if result.log_dir:
+            typer.echo(f"  Artifacts saved to: {display_path(result.log_dir)}")
 
-            else:
-                log.write("\nValidation: FAILED\n")
-                log.write(f"Artifacts kept in: {work_dir}\n")
+    # Display validation info
+    print_roundtrip_validation_results(result, max_latex_diffs, max_yaml_diffs)
 
-                typer.secho(
-                    f"\n✗ Validation failed. Artifacts saved to: {work_dir}", fg=typer.colors.RED
-                )
-                typer.echo(f"Log saved to: {log_file}")
-                raise typer.Exit(code=1)
+    if result.log_dir:
+        typer.echo(f"  Log: {display_path(result.log_dir / 'template.log')}")
+    typer.echo("")
 
-        except KeyboardInterrupt:
-            log.write("\n\nInterrupted by user\n")
-            typer.secho("\n\nInterrupted by user", fg=typer.colors.YELLOW, err=True)
-            raise typer.Exit(code=130)
+    # Exit with appropriate code
+    raise typer.Exit(code=0 if result.success else 1)
 
 
 @app.command("batch")
@@ -365,12 +385,6 @@ def batch_command(
         "-y",
         help="Maximum YAML differences allowed for validation",
         min=0,
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show detailed progress",
     ),
     quiet: bool = typer.Option(
         False,

@@ -6,15 +6,21 @@ between structured YAML and LaTeX resume format.
 
 This module exports:
 - Convenience functions: yaml_to_latex, latex_to_yaml
+- Orchestration functions: parse_resume, generate_resume (with registry tracking)
 - Converter classes: YAMLToLaTeXConverter, LaTeXToYAMLConverter (re-exported)
 """
 
 import copy
+import os
 import re
+import shutil
+import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
+from dotenv import load_dotenv
 from jinja2.exceptions import UndefinedError as JinjaUndefinedError
 from omegaconf import OmegaConf
 
@@ -22,10 +28,25 @@ from archer.contexts.templating.exceptions import InvalidYAMLStructureError
 from archer.contexts.templating.latex_generator import YAMLToLaTeXConverter
 from archer.contexts.templating.latex_parser import LaTeXToYAMLConverter
 from archer.contexts.templating.latex_patterns import DocumentRegex, EnvironmentPatterns
+from archer.contexts.templating.logger import (
+    _log_debug,
+    log_conversion_result,
+    log_conversion_start,
+    setup_templating_logger,
+)
 from archer.contexts.templating.process_latex_archive import process_file
 from archer.utils.latex_parsing_tools import to_latex
-from archer.utils.resume_registry import get_resume_file, get_resume_status, resume_is_registered
+from archer.utils.resume_registry import (
+    get_resume_file,
+    get_resume_status,
+    resume_is_registered,
+    update_resume_status,
+)
 from archer.utils.text_processing import get_meaningful_diff
+from archer.utils.timestamp import now
+
+load_dotenv()
+LOGS_PATH = Path(os.getenv("LOGS_PATH", "outs/logs"))
 
 # Field pairs: (LaTeX-formatted field, plaintext field)
 # These pairs define which plaintext fields should be copied to LaTeX fields when missing
@@ -36,6 +57,37 @@ ENFORCED_PAIRS = [
     ("professional_profile", "professional_profile_plaintext"),
 ]
 ALL_ENFORCED_FIELDS = [field for pair in ENFORCED_PAIRS for field in pair]
+
+
+# Result dataclasses for orchestration functions
+
+
+@dataclass
+class ConversionResult:
+    """Result from parse_resume() or generate_resume() orchestration function."""
+
+    success: bool
+    input_path: Optional[Path] = None
+    output_path: Optional[Path] = None
+    error: Optional[str] = None
+    time_s: float = 0.0
+    log_dir: Optional[Path] = None
+    # Validation results
+    yaml_diffs: Optional[int] = None
+    latex_diffs: Optional[int] = None
+
+
+@dataclass
+class ConversionConfig:
+    """Direction-specific configuration for conversion orchestration."""
+
+    phase_name: str
+    status_in_progress: str
+    status_success: str
+    status_failure: str
+    output_extension: str
+    intermediate_suffix: str
+    convert_fn: Callable[[Path, Path], None]
 
 
 def count_new_fields(original: Any, cleaned: Any, field_pairs: list) -> int:
@@ -170,45 +222,6 @@ def yaml_to_latex(yaml_path: Path, output_path: Path = None) -> str:
     return latex
 
 
-# TEMPORARY: This function is a stand-in for the experimental workflow until
-# templating context gets proper two-tier logging (logger.py + pipeline events).
-def yaml_to_latex_experimental(resume_name: str) -> Path:
-    """
-    Convert YAML to LaTeX for experimental/test resumes using registry lookup.
-
-    Returns the path to the generated .tex file.
-
-    Raises:
-        ValueError: If resume not registered or has invalid type/status
-    """
-    if not resume_is_registered(resume_name):
-        raise ValueError(f"Resume '{resume_name}' not registered")
-
-    status_info = get_resume_status(resume_name)
-    resume_type = status_info["resume_type"]
-    resume_status = status_info["status"]
-
-    # Validate type/status constraints
-    is_valid = (
-        resume_type == "experimental" and resume_status == "drafting_completed"
-    ) or resume_type == "test"
-    if not is_valid:
-        raise ValueError(
-            f"Cannot generate LaTeX for '{resume_name}': "
-            f"type='{resume_type}', status='{resume_status}'. "
-            f"Must be (experimental + drafting_completed) or test."
-        )
-
-    yaml_path = get_resume_file(resume_name, "yaml")
-
-    # Output to data/resumes/{type}/raw/{name}.tex (yaml is in structured/, tex goes to raw/)
-    output_path = yaml_path.parent.parent / "raw" / f"{resume_name}.tex"
-    # output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    yaml_to_latex(yaml_path, output_path)
-    return output_path
-
-
 def latex_to_yaml(latex_path: Path, output_path: Path = None) -> Dict[str, Any]:
     """
     Convert LaTeX resume to YAML structure.
@@ -284,32 +297,59 @@ def compare_yaml_structured(yaml1_path: Path, yaml2_path: Path) -> tuple[list[st
 
 
 def validate_roundtrip_conversion(
-    tex_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
+    input_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
 ) -> Dict:
     """
-    Validate LaTeX ↔ YAML roundtrip conversion fidelity.
+    Validate roundtrip conversion fidelity (routing function).
 
-    Performs dual roundtrip testing:
-    - LaTeX roundtrip: LaTeX → YAML → LaTeX (tests parser + generator)
-    - YAML roundtrip: Compare parsed YAML vs re-parsed YAML (tests stability)
+    Automatically detects input type and routes to appropriate validation:
+    - .tex files: LaTeX → YAML → LaTeX (for parsing validation)
+    - .yaml files: YAML → LaTeX → YAML (for generation validation)
 
     Args:
-        tex_file: Path to LaTeX file to test
+        input_file: Path to input file (.tex or .yaml)
         work_dir: Directory for intermediate files
         max_latex_diffs: Maximum allowed LaTeX differences
         max_yaml_diffs: Maximum allowed YAML differences
 
     Returns:
-        Dict with validation results: {
-            'file': filename,
-            'latex_roundtrip': {'success': bool, 'num_diffs': int},
-            'yaml_roundtrip': {'success': bool, 'num_diffs': int},
-            'validation_passed': bool,
-            'error': str or None,
-            'time_ms': float
-        }
+        Dict with validation results (same structure for both directions)
     """
+    suffix = input_file.suffix.lower()
 
+    if suffix == ".tex":
+        return _validate_roundtrip_from_tex(input_file, work_dir, max_latex_diffs, max_yaml_diffs)
+    elif suffix == ".yaml":
+        return _validate_roundtrip_from_yaml(input_file, work_dir, max_latex_diffs, max_yaml_diffs)
+    else:
+        return {
+            "file": input_file.name,
+            "latex_roundtrip": {"success": False, "num_diffs": None},
+            "yaml_roundtrip": {"success": False, "num_diffs": None},
+            "validation_passed": False,
+            "error": f"Unsupported file type: {suffix}. Must be .tex or .yaml",
+            "time_ms": 0.0,
+        }
+
+
+def _validate_roundtrip_from_tex(
+    tex_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
+) -> Dict:
+    """
+    Validate LaTeX → YAML → LaTeX roundtrip conversion.
+
+    For parsing validation: ensures LaTeX survives the roundtrip.
+    Historical resumes are the source of truth.
+
+    Steps:
+    1. Normalize input LaTeX
+    2. Parse LaTeX → YAML
+    3. Generate YAML → LaTeX
+    4. Normalize generated LaTeX
+    5. Compare LaTeX (input vs generated)
+    6. Re-parse generated LaTeX → YAML
+    7. Compare YAML (parsed vs re-parsed)
+    """
     start_time = datetime.now()
     result = {
         "file": tex_file.name,
@@ -403,3 +443,436 @@ def validate_roundtrip_conversion(
         result["time_ms"] = (end_time - start_time).total_seconds() * 1000
 
     return result
+
+
+def _validate_roundtrip_from_yaml(
+    yaml_file: Path, work_dir: Path, max_latex_diffs: int, max_yaml_diffs: int
+) -> Dict:
+    """
+    Validate YAML → LaTeX → YAML roundtrip conversion.
+
+    For generation validation: ensures YAML survives the roundtrip.
+    Structured YAML data is the source of truth.
+
+    Steps:
+    1. Generate YAML → LaTeX
+    2. Normalize generated LaTeX
+    3. Parse LaTeX → YAML
+    4. Compare YAML (original vs re-parsed)
+    5. Re-generate re-parsed YAML → LaTeX
+    6. Normalize re-generated LaTeX
+    7. Compare LaTeX (generated vs re-generated)
+    """
+    start_time = datetime.now()
+    result = {
+        "file": yaml_file.name,
+        "yaml_roundtrip": {"success": False, "num_diffs": None},
+        "latex_roundtrip": {"success": False, "num_diffs": None},
+        "validation_passed": False,
+        "error": None,
+        "time_ms": 0.0,
+    }
+
+    try:
+        file_stem = yaml_file.stem
+        work_dir.mkdir(exist_ok=True, parents=True)
+
+        # Step 1: Generate YAML → LaTeX
+        generated_tex = work_dir / f"{file_stem}_generated.tex"
+        try:
+            yaml_to_latex(yaml_file, generated_tex)
+        except Exception as e:
+            result["error"] = f"Generation error: {str(e)}"
+            return result
+
+        # Step 2: Normalize generated LaTeX
+        normalized_tex = work_dir / f"{file_stem}_generated_normalized.tex"
+        success, _ = process_file(
+            generated_tex, normalized_tex, comment_types=set(), normalize=True, dry_run=False
+        )
+        if not success:
+            result["error"] = "Failed to normalize generated LaTeX"
+            return result
+
+        # Step 3: Parse LaTeX → YAML
+        reparsed_yaml = work_dir / f"{file_stem}_reparsed.yaml"
+        try:
+            latex_to_yaml(normalized_tex, reparsed_yaml)
+        except Exception as e:
+            result["error"] = f"Parse error: {str(e)}"
+            return result
+
+        # Step 4: YAML Roundtrip Comparison (original vs re-parsed)
+        yaml_diff_lines, yaml_num_diffs = compare_yaml_structured(yaml_file, reparsed_yaml)
+
+        if yaml_num_diffs > 0:
+            yaml_diff_file = work_dir / "yaml_roundtrip.diff"
+            yaml_diff_file.write_text("\n".join(yaml_diff_lines), encoding="utf-8")
+
+        result["yaml_roundtrip"] = {
+            "success": (yaml_num_diffs <= max_yaml_diffs),
+            "num_diffs": yaml_num_diffs,
+        }
+
+        # Step 5: Re-generate re-parsed YAML → LaTeX
+        regenerated_tex = work_dir / f"{file_stem}_regenerated.tex"
+        try:
+            yaml_to_latex(reparsed_yaml, regenerated_tex)
+        except Exception as e:
+            result["error"] = f"Re-generation error: {str(e)}"
+            return result
+
+        # Step 6: Normalize re-generated LaTeX
+        normalized_regenerated = work_dir / f"{file_stem}_regenerated_normalized.tex"
+        success, _ = process_file(
+            regenerated_tex,
+            normalized_regenerated,
+            comment_types=set(),
+            normalize=True,
+            dry_run=False,
+        )
+        if not success:
+            result["error"] = "Failed to normalize re-generated LaTeX"
+            return result
+
+        # Step 7: LaTeX Roundtrip Comparison (generated vs re-generated)
+        latex_diff_lines, latex_num_diffs = get_meaningful_diff(
+            normalized_tex, normalized_regenerated
+        )
+
+        if latex_num_diffs > 0:
+            latex_diff_file = work_dir / "latex_roundtrip.diff"
+            latex_diff_file.write_text("\n".join(latex_diff_lines), encoding="utf-8")
+
+        result["latex_roundtrip"] = {
+            "success": (latex_num_diffs <= max_latex_diffs),
+            "num_diffs": latex_num_diffs,
+        }
+
+        # Determine if validation passed
+        result["validation_passed"] = (
+            result["yaml_roundtrip"]["success"] and result["latex_roundtrip"]["success"]
+        )
+
+    except Exception as e:
+        result["error"] = f"Unexpected error: {str(e)}"
+
+    finally:
+        end_time = datetime.now()
+        result["time_ms"] = (end_time - start_time).total_seconds() * 1000
+
+    return result
+
+
+# Type-aware validation functions
+
+
+def _validate_parse_allowed(resume_name: str) -> None:
+    """
+    Check if parsing is allowed for this resume. Raises ValueError if not.
+
+    Parsing (LaTeX → YAML) is allowed for:
+    - historical: must be 'normalized' or 'parsing_failed'
+    - test: any status
+
+    Raises:
+        ValueError: If resume not registered or invalid type/status for parsing
+    """
+    if not resume_is_registered(resume_name):
+        raise ValueError(f"Resume not registered: {resume_name}")
+
+    info = get_resume_status(resume_name)
+    resume_type = info.get("resume_type")
+    status = info.get("status")
+
+    if resume_type == "historical":
+        if status not in ("normalized", "parsing_failed"):
+            raise ValueError(
+                f"Historical resume must be 'normalized' or 'parsing_failed', got '{status}'"
+            )
+
+    elif resume_type == "test":
+        pass  # Test resumes always allowed
+
+    else:  # experimental, generated
+        raise ValueError(
+            f"Cannot parse {resume_type} resumes (wrong direction: use generate instead)"
+        )
+
+
+def _validate_generate_allowed(resume_name: str) -> None:
+    """
+    Check if generation is allowed for this resume. Raises ValueError if not.
+
+    Generation (YAML → LaTeX) is allowed for:
+    - experimental: must be 'drafting_completed'
+    - generated: must be 'targeting_completed'
+    - test: any status
+
+    Raises:
+        ValueError: If resume not registered or invalid type/status for generation
+    """
+    if not resume_is_registered(resume_name):
+        raise ValueError(f"Resume not registered: {resume_name}")
+
+    info = get_resume_status(resume_name)
+    resume_type = info.get("resume_type")
+    status = info.get("status")
+
+    if resume_type == "experimental":
+        if status != "drafting_completed":
+            raise ValueError(f"Experimental resume must be 'drafting_completed', got '{status}'")
+
+    elif resume_type == "generated":
+        if status != "targeting_completed":
+            raise ValueError(f"Generated resume must be 'targeting_completed', got '{status}'")
+
+    elif resume_type == "test":
+        pass  # Test resumes always allowed
+
+    else:  # historical
+        raise ValueError("Cannot generate LaTeX for historical resumes (they already have LaTeX)")
+
+
+# Orchestration configs and helper function
+
+PARSE_CONFIG = ConversionConfig(
+    phase_name="parse",
+    status_in_progress="parsing",
+    status_success="parsed",
+    status_failure="parsing_failed",
+    output_extension=".yaml",
+    intermediate_suffix="_parsed",
+    convert_fn=latex_to_yaml,
+)
+
+GENERATE_CONFIG = ConversionConfig(
+    phase_name="generate",
+    status_in_progress="templating",
+    status_success="templating_completed",
+    status_failure="templating_failed",
+    output_extension=".tex",
+    intermediate_suffix="_generated",
+    convert_fn=yaml_to_latex,
+)
+
+
+def _run_conversion(
+    resume_name: str,
+    input_path: Path,
+    output_dir: Path,
+    max_latex_diffs: int,
+    max_yaml_diffs: int,
+    config: ConversionConfig,
+) -> ConversionResult:
+    """
+    Shared orchestration logic for both conversion directions.
+
+    Caller must validate that operation is allowed before calling this function.
+    Always runs roundtrip validation. Use yaml_to_latex/latex_to_yaml directly
+    if you need to skip validation.
+
+    Handles:
+    1. Setup two-tier logging
+    2. Run roundtrip validation
+    3. If validation passes: copy output to final location
+    4. Update registry status based on outcome
+    5. Clean up artifacts on success, keep on failure
+
+    Args:
+        resume_name: Resume identifier
+        input_path: Path to input file
+        output_dir: Directory for output
+        max_latex_diffs: Maximum LaTeX diffs allowed for validation
+        max_yaml_diffs: Maximum YAML diffs allowed for validation
+        config: Direction-specific configuration
+
+    Returns:
+        ConversionResult with success status, paths, validation info, and timing
+    """
+    start_time = time.time()
+
+    # Setup logging
+    log_dir = LOGS_PATH / f"{config.phase_name}_{now()}"
+    log_file = setup_templating_logger(log_dir, phase=config.phase_name)
+    log_conversion_start(resume_name, input_path, log_file, config.phase_name)
+
+    # Update status to in-progress
+    update_resume_status(
+        updates={resume_name: config.status_in_progress},
+        source="templating",
+    )
+
+    # Determine final output path
+    output_dir.mkdir(parents=True, exist_ok=True)
+    final_output_path = output_dir / f"{resume_name}{config.output_extension}"
+
+    # Run roundtrip validation (routes based on input_path extension)
+    output_filename = f"{resume_name}{config.intermediate_suffix}{config.output_extension}"
+    try:
+        roundtrip_validation_result = validate_roundtrip_conversion(
+            input_path, log_dir, max_latex_diffs, max_yaml_diffs
+        )
+
+        elapsed = time.time() - start_time
+
+        # Create base result with known values
+        result = ConversionResult(
+            success=roundtrip_validation_result["validation_passed"],
+            error=roundtrip_validation_result["error"],
+            input_path=input_path,
+            time_s=elapsed,
+            log_dir=log_dir,
+            yaml_diffs=roundtrip_validation_result["yaml_roundtrip"]["num_diffs"],
+            latex_diffs=roundtrip_validation_result["latex_roundtrip"]["num_diffs"],
+        )
+    except Exception as e:
+        elapsed = time.time() - start_time
+        result = ConversionResult(
+            success=False,
+            error=str(e),
+            input_path=input_path,
+            time_s=elapsed,
+            log_dir=log_dir,
+        )
+
+    # Handle success vs failure
+    if result.success:
+        # Copy output to final location
+        shutil.copy(log_dir / output_filename, final_output_path)
+
+        # Clean up intermediate validation artifacts but keep log
+        for file in log_dir.iterdir():
+            if file.name != "template.log":
+                file.unlink()
+        _log_debug("Cleaned up validation artifacts.")
+
+        # Update result with output path
+        result.output_path = final_output_path
+
+        # Prepare success metadata for pipeline events
+        extra_fields_for_pipeline_event = {"output_path": str(final_output_path)}
+        outcome = config.status_success
+    else:
+        # Keep all artifacts for debugging
+        _log_debug("Keeping artifacts for debugging.")
+
+        # Update result with error
+        result.error = result.error or "Roundtrip validation failed"
+
+        # Prepare failure metadata for pipeline events
+        extra_fields_for_pipeline_event = {
+            "error": result.error,
+            "yaml_diffs": result.yaml_diffs,
+            "latex_diffs": result.latex_diffs,
+        }
+        outcome = config.status_failure
+
+    # Update registry status with metadata
+    update_resume_status(
+        updates={resume_name: outcome},
+        source="templating",
+        time_s=elapsed,
+        **extra_fields_for_pipeline_event,
+    )
+
+    log_conversion_result(resume_name, result, elapsed, config.phase_name)
+    return result
+
+
+def parse_resume(
+    resume_name: str,
+    output_dir: Optional[Path] = None,
+    max_latex_diffs: int = 6,
+    max_yaml_diffs: int = 0,
+    allow_overwrite: bool = True,
+) -> ConversionResult:
+    """
+    Parse LaTeX resume to YAML with registry tracking, validation, and logging.
+
+    Always runs roundtrip validation. Use latex_to_yaml() directly if you need
+    to skip validation.
+
+    Args:
+        resume_name: Resume identifier (looked up in registry)
+        output_dir: Directory for YAML output. If None, uses structured/ parallel to tex file.
+        max_latex_diffs: Maximum LaTeX diffs allowed for validation (default: 6)
+        max_yaml_diffs: Maximum YAML diffs allowed for validation (default: 0)
+        allow_overwrite: Allow overwriting existing output file (default: True)
+
+    Returns:
+        ConversionResult with success status, paths, validation info, and timing
+    """
+    # Validate parsing is allowed (raises ValueError if not)
+    _validate_parse_allowed(resume_name)
+
+    # Get input file (raises ValueError if not found)
+    tex_file = get_resume_file(resume_name, "tex")
+
+    # Default output: use registry to get expected yaml path
+    if output_dir is None:
+        expected_yaml = get_resume_file(resume_name, "yaml", file_expected=False)
+        output_dir = expected_yaml.parent
+
+    # Check overwrite before starting orchestration
+    output_path = output_dir / f"{resume_name}.yaml"
+    if not allow_overwrite and output_path.exists():
+        raise ValueError(f"Output file already exists: {output_path}")
+
+    return _run_conversion(
+        resume_name=resume_name,
+        input_path=tex_file,
+        output_dir=output_dir,
+        max_latex_diffs=max_latex_diffs,
+        max_yaml_diffs=max_yaml_diffs,
+        config=PARSE_CONFIG,
+    )
+
+
+def generate_resume(
+    resume_name: str,
+    output_dir: Optional[Path] = None,
+    max_latex_diffs: int = 6,
+    max_yaml_diffs: int = 0,
+    allow_overwrite: bool = True,
+) -> ConversionResult:
+    """
+    Generate LaTeX from YAML with registry tracking, validation, and logging.
+
+    Always runs roundtrip validation. Use yaml_to_latex() directly if you need
+    to skip validation.
+
+    Args:
+        resume_name: Resume identifier (looked up in registry)
+        output_dir: Directory for LaTeX output. If None, uses raw/ parallel to YAML file.
+        max_latex_diffs: Maximum LaTeX diffs allowed for validation (default: 6)
+        max_yaml_diffs: Maximum YAML diffs allowed for validation (default: 0)
+        allow_overwrite: Allow overwriting existing output file (default: True)
+
+    Returns:
+        ConversionResult with success status, paths, validation info, and timing
+    """
+    # Validate generation is allowed (raises ValueError if not)
+    _validate_generate_allowed(resume_name)
+
+    # Get input file (raises ValueError if not found)
+    yaml_path = get_resume_file(resume_name, "yaml")
+
+    # Default output: use registry to get expected raw tex path
+    if output_dir is None:
+        expected_tex = get_resume_file(resume_name, "raw", file_expected=False)
+        output_dir = expected_tex.parent
+
+    # Check overwrite before starting orchestration
+    output_path = output_dir / f"{resume_name}.tex"
+    if not allow_overwrite and output_path.exists():
+        raise ValueError(f"Output file already exists: {output_path}")
+
+    return _run_conversion(
+        resume_name=resume_name,
+        input_path=yaml_path,
+        output_dir=output_dir,
+        max_latex_diffs=max_latex_diffs,
+        max_yaml_diffs=max_yaml_diffs,
+        config=GENERATE_CONFIG,
+    )
