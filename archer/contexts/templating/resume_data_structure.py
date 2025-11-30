@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from omegaconf import OmegaConf
 
-from archer.contexts.templating import latex_to_yaml
+from archer.contexts.templating.converter import latex_to_yaml
 from archer.contexts.templating.markdown_formatter import (
     format_education_markdown,
     format_subsections_markdown,
