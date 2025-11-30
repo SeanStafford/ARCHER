@@ -26,6 +26,7 @@ from archer.contexts.rendering.logger import (
 from archer.utils.event_logging import log_pipeline_event
 from archer.utils.pdf_processing import page_count
 from archer.utils.resume_registry import (
+    get_resume_file,
     get_resume_status,
     resume_is_registered,
     update_resume_status,
@@ -60,6 +61,7 @@ class CompilationResult:
         errors: List of parsed LaTeX errors
         warnings: List of parsed LaTeX warnings
         page_count: Number of pages in generated PDF (None if not available)
+        compile_dir: Directory where compilation occurred (contains logs and artifacts)
     """
 
     success: bool
@@ -69,6 +71,7 @@ class CompilationResult:
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     page_count: Optional[int] = None
+    compile_dir: Optional[Path] = None
 
 
 def _parse_latex_log(log_content: str) -> tuple[List[str], List[str]]:
@@ -277,6 +280,7 @@ def compile_latex(
         errors=errors,
         warnings=warnings,
         page_count=pdf_page_count,
+        compile_dir=compile_dir,
     )
 
 
@@ -347,8 +351,7 @@ def log_compilation_in_events_pipeline(
 
 
 def compile_resume(
-    tex_file: Path,
-    output_dir: Optional[Path] = None,
+    resume_name: str,
     num_passes: int = 2,
     verbose: bool = False,
     keep_artifacts_on_success: bool = False,
@@ -372,8 +375,7 @@ def compile_resume(
         - Saves detailed render.log with full stdout/stderr
 
     Args:
-        tex_file: Path to the resume .tex file to compile
-        output_dir: Directory for output files (default: None, uses timestamped log directory)
+        resume_name: Resume identifier (must be registered)
         num_passes: Number of compiler passes (default: 2 for cross-references)
         verbose: Show detailed warnings/errors in logs (default: False)
         keep_artifacts_on_success: Keep LaTeX artifacts (.aux, .log, etc.) on success (default: False)
@@ -381,26 +383,21 @@ def compile_resume(
 
     Returns:
         CompilationResult with success status and diagnostic information
+
+    Raises:
+        ValueError: If resume is not registered or resume type cannot be determined
     """
-
-    tex_file = Path(tex_file).resolve()
-    # Early validation before any registry updates
-    if not tex_file.exists():
-        return CompilationResult(success=False, errors=[f"TeX file not found: {tex_file}"])
-
-    # Extract resume name for registry lookup (registry uses file stem)
-    resume_name = tex_file.stem
-
     # Verify resume is registered in the tracking system
     if not resume_is_registered(resume_name):
-        return CompilationResult(success=False, errors=[f"Resume not registered: {resume_name}"])
+        raise ValueError(f"Resume not registered: {resume_name}")
 
-    # Get resume type to determine output directory (check early to avoid compilation waste)
+    # Get resume type to determine output directory
     resume_type = get_resume_status(resume_name).get("resume_type")
     if resume_type is None:
-        return CompilationResult(
-            success=False, errors=[f"Cannot determine resume type for {resume_name}"]
-        )
+        raise ValueError(f"Cannot determine resume type for {resume_name}")
+
+    # Get tex file path from registry
+    tex_file = get_resume_file(resume_name, "tex")
 
     # Precondition check for output path conflicts BEFORE compilation (fail fast)
     compiled_dir = DATA_PATH / "resumes" / resume_type / "compiled"
@@ -414,14 +411,6 @@ def compile_resume(
     timestamp = now()
     log_dir = LOGS_PATH / f"compile_{timestamp}"
     log_dir.mkdir(parents=True, exist_ok=True)
-
-    ## TODO: If using custom output_dir, do not move PDF to compiled_dir? Clarify desired behavior.
-    ##       For example, should this affect pipeline event logging behavior?
-    if output_dir is None:
-        output_dir = log_dir
-    else:
-        output_dir = Path(output_dir).resolve()
-        output_dir.mkdir(parents=True, exist_ok=True)
 
     # Setup loguru logger with provenance
     setup_rendering_logger(log_dir)
@@ -444,7 +433,7 @@ def compile_resume(
     # Actually compile the LaTeX file
     result = compile_latex(
         tex_file=tex_file,
-        compile_dir=output_dir,
+        compile_dir=log_dir,
         num_passes=num_passes,
         keep_artifacts=True,  # Always keep initially, we'll clean up based on success
     )
@@ -475,7 +464,7 @@ def compile_resume(
         # Clean up artifacts on success (unless keep_artifacts_on_success=True)
         if not keep_artifacts_on_success:
             for ext in LATEX_ARTIFACTS:
-                artifact = output_dir / f"{resume_name}{ext}"
+                artifact = log_dir / f"{resume_name}{ext}"
                 if artifact.exists():
                     artifact.unlink()
             _log_debug("Cleaned up LaTeX artifacts.")

@@ -23,7 +23,6 @@ Examples:\n
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -33,10 +32,19 @@ from typing_extensions import Annotated
 
 from archer.contexts.rendering import compile_resume
 from archer.contexts.rendering.validator import validate_resume
-from archer.utils import get_resume_file
 
 load_dotenv()
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
+LATEX_COMPILER = Path(os.getenv("LATEX_COMPILER"))
+
+
+def display_path(path: Path) -> str:
+    """Return path relative to PROJECT_ROOT for cleaner display."""
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
 
 app = typer.Typer(
     help="Compile LaTeX resumes to PDF and validate compiled PDFs with registry tracking",
@@ -55,22 +63,12 @@ def main(ctx: typer.Context):
 
 @app.command("compile")
 def compile_command(
-    tex_source: Annotated[
+    resume_identifier: Annotated[
         str,
         typer.Argument(
-            help="LaTeX resume file path OR resume identifier",
+            help="Resume identifier (must be registered)",
         ),
     ],
-    output_dir: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output-dir",
-            "-o",
-            help="Custom output directory (default: timestamped log directory)",
-            dir_okay=True,
-            file_okay=False,
-        ),
-    ] = None,
     num_passes: Annotated[
         int,
         typer.Option(
@@ -113,64 +111,44 @@ def compile_command(
 
     Examples:\n
 
-        $ compile_pdf.py compile Res202511                     # Compile using identifier
-
-        $ compile_pdf.py compile path/to/resume.tex            # Compile using path
+        $ compile_pdf.py compile Res202511                     # Compile resume
 
         $ compile_pdf.py compile Res202511 --verbose           # Verbose output
 
-        $ compile_pdf.py compile path/to/resume.tex --passes 3 # Three compilation passes
+        $ compile_pdf.py compile Res202511 --passes 3          # Three compilation passes
     """
-
-    # Infer path from identifier if needed
-    if "/" not in tex_source and "." not in tex_source:
-        # interpret as resume identifier
-        tex_file = get_resume_file(tex_source)
-    else:
-        # interpret as file path
-        tex_file = Path(tex_source)
-
-    # Validate file extension
-    if tex_file.suffix != ".tex":
-        typer.secho(
-            f"Error: File must have .tex extension: {tex_file}", fg=typer.colors.RED, err=True
-        )
-        raise typer.Exit(code=1)
-
     # Display compilation info
-    typer.secho(f"\nCompiling: {tex_file.name}", fg=typer.colors.BLUE, bold=True)
+    typer.secho(f"\nCompiling: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
     typer.echo(f"Passes: {num_passes}")
-    if output_dir:
-        typer.echo(f"Output directory: {output_dir}")
     typer.echo("")
 
     # Compile the resume
     try:
         result = compile_resume(
-            tex_file=tex_file,
-            output_dir=output_dir,
+            resume_name=resume_identifier,
             num_passes=num_passes,
             verbose=verbose,
             keep_artifacts_on_success=keep_artifacts,
             overwrite_allowed=not no_overwrite,
         )
-    except Exception as e:
-        typer.secho("\nCompilation failed with exception:", fg=typer.colors.RED, bold=True)
-        typer.secho(f"  {str(e)}", fg=typer.colors.RED)
+    except ValueError as e:
+        typer.secho(f"Error: {e}\n", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
+    typer.echo("")
     # Display results
     if result.success:
         typer.secho("✓ Compilation succeeded", fg=typer.colors.GREEN, bold=True)
-        typer.echo(f"  PDF: {result.pdf_path}")
-        typer.echo(f"  Warnings: {len(result.warnings)}")
 
+        typer.echo(f"  {LATEX_COMPILER} warnings: {len(result.warnings)}")
         if verbose and result.warnings:
-            typer.echo("\nWarnings:")
+            typer.echo(f"\n{LATEX_COMPILER} warnings:")
             for warning in result.warnings[:10]:  # Limit to first 10
                 typer.echo(f"  - {warning}")
             if len(result.warnings) > 10:
                 typer.echo(f"  ... and {len(result.warnings) - 10} more")
+
+        typer.echo(f"  PDF: {display_path(result.pdf_path)}")
     else:
         typer.secho(
             f"✗ Compilation failed with {len(result.errors)} errors", fg=typer.colors.RED, bold=True
@@ -185,8 +163,12 @@ def compile_command(
             if len(result.errors) > 10:
                 typer.echo(f"  ... and {len(result.errors) - 10} more")
 
+    if result.compile_dir:
+        typer.echo(f"  Log: {display_path(result.compile_dir / 'render.log')}")
+    typer.echo("")
+
     # Exit with appropriate code
-    sys.exit(0 if result.success else 1)
+    raise typer.Exit(code=0 if result.success else 1)
 
 
 @app.command("validate")
@@ -220,19 +202,23 @@ def validate_command(
     try:
         result = validate_resume(resume_name=resume_identifier)
     except ValueError as e:
-        typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+        typer.secho(f"Error: {e}\n", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
     # Display results
     if result.is_valid:
         typer.secho("\n✓ Validation passed", fg=typer.colors.GREEN, bold=True)
-        typer.echo(f"  Page count: {result.page_count}\n")
+        typer.echo(f"  Page count: {result.page_count}")
     else:
         typer.secho("\n✗ Validation failed", fg=typer.colors.RED, bold=True)
         typer.echo(f"  Page count: {result.page_count}")
-        typer.echo(f"  Issues: {len(result.issues)}\n")
+        typer.echo(f"  Diagnostic issues: {len(result.issues)}")
 
-    sys.exit(0 if result.is_valid else 1)
+    if result.log_dir:
+        typer.echo(f"  Log: {display_path(result.log_dir / 'render.log')}")
+    typer.echo("")
+
+    raise typer.Exit(code=0 if result.is_valid else 1)
 
 
 @app.command("batch")

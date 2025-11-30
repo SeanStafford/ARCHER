@@ -44,11 +44,13 @@ class ValidationResult:
         is_valid: Whether the resume passes all validation checks
         diagnostics: Layout diagnostics from PDF/YAML comparison
         feedback: Actionable feedback for targeting (only if invalid)
+        log_dir: Directory containing validation logs
     """
 
     is_valid: bool
     diagnostics: DocumentDiagnostics
     feedback: Optional[Dict[str, str]] = None
+    log_dir: Optional[Path] = None
 
     @property
     def issues(self) -> List[str]:
@@ -178,6 +180,7 @@ def validate_resume(resume_name: str) -> ValidationResult:
         is_valid=diagnostics.is_valid,
         diagnostics=diagnostics,
         feedback=feedback,
+        log_dir=log_dir,
     )
 
     # Log validation result (Tier 1)

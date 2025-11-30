@@ -108,7 +108,7 @@ def log_compilation_result(
             f"{resume_name}: {page_count_info}{len(result.warnings)} warnings ({elapsed_time:.2f}s)"
         )
         if result.pdf_path:
-            _log_debug(f"  PDF: {result.pdf_path}")
+            _log_debug(f"PDF: {result.pdf_path}")
     else:
         _log_error("Compilation failed.")
         _log_error(f"{resume_name}: {len(result.errors)} errors ({elapsed_time:.2f}s)")
@@ -144,8 +144,8 @@ def log_compilation_result(
 def log_validation_start(resume_name: str, pdf_path: Path, log_file: Path) -> None:
     """Log start of PDF validation."""
     _log_info(f"Starting PDF validation: {resume_name}")
-    _log_info(f"  Log file: {log_file}")
-    _log_debug(f"  PDF: {pdf_path}")
+    _log_info(f"Log file: {log_file}")
+    _log_debug(f"PDF: {pdf_path}")
 
 
 def log_validation_result(
@@ -171,4 +171,4 @@ def log_validation_result(
 
         # Log feedback report for targeting context
         if validation_result.feedback:
-            _log_info("\n\nRECOMMENDATIONS\n\n" + validation_result.feedback)
+            _log_info("\n\nRECOMMENDATIONS\n" + validation_result.feedback)
