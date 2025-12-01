@@ -40,6 +40,7 @@ from archer.contexts.templating.logger import (
     setup_templating_logger,
 )
 from archer.utils.clean_latex import CommentType, clean_latex_content
+from archer.utils.event_logging import log_pipeline_event
 from archer.utils.latex_parsing_tools import extract_environment_content
 from archer.utils.resume_registry import (
     get_resume_file,
@@ -56,6 +57,8 @@ from archer.utils.timestamp import now
 load_dotenv()
 LOGS_PATH = Path(os.getenv("LOGS_PATH", "outs/logs"))
 
+# Marker in process_file message indicating content was identical, used to skip registry updates
+CONTENT_UNCHANGED_TAG = "[unchanged - skipped write]"
 
 # ============================================================================
 # Result Dataclass
@@ -69,7 +72,7 @@ class NormalizationResult:
     success: bool
     input_path: Optional[Path] = None
     output_path: Optional[Path] = None
-    error: Optional[str] = None
+    message: Optional[str] = None
     time_s: float = 0.0
     log_dir: Optional[Path] = None
 
@@ -418,10 +421,19 @@ def process_file(
         if normalize:
             message += " [normalized]"
 
-        # Write output file unless dry run
+        # Write output file unless dry run or content unchanged
         if not dry_run:
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(final_content)
+            # Check if output already exists with identical content
+            if output_path.exists():
+                existing_content = output_path.read_text(encoding="utf-8")
+                if existing_content == final_content:
+                    message += f" {CONTENT_UNCHANGED_TAG}"
+                else:
+                    with open(output_path, "w", encoding="utf-8") as f:
+                        f.write(final_content)
+            else:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(final_content)
         else:
             message += " [DRY RUN - no changes written]"
 
@@ -457,7 +469,7 @@ def _validate_normalize_allowed(resume_name: str, allow_overwrite: bool) -> None
 
     status_info = get_resume_status(resume_name)
     resume_type = status_info["resume_type"]
-    status = status_info.get["status"]
+    status = status_info["status"]
 
     if resume_type in ("experimental", "generated"):
         raise ValueError(f"Cannot normalize {resume_type} resumes")
@@ -503,7 +515,7 @@ def normalize_resume(
     # 3. Call pure function
     #    process_file removes comments, suggest blocks, applies format standardizations
     start_time = time.time()
-    success, message = process_file(input_path, output_path, normalize=True, dry_run=False)
+    success, message = process_file(input_path, output_path, "all", normalize=True, dry_run=False)
     elapsed = time.time() - start_time
 
     # 4. Build result (single construction with conditional fields)
@@ -511,7 +523,7 @@ def normalize_resume(
         success=success,
         input_path=input_path,
         output_path=output_path if success else None,
-        error=None if success else message,
+        message=message,
         time_s=elapsed,
         log_dir=log_dir,
     )
@@ -523,14 +535,26 @@ def normalize_resume(
             if file.name != "template.log":
                 file.unlink()
 
-        # Update registry (Tier 2: pipeline events)
-        # Note: normalization has no in-progress or failure status, only "normalized" on success
-        update_resume_status(
-            updates={resume_name: "normalized"},
-            source="templating",
-            time_s=elapsed,
-            output_path=str(output_path),
-        )
+        # Update registry only if file was actually written (not skipped due to unchanged content)
+        if CONTENT_UNCHANGED_TAG not in message:
+            update_resume_status(
+                updates={resume_name: "normalized"},
+                source="templating",
+                time_s=elapsed,
+                output_path=str(output_path),
+            )
+        else:
+            # Log activity without changing status (content unchanged)
+            status_info = get_resume_status(resume_name)
+            log_pipeline_event(
+                event_type="logged_activity",
+                resume_name=resume_name,
+                source="templating",
+                resume_type=status_info["resume_type"],
+                status=status_info["status"],
+                activity="normalization_skipped",
+                reason="Content unchanged from previous normalized version.",
+            )
     else:
         # Keep artifacts for debugging, no registry update
         _log_error(f"Normalization failed: {message}")

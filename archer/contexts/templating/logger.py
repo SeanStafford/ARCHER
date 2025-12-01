@@ -131,5 +131,8 @@ def log_normalization_result(resume_name: str, result, elapsed_time: float, succ
         _log_success(f"{resume_name}: normalization succeeded ({elapsed_time:.2f}s)")
         if result.output_path:
             _log_info(f"  Output: {result.output_path}")
+        if result.message:
+            logger.opt(raw=True).debug(f'process_file message: "{result.message}"')
     else:
         _log_error(f"Failed to normalize {resume_name} ({elapsed_time:.2f}s)")
+        _log_error(f'  process_file message: "{result.message}"')

@@ -98,14 +98,16 @@ def normalize_command(
         raise typer.Exit(code=1)
 
     if result.success:
-        typer.secho("✓ Normalization succeeded", fg=typer.colors.GREEN, bold=True)
+        typer.secho("\n✓ Normalization succeeded", fg=typer.colors.GREEN, bold=True)
         typer.echo(f"  Time: {result.time_s:.2f}s")
         typer.echo(f"  Output: {display_path(result.output_path)}")
+        # if result.message and "unchanged" in result.message:
+        #     typer.secho("  (file unchanged - write skipped)", fg=typer.colors.YELLOW)
     else:
         typer.secho("✗ Normalization failed", fg=typer.colors.RED, bold=True)
         typer.echo(f"  Time: {result.time_s:.2f}s")
-        if result.error:
-            typer.echo(f"  Error: {result.error}")
+        if result.message:
+            typer.echo(f"  Error: {result.message}")
 
     # Always show log location
     if result.log_dir:
@@ -173,7 +175,7 @@ def batch_command(
                 typer.echo(f"  Output: {display_path(result.output_path)}")
             else:
                 error_count += 1
-                typer.secho(f"✗ {resume_name}: {result.error}", fg=typer.colors.RED, err=True)
+                typer.secho(f"✗ {resume_name}: {result.message}", fg=typer.colors.RED, err=True)
         except ValueError as e:
             # Pre-validation error (not registered, wrong type/status)
             # Must separate failure case, because no result object exists in this case
