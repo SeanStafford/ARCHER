@@ -19,6 +19,10 @@ from archer.contexts.templating.converter import (
     parse_resume,
     validate_roundtrip_conversion,
 )
+from archer.contexts.templating.normalizer import (
+    NormalizationResult,
+    normalize_resume,
+)
 from archer.contexts.templating.resume_data_structure import (
     ResumeDocument,
     ResumeDocumentArchive,
@@ -32,6 +36,9 @@ __all__ = [
     "parse_resume",
     "generate_resume",
     "ConversionResult",
+    # Normalization orchestration
+    "normalize_resume",
+    "NormalizationResult",
     # Data structure classes
     "ResumeDocument",
     "ResumeDocumentArchive",

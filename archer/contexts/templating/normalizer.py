@@ -1,5 +1,5 @@
 """
-LaTeX Archive Processing
+LaTeX Archive Processing and Normalization
 
 High-level functions for processing historical resume LaTeX files with two distinct modes:
 
@@ -15,21 +15,64 @@ High-level functions for processing historical resume LaTeX files with two disti
 The normalize flag is not an "add-on" - it's a mode selector that determines
 the entire processing behavior. Normalization inherently requires full cleaning.
 
+This module also provides:
+- NormalizationResult: Dataclass for orchestration results
+- normalize_resume(): Orchestration function with registry tracking and logging
+
 This module is specifically for processing the historical resume archive and uses
 patterns defined in latex_patterns.py to ensure consistency with parsing/generation.
 """
 
+import os
 import re
+import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Set
+from typing import Optional, Set
+
+from dotenv import load_dotenv
 
 from archer.contexts.templating.latex_patterns import PageRegex, SectionRegex
+from archer.contexts.templating.logger import (
+    _log_error,
+    log_normalization_result,
+    log_normalization_start,
+    setup_templating_logger,
+)
 from archer.utils.clean_latex import CommentType, clean_latex_content
 from archer.utils.latex_parsing_tools import extract_environment_content
+from archer.utils.resume_registry import (
+    get_resume_file,
+    get_resume_status,
+    resume_is_registered,
+    update_resume_status,
+)
 from archer.utils.text_processing import (
     normalize_par_to_blank_line,
     set_max_consecutive_blank_lines,
 )
+from archer.utils.timestamp import now
+
+load_dotenv()
+LOGS_PATH = Path(os.getenv("LOGS_PATH", "outs/logs"))
+
+
+# ============================================================================
+# Result Dataclass
+# ============================================================================
+
+
+@dataclass
+class NormalizationResult:
+    """Result from normalize_resume() orchestration function."""
+
+    success: bool
+    input_path: Optional[Path] = None
+    output_path: Optional[Path] = None
+    error: Optional[str] = None
+    time_s: float = 0.0
+    log_dir: Optional[Path] = None
+
 
 # ============================================================================
 # Normalization Functions (Normalize Mode)
@@ -388,49 +431,111 @@ def process_file(
         return False, f"Error processing {input_path.name}: {str(e)}"
 
 
-def process_directory(
-    directory_path: Path,
-    comment_types: Set[str],
-    remove_suggest_blocks: bool = False,
-    normalize: bool = False,
-    dry_run: bool = False,
-    preamble_comment_types: Set[str] | None = None,
-) -> List[tuple[bool, str]]:
-    """
-    Process all .tex files in a directory.
+# ============================================================================
+# Orchestration Functions
+# ============================================================================
 
-    See process_file() for details on Clean Mode vs Normalize Mode.
+
+def _validate_normalize_allowed(resume_name: str, allow_overwrite: bool) -> None:
+    """
+    Validate that normalization is allowed for this resume.
+
+    Normalization allowed for:
+    - Historical: status must be 'raw' (unless allow_overwrite=True)
+    - Test: any status
+    - Experimental/generated: NOT allowed (they shouldn't need raw tex files)
 
     Args:
-        directory_path: Path to directory containing .tex files
-        comment_types: Set of comment types to remove (ignored if normalize=True)
-        remove_suggest_blocks: Whether to remove \\suggest{...} blocks (ignored if normalize=True)
-        normalize: If True, enables Normalize Mode (overrides cleaning parameters)
-        dry_run: If True, don't write output files
-        preamble_comment_types: Set of comment types for preamble (ignored if normalize=True)
+        resume_name: Resume identifier
+        allow_overwrite: Allow re-normalizing already normalized resumes
+
+    Raises:
+        ValueError: If resume not registered, invalid type, or wrong status
+    """
+    if not resume_is_registered(resume_name):
+        raise ValueError(f"Resume not registered: {resume_name}")
+
+    status_info = get_resume_status(resume_name)
+    resume_type = status_info["resume_type"]
+    status = status_info.get["status"]
+
+    if resume_type in ("experimental", "generated"):
+        raise ValueError(f"Cannot normalize {resume_type} resumes")
+
+    if resume_type == "historical":
+        if status != "raw" and not allow_overwrite:
+            raise ValueError(
+                f"Historical resume must have status 'raw' to normalize, got '{status}'. "
+                "Use --renormalize to override."
+            )
+    # Test resumes: always allowed
+
+
+def normalize_resume(
+    resume_name: str,
+    allow_overwrite: bool = False,
+) -> NormalizationResult:
+    """
+    Normalize a LaTeX resume with registry tracking and logging.
+
+    Args:
+        resume_name: Resume identifier (must be registered)
+        allow_overwrite: Allow re-normalizing already normalized resumes
 
     Returns:
-        List of (success, message) tuples for each file
+        NormalizationResult with success status and paths
+
+    Raises:
+        ValueError: If resume not registered, invalid type, or wrong status
     """
-    results = []
+    # 1. Pre-validation (raises ValueError before logging starts)
+    #    - Checks resume is registered, correct type (historical/test), correct status
+    #    - Gets input path (raw tex) and output path (normalized tex)
+    _validate_normalize_allowed(resume_name, allow_overwrite)
+    input_path = get_resume_file(resume_name, "raw")
+    output_path = get_resume_file(resume_name, "tex", file_expected=False)
 
-    # Find all .tex files
-    tex_files = sorted(directory_path.glob("*.tex"))
+    # 2. Setup logging (Tier 1: detailed execution logs)
+    log_dir = LOGS_PATH / f"normalize_{now()}"
+    log_file = setup_templating_logger(log_dir, phase="normalize")
+    log_normalization_start(resume_name, input_path, log_file)
 
-    if not tex_files:
-        return [(False, f"No .tex files found in {directory_path}")]
+    # 3. Call pure function
+    #    process_file removes comments, suggest blocks, applies format standardizations
+    start_time = time.time()
+    success, message = process_file(input_path, output_path, normalize=True, dry_run=False)
+    elapsed = time.time() - start_time
 
-    for tex_file in tex_files:
-        # Process in-place (overwrite)
-        success, message = process_file(
-            tex_file,
-            tex_file,
-            comment_types,
-            remove_suggest_blocks,
-            normalize,
-            dry_run,
-            preamble_comment_types,
+    # 4. Build result (single construction with conditional fields)
+    result = NormalizationResult(
+        success=success,
+        input_path=input_path,
+        output_path=output_path if success else None,
+        error=None if success else message,
+        time_s=elapsed,
+        log_dir=log_dir,
+    )
+
+    # 5. Handle outcome
+    if success:
+        # Clean up artifacts (keep only template.log)
+        for file in log_dir.iterdir():
+            if file.name != "template.log":
+                file.unlink()
+
+        # Update registry (Tier 2: pipeline events)
+        # Note: normalization has no in-progress or failure status, only "normalized" on success
+        update_resume_status(
+            updates={resume_name: "normalized"},
+            source="templating",
+            time_s=elapsed,
+            output_path=str(output_path),
         )
-        results.append((success, message))
+    else:
+        # Keep artifacts for debugging, no registry update
+        _log_error(f"Normalization failed: {message}")
 
-    return results
+    # 6. Log result and return
+    log_normalization_result(resume_name, result, elapsed, success=success)
+
+    return result

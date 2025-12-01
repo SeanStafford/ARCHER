@@ -116,3 +116,20 @@ def log_conversion_result(
         _log_error(f"Failed to {phase_name} {resume_name} ({elapsed_time:.2f}s)")
         if result.error:
             _log_error(f"  Error: {result.error}")
+
+
+def log_normalization_start(resume_name: str, input_path: Path, log_file: Path) -> None:
+    """Log start of normalization."""
+    _log_info(f"Starting to normalize {resume_name}")
+    _log_info(f"Log file: {log_file}")
+    _log_debug(f"Source: {input_path}")
+
+
+def log_normalization_result(resume_name: str, result, elapsed_time: float, success: bool) -> None:
+    """Log normalization result."""
+    if success:
+        _log_success(f"{resume_name}: normalization succeeded ({elapsed_time:.2f}s)")
+        if result.output_path:
+            _log_info(f"  Output: {result.output_path}")
+    else:
+        _log_error(f"Failed to normalize {resume_name} ({elapsed_time:.2f}s)")
