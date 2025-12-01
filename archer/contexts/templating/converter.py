@@ -652,7 +652,7 @@ GENERATE_CONFIG = ConversionConfig(
     status_success="templating_completed",
     status_failure="templating_failed",
     output_extension=".tex",
-    intermediate_suffix="_generated",
+    intermediate_suffix="_generated_normalized",
     convert_fn=yaml_to_latex,
 )
 
@@ -858,9 +858,9 @@ def generate_resume(
     # Get input file (raises ValueError if not found)
     yaml_path = get_resume_file(resume_name, "yaml")
 
-    # Default output: use registry to get expected raw tex path
+    # Default output: use registry to get expected tex path (normalized location)
     if output_dir is None:
-        expected_tex = get_resume_file(resume_name, "raw", file_expected=False)
+        expected_tex = get_resume_file(resume_name, "tex", file_expected=False)
         output_dir = expected_tex.parent
 
     # Check overwrite before starting orchestration
