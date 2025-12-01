@@ -320,7 +320,7 @@ def list_command(
     for resume in resumes:
         padding = " " * (max_name_len - len(resume["resume_name"]))
         typer.echo(
-            f"  {resume['resume_name']}{padding}  {resume['resume_type']:10}  {resume['status']}"
+            f"  {resume['resume_name']}{padding}  {resume['resume_type']:12}  {resume['status']}"
         )
 
     typer.echo(f"\nTotal: {len(resumes)}")
