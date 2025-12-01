@@ -246,9 +246,9 @@ def operation_command(
 
     Examples:\n
 
-        $ python scripts/script.py operation Res202511
+        $ script.py operation Res202511
 
-        $ python scripts/script.py operation Res202511 --no-overwrite
+        $ script.py operation Res202511 --no-overwrite
     """
     # Display header
     typer.secho(f"\nOperating: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
@@ -344,9 +344,9 @@ def operation(resume_identifier: str):
 
     Examples:\n
 
-        $ python scripts/script.py operation Res202511           # Basic usage
+        $ script.py operation Res202511           # Basic usage
 
-        $ python scripts/script.py operation Res202511 --verbose # With verbose output
+        $ script.py operation Res202511 --verbose # With verbose output
     """
 ```
 

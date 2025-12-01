@@ -68,7 +68,7 @@ def list_command():
 
     Example:\n
 
-        $ python scripts/convert_template.py list
+        $ convert_template.py list
     """
     # Get all .tex files from archive
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob("*.tex"))
@@ -129,11 +129,11 @@ def clean_command(
 
     Examples:\n
 
-        $ python scripts/convert_template.py clean test.yaml                        # Clean in-place
+        $ convert_template.py clean test.yaml                        # Clean in-place
 
-        $ python scripts/convert_template.py clean test.yaml -o test_cleaned.yaml   # Save to new file
+        $ convert_template.py clean test.yaml -o test_cleaned.yaml   # Save to new file
 
-        $ python scripts/convert_template.py clean test.yaml --dry-run              # Preview changes
+        $ convert_template.py clean test.yaml --dry-run              # Preview changes
     """
     # Validate file extension
     if yaml_file.suffix != ".yaml":
@@ -244,9 +244,9 @@ def generate_command(
 
     Examples:\n
 
-        $ python scripts/convert_template.py generate _test_Res202511_Fry
+        $ convert_template.py generate _test_Res202511_Fry
 
-        $ python scripts/convert_template.py generate _test_Res202511_Fry --no-overwrite
+        $ convert_template.py generate _test_Res202511_Fry --no-overwrite
     """
     typer.secho(f"\nGenerating LaTeX: {resume_identifier}\n", fg=typer.colors.BLUE, bold=True)
 
@@ -323,11 +323,11 @@ def parse_command(
 
     Examples:\n
 
-        $ python scripts/convert_template.py parse Res202506_MLEng_Company
+        $ convert_template.py parse Res202506_MLEng_Company
 
-        $ python scripts/convert_template.py parse _test_Res202511_Fry -l 0 -y 0  # Strict validation
+        $ convert_template.py parse _test_Res202511_Fry -l 0 -y 0  # Strict validation
 
-        $ python scripts/convert_template.py parse Res202506 --no-overwrite
+        $ convert_template.py parse Res202506 --no-overwrite
     """
 
     typer.secho(f"\nParsing YAML from LaTeX: {resume_identifier}", fg=typer.colors.BLUE, bold=True)
@@ -402,13 +402,13 @@ def batch_command(
 
     Examples:\n
 
-        $ python scripts/convert_template.py batch                           # Convert all resumes
+        $ convert_template.py batch                           # Convert all resumes
 
-        $ python scripts/convert_template.py batch --pattern "Res2025*.tex"  # Convert specific pattern
+        $ convert_template.py batch --pattern "Res2025*.tex"  # Convert specific pattern
 
-        $ python scripts/convert_template.py batch -l 0 -y 0                 # Strict validation
+        $ convert_template.py batch -l 0 -y 0                 # Strict validation
 
-        $ python scripts/convert_template.py batch -q                        # Quiet mode
+        $ convert_template.py batch -q                        # Quiet mode
     """
     # Find matching files
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob(pattern))

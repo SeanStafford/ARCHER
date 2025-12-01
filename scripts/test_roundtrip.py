@@ -89,11 +89,11 @@ def test_command(
 
     Examples:\n
 
-        $ python scripts/test_roundtrip.py test path/to/resume.tex           # Test with default thresholds (LaTeX: 6, YAML: 0)
+        $ test_roundtrip.py test path/to/resume.tex            # Test with default thresholds (LaTeX: 6, YAML: 0)
 
-        $ python scripts/test_roundtrip.py test path/to/resume.tex -l 0 -y 0 # Strict validation (0 diffs for both)
+        $ test_roundtrip.py test path/to/resume.tex -l 0 -y 0  # Strict validation (0 diffs for both)
 
-        $ python scripts/test_roundtrip.py test path/to/resume.tex -v        # Verbose output
+        $ test_roundtrip.py test path/to/resume.tex -v         # Verbose output
     """
     # Validate file extension
     if tex_file.suffix != ".tex":
@@ -233,13 +233,13 @@ def batch_command(
 
     Examples:\n
 
-        $ python scripts/test_roundtrip.py batch                         # Test all resumes
+        $ test_roundtrip.py batch                           # Test all resumes
 
-        $ python scripts/test_roundtrip.py batch --pattern "Res2025*.tex" # Test specific pattern
+        $ test_roundtrip.py batch --pattern "Res2025*.tex"  # Test specific pattern
 
-        $ python scripts/test_roundtrip.py batch -l 0 -y 0               # Strict validation
+        $ test_roundtrip.py batch -l 0 -y 0                 # Strict validation
 
-        $ python scripts/test_roundtrip.py batch -q                      # Quiet mode
+        $ test_roundtrip.py batch -q                        # Quiet mode
     """
     # Find matching files
     tex_files = sorted(RESUME_ARCHIVE_PATH.glob(pattern))

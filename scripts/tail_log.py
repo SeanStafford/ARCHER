@@ -50,15 +50,15 @@ def main(
 
     Examples:\n
 
-        $ python scripts/tail_log.py                      # Last 10 events
+        $ tail_log.py                      # Last 10 events
 
-        $ python scripts/tail_log.py --num 20             # Last 20 events
+        $ tail_log.py --num 20             # Last 20 events
 
-        $ python scripts/tail_log.py -e status_change     # Last 10 status changes
+        $ tail_log.py -e status_change     # Last 10 status changes
 
-        $ python scripts/tail_log.py -n 5 -r Res202511    # Last 5 events for specified resume
+        $ tail_log.py -n 5 -r Res202511    # Last 5 events for specified resume
 
-        $ python scripts/tail_log.py -n 20 --compact      # Compact output (one line per event)
+        $ tail_log.py -n 20 --compact      # Compact output (one line per event)
     """
     # Check if resume exists in registry when filtering by resume
     if resume and not resume_is_registered(resume):
@@ -115,11 +115,11 @@ def track(
 
     Examples:\n
 
-        $ python scripts/tail_log.py track Res202506                # Full history
+        $ tail_log.py track Res202506                # Full history
 
-        $ python scripts/tail_log.py track Res202506 -n 5           # Last 5 status changes
+        $ tail_log.py track Res202506 -n 5           # Last 5 status changes
 
-        $ python scripts/tail_log.py track Res202506 --relative     # With relative timestamps
+        $ tail_log.py track Res202506 --relative     # With relative timestamps
     """
     # Check if resume exists in registry
     if not resume_is_registered(resume_name):
@@ -206,9 +206,9 @@ def deduce(
 
     Examples:\n
 
-        $ python scripts/tail_log.py deduce                    # Deduce and save
+        $ tail_log.py deduce                    # Deduce and save
 
-        $ python scripts/tail_log.py deduce --simple           # Skip stats and advice
+        $ tail_log.py deduce --simple           # Skip stats and advice
     """
     # Output path: same directory as events log (relative to project root)
     output_path = PIPELINE_EVENTS_FILE.parent / f"{RESUME_REGISTRY.stem}_deduced.csv"
