@@ -488,7 +488,7 @@ Synthetic fixtures hide real-world variation. Historical resumes contain:
 - `latex_patterns.py` - Centralized regex patterns and constants
 
 **Utilities:**
-- `process_latex_archive.py` - Batch processing for historical resumes
+- `normalizer.py` - Normalization orchestration with registry tracking (`normalize_resume()`)
 - `../utils/latex_parsing_tools.py` - Reusable parsing helpers (zero project dependencies)
 
 ## Usage Examples
