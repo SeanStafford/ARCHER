@@ -720,6 +720,7 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
         ("!=", r"\neq"),  # Not equal
         ("~", r"\sim"),  # Similar to
         ("≈", r"\approx"),  # Approximately
+        ("×", r"\texttimes"),  # Multiplication sign
     ]
     for replacement, latex_cmd in math_symbols:
         result = result.replace(latex_cmd, replacement)
@@ -732,6 +733,7 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
         ("&", r"\&"),  # Escaped ampersand
         ("#", r"\#"),  # Escaped hash
         ("_", r"\_"),  # Escaped underscore
+        (" ", r"\ "),  # Explicit space (backslash-space)
         (" ", r"\;"),  # Thin space
         (" ", r"\,"),  # Thin space
         (" ", r"\:"),  # Medium space
