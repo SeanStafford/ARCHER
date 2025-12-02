@@ -511,7 +511,6 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
     item_pattern = r"\\item"
 
     for match in re.finditer(item_pattern, content):
-        item_start = match.start()
         item_pos = match.end()
 
         # Check if this is \item[...] (with bracket)
@@ -691,7 +690,16 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
     result = latex_str
 
     # Remove common content wrappers by unwrapping them
-    wrappers = ["textbf", "textit", "emph", "underline", "texttt", "scshape", "coloremph"]
+    wrappers = [
+        "textbf",
+        "textit",
+        "emph",
+        "underline",
+        "texttt",
+        "scshape",
+        "coloremph",
+        "textnormal",
+    ]
     for wrapper in wrappers:
         result = replace_command(result, wrapper)
 
@@ -720,7 +728,9 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
         ("!=", r"\neq"),  # Not equal
         ("~", r"\sim"),  # Similar to
         ("≈", r"\approx"),  # Approximately
-        ("×", r"\texttimes"),  # Multiplication sign
+        ("×", r"\texttimes"),  # Multiplication sign (text mode)
+        ("×", r"\times"),  # Multiplication sign (math mode)
+        ("half", r"\textonehalf"),  # One half
     ]
     for replacement, latex_cmd in math_symbols:
         result = result.replace(latex_cmd, replacement)
