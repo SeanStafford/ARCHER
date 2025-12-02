@@ -606,7 +606,7 @@ def _validate_generate_allowed(resume_name: str) -> None:
 
     Generation (YAML → LaTeX) is allowed for:
     - experimental: must be 'drafting_completed'
-    - generated: must be 'targeting_completed'
+    - generated: must be 'targeting_completed' or 'templating_failed'
     - test: any status
 
     Raises:
@@ -624,8 +624,10 @@ def _validate_generate_allowed(resume_name: str) -> None:
             raise ValueError(f"Experimental resume must be 'drafting_completed', got '{status}'")
 
     elif resume_type == "generated":
-        if status != "targeting_completed":
-            raise ValueError(f"Generated resume must be 'targeting_completed', got '{status}'")
+        if status not in ("targeting_completed", "templating_failed"):
+            raise ValueError(
+                f"Generated resume must be 'targeting_completed' or 'templating_failed', got '{status}'"
+            )
 
     elif resume_type == "test":
         pass  # Test resumes always allowed

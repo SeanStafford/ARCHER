@@ -253,3 +253,51 @@ Any status can transition to:
 - Update `archer/utils/resume_registry.py` validation if needed
 - Document in which context(s) the status is used
 - Include typical failure causes for `_failed` statuses
+
+---
+
+## Manual Fallback Procedure
+
+When you need to re-run a pipeline phase (e.g., after fixing a bug in parsing or generation logic), the status validation may block re-execution because the resume is already past that stage.
+
+**Solution:** Manually set the status back to a `_failed` state to re-enable the operation.
+
+### Command
+
+```bash
+python scripts/manage_registry.py update <resume_identifier> <failed_status> --reason "<reason>"
+```
+
+### Examples
+
+**Re-parse historical resumes after fixing `to_plaintext()`:**
+```bash
+# Set status back to parsing_failed to allow re-parsing
+python scripts/manage_registry.py update Res202509 parsing_failed \
+    --reason "Re-parsing to propagate to_plaintext() fixes"
+
+# Now parse will work again
+python scripts/convert_template.py parse Res202509
+```
+
+**Re-generate LaTeX after fixing templating bug:**
+```bash
+# Set status back to templating_failed to allow re-generation
+python scripts/manage_registry.py update MyResume templating_failed \
+    --reason "Re-generating after fixing Jinja template bug"
+
+# Now generate will work again
+python scripts/convert_template.py generate MyResume
+```
+
+
+### When to Use
+
+- After fixing bugs in parsing/generation logic that affect stored YAML
+- After updating `to_plaintext()` or other conversion utilities
+- After fixing template rendering issues
+- When roundtrip validation thresholds change
+
+### Audit Trail
+
+All manual status changes are logged to `resume_pipeline_events.log` with `source: "manual"` and your reason, providing a complete audit trail for debugging and compliance.
