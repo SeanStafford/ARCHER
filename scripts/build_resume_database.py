@@ -37,7 +37,7 @@ def main(
     typer.echo(f"Loading resume archive from: {RESUME_ARCHIVE_PATH}")
     archive_manager = ResumeDocumentArchive(RESUME_ARCHIVE_PATH)
     documents = archive_manager.load(mode="available", format_mode="plaintext")
-    typer.echo(f"  Loaded {len(documents)} resumes\n")
+    typer.echo(f"  Loaded {len(documents)} historical resumes\n")
 
     typer.echo(f"Building database at: {output}")
     db = ResumeDatabase.from_documents(documents, output)

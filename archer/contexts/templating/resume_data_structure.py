@@ -15,7 +15,7 @@ import re
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from omegaconf import OmegaConf
 
@@ -33,6 +33,7 @@ from archer.utils.latex_parsing_tools import (
     to_plaintext,
 )
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
+from archer.utils.resume_registry import get_resume_status
 
 
 @dataclass
@@ -217,6 +218,12 @@ class ResumeDocument:
 
         # Store metadata for layout properties
         self._metadata = metadata_dict
+
+        # Get resume type from registry (strict - resume must be registered)
+        try:
+            self.type = get_resume_status(self.filename)["resume_type"]
+        except KeyError:
+            raise ValueError(f"Resume '{self.filename}' not found in registry.")
 
         self._load_sections(doc)
 
@@ -597,6 +604,7 @@ class ResumeDocumentArchive:
         self,
         mode: str = "available",
         format_mode: str = "markdown",
+        resume_types: Optional[Tuple[str]] = ("historical"),
     ) -> List[ResumeDocument]:
         """
         Load resume documents from archive.
@@ -606,6 +614,8 @@ class ResumeDocumentArchive:
                 - "available": Load only pre-converted YAMLs from structured/
                 - "all": Load all .tex files, converting if needed
             format_mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
+            resume_types: Filter to only include these resume types (e.g., ("historical")).
+                If None, includes all types.
 
         Returns:
             List of successfully loaded ResumeDocument instances
@@ -620,6 +630,10 @@ class ResumeDocumentArchive:
             docs = self._load_available(format_mode)
         else:
             docs = self._load_all(format_mode)
+
+        # Filter by resume type if specified
+        if resume_types is not None:
+            docs = [doc for doc in docs if doc.type in resume_types]
 
         # Store documents in dict keyed by filename
         self.documents = {doc.filename: doc for doc in docs}
