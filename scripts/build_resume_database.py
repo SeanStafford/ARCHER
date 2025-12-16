@@ -20,17 +20,14 @@ from archer.contexts.templating import ResumeDatabase, ResumeDocumentArchive
 # Load environment
 load_dotenv()
 RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
-
-# Database output path
-DB_DIR = RESUME_ARCHIVE_PATH / "database"
-DB_PATH = DB_DIR / "resumes.db"
+RESUME_DATABASE_PATH = Path(os.getenv("RESUME_DATABASE_PATH"))
 
 app = typer.Typer(add_completion=False)
 
 
 @app.command()
 def main(
-    output: Path = typer.Option(DB_PATH, "--output", "-o", help="Output database path"),
+    output: Path = typer.Option(RESUME_DATABASE_PATH, "--output", "-o", help="Output database path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed statistics"),
 ):
     """Build database from resume archive."""
