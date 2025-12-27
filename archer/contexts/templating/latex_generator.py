@@ -9,18 +9,21 @@ from pathlib import Path
 from typing import Any, Dict
 
 from dotenv import load_dotenv
+from omegaconf import OmegaConf
 
 from archer.contexts.templating.latex_patterns import (
+    ContactFieldPatterns,
     EnvironmentPatterns,
     PageRegex,
     regex_to_literal,
 )
 from archer.contexts.templating.registries import ParseConfigRegistry, TemplateRegistry
 from archer.utils.latex_parsing_tools import format_latex_environment
-from archer.utils.text_processing import set_max_consecutive_blank_lines
+from archer.utils.text_processing import prepend_without_overlap, set_max_consecutive_blank_lines
 
 load_dotenv()
 TEMPLATING_CONTEXT_PATH = Path(os.getenv("TEMPLATING_CONTEXT_PATH"))
+USER_PROFILE_PATH = Path(os.getenv("USER_PROFILE_PATH"))
 
 
 class YAMLToLaTeXConverter:
@@ -30,9 +33,65 @@ class YAMLToLaTeXConverter:
         self,
         template_registry: TemplateRegistry = None,
         parse_config_registry: ParseConfigRegistry = None,
+        profile_path: Path = USER_PROFILE_PATH,
     ):
         self.template_registry = template_registry or TemplateRegistry()
         self.parse_config_registry = parse_config_registry or ParseConfigRegistry()
+
+        # Load user profile for contact info
+        self.user_profile = OmegaConf.load(profile_path)
+
+    def _generate_contact_info(self, metadata: Dict[str, Any]) -> str:
+        """
+        Generate LaTeX table rows for contact info header.
+
+        Args:
+            metadata: Resume metadata (may contain custom_contact_info override)
+
+        Returns:
+            LaTeX string with table rows for contact info
+        """
+        # Start with defaults from user profile
+        contact_selection = list(self.user_profile.contact_selection)
+        contact_registry = dict(self.user_profile.contact_registry)
+
+        # Apply custom overrides from resume metadata if present
+        custom = metadata.get("custom_contact_info", None)
+        if custom is not None:
+            if custom.get("selection") is not None:
+                contact_selection = list(custom["selection"])
+            if custom.get("registry") is not None:
+                contact_registry.update(custom["registry"])
+
+        # Load contact row template
+        template_path = TEMPLATING_CONTEXT_PATH / "template/structure/contact_row.tex.jinja"
+        template_content = template_path.read_text(encoding="utf-8")
+        template = self.template_registry.env.from_string(template_content)
+
+        rows = []
+        for field in contact_selection:
+            if field not in ContactFieldPatterns.IMPLEMENTED_FIELDS:
+                raise ValueError(
+                    f"Contact field '{field}' is not implemented. "
+                    f"Valid fields: {ContactFieldPatterns.IMPLEMENTED_FIELDS}"
+                )
+            if field not in contact_registry:
+                raise ValueError(
+                    f"Contact field '{field}' not found in contact registry."
+                )
+            value = contact_registry[field]
+
+            icon = ContactFieldPatterns.ICONS.get(field)
+            link_prefix = ContactFieldPatterns.LINK_PREFIXES.get(field)
+
+            # Build link if this field type has one
+            has_link = link_prefix is not None
+            link = prepend_without_overlap(link_prefix, value) if has_link else None
+
+            row = template.render(value=value, icon=icon, has_link=has_link, link=link)
+            rows.append(row.strip())
+
+        return "\n".join(rows)
 
     def generate_preamble(self, metadata: Dict[str, Any]) -> str:
         """
@@ -44,11 +103,14 @@ class YAMLToLaTeXConverter:
         Returns:
             Complete LaTeX preamble string
         """
+        # Generate contact info rows
+        contact_info = self._generate_contact_info(metadata)
+
         # Load preamble template directly (at root of templating directory)
         preamble_path = TEMPLATING_CONTEXT_PATH / "template/structure/preamble.tex.jinja"
         preamble_content = preamble_path.read_text(encoding="utf-8")
         template = self.template_registry.env.from_string(preamble_content)
-        return template.render(metadata=metadata)
+        return template.render(metadata=metadata, contact_info_rows=contact_info)
 
     def generate_document(self, doc: Dict[str, Any]) -> str:
         """

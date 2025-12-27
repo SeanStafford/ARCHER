@@ -47,3 +47,7 @@
 
 <%% if metadata.get('list_title_after_name', True) %%>\toggletrue{list_title_after_name}<%% else %%>\togglefalse{list_title_after_name}<%% endif %%>
 \setpersonaltitlestr{list_title_after_name}
+
+\newcommand{\renderedcontactinfo}{%
+<<< contact_info_rows >>>
+}

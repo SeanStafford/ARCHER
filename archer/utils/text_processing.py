@@ -248,3 +248,12 @@ def get_meaningful_diff(file1: Path, file2: Path, context_lines: int = 3) -> Tup
     num_diffs -= header_lines
 
     return diff, num_diffs
+
+
+def prepend_without_overlap(prefix: str, text: str) -> str:
+    """Prepend prefix to text, removing any overlapping prefix match."""
+    overlap = 0
+    for i in range(1, len(prefix) + 1):
+        if text.startswith(prefix[-i:]):
+            overlap = i
+    return prefix + text[overlap:]

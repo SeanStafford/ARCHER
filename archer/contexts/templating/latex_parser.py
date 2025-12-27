@@ -12,10 +12,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from dotenv import load_dotenv
+from omegaconf import OmegaConf
 
 from archer.contexts.templating.exceptions import TemplateParsingError
 from archer.contexts.templating.latex_patterns import (
     ColorFields,
+    ContactFieldPatterns,
     ContentPatterns,
     DocumentRegex,
     EnvironmentPatterns,
@@ -47,6 +49,7 @@ from archer.utils.text_processing import (
 load_dotenv()
 TYPES_PATH = Path(os.getenv("RESUME_COMPONENT_TYPES_PATH"))
 TEMPLATING_CONTEXT_PATH = Path(os.getenv("TEMPLATING_CONTEXT_PATH"))
+USER_PROFILE_PATH = Path(os.getenv("USER_PROFILE_PATH"))
 
 
 def get_nested_field(data: Dict, field_path: str) -> Any:
@@ -173,9 +176,91 @@ class LaTeXToYAMLConverter:
         self,
         template_registry: TemplateRegistry = None,
         parse_config_registry: ParseConfigRegistry = None,
+        profile_path: Path = USER_PROFILE_PATH,
     ):
         self.template_registry = template_registry or TemplateRegistry()
         self.parse_config_registry = parse_config_registry or ParseConfigRegistry()
+        self.user_profile = OmegaConf.load(profile_path)
+
+    def _parse_contact_info(self, preamble: str) -> Dict[str, Any]:
+        """
+        Parse contact info from preamble's \\renderedcontactinfo command.
+
+        Args:
+            preamble: LaTeX preamble content
+
+        Returns:
+            Dict with 'selection' and 'registry' keys (None if matches defaults)
+        """
+
+        # Find \newcommand{\renderedcontactinfo}{...}
+        match = re.search(MetadataRegex.NEWCOMMAND_RENDEREDCONTACTINFO, preamble)
+        if not match:
+            # No contact info command - return defaults
+            return {"selection": None, "registry": None}
+
+        # Extract content using balanced delimiter helper
+        start_pos = match.end()
+        try:
+            content, _ = extract_balanced_delimiters(preamble, start_pos)
+        except ValueError:
+            return {"selection": None, "registry": None}
+
+        # Parse each row - split by \\% (row separator)
+        rows = [r.strip() for r in content.split("\\\\%") if r.strip()]
+
+        selection = []
+        registry = {}
+
+        # Build reverse icon lookup: icon -> field_type
+        icon_to_field = {v: k for k, v in ContactFieldPatterns.ICONS.items()}
+
+        for row in rows:
+            # Find icon to determine field type
+            field_type = None
+            for icon, ftype in icon_to_field.items():
+                if icon in row:
+                    field_type = ftype
+                    break
+
+            if not field_type:
+                continue
+
+            selection.append(field_type)
+
+            # Extract value - it's between first { and } or before &
+            # For linked rows: \href{url}{value} & \href{url}{icon}
+            # For plain rows: value & icon
+            if "\\href{" in row:
+                # Extract value from second \href argument
+                href_match = re.search(r"\\href\{[^}]*\}\{([^}]*)\}", row)
+                if href_match:
+                    registry[field_type] = href_match.group(1)
+            else:
+                # Plain row: value & icon
+                parts = row.split("&")
+                if parts:
+                    registry[field_type] = parts[0].strip()
+
+        # Compare with defaults
+        default_selection = list(self.user_profile.contact_selection)
+        default_registry = dict(self.user_profile.contact_registry)
+
+        # Determine if selection differs from default
+        selection_override = None
+        if selection != default_selection:
+            selection_override = selection
+
+        # Determine registry overrides (only store diffs)
+        registry_override = None
+        registry_diffs = {}
+        for field, value in registry.items():
+            if field in default_registry and default_registry[field] != value:
+                registry_diffs[field] = value
+        if registry_diffs:
+            registry_override = registry_diffs
+
+        return {"selection": selection_override, "registry": registry_override}
 
     def _create_parsing_error(
         self, message: str, type_name: str, latex_snippet: str, show_template: bool = True
@@ -554,6 +639,9 @@ class LaTeXToYAMLConverter:
             to_plaintext(professional_profile_raw) if professional_profile_raw else None
         )
 
+        # Parse contact info overrides
+        contact_info = self._parse_contact_info(preamble)
+
         return {
             "name": name_raw,  # Raw LaTeX preserved for roundtrip
             "name_plaintext": name_plaintext,  # Plaintext for Targeting context
@@ -568,10 +656,10 @@ class LaTeXToYAMLConverter:
             "hlcolor": hlcolor,
             "setlengths": setlengths,
             "deflens": deflens,
-            "custom_packages": custom_packages
-            if custom_packages
-            else None,  # Custom \usepackage and font declarations
+            # Custom \usepackage and font declarations
+            "custom_packages": custom_packages if custom_packages else None,
             "fields": renewcommands,  # All other renewcommand fields
+            "custom_contact_info": contact_info,  # Contact info overrides
         }
 
     def parse_document(self, latex_str: str) -> Dict[str, Any]:

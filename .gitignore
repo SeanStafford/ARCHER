@@ -86,6 +86,7 @@ outs/logs/**
 outs/results/**
 
 # Project-specific
+configs/user_profile.yaml
 archer/contexts/rendering/mystyle/Fonts/*.ttf
 .archive/**
 TODO.md

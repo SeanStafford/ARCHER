@@ -316,3 +316,31 @@ class ContentPatterns:
     EDUCATION_UNIVERSITY: str = (
         "Bachelor of Arts in Physics"  # All Education sections contain this degree
     )
+
+
+class ContactFieldPatterns:
+    """
+    Contact field patterns for header generation.
+
+    Maps contact field types to their FontAwesome icons and link prefixes.
+    """
+
+    IMPLEMENTED_FIELDS = ["phone", "location", "email", "github", "linkedin", "website"]
+
+    ICONS = {
+        "phone": r"\faPhone",
+        "location": r"\faMapMarker*",
+        "email": r"\faInbox",
+        "github": r"\faGithub",
+        "linkedin": r"\faLinkedin",
+        "website": r"\faGlobe",
+    }
+
+    LINK_PREFIXES = {
+        "phone": None,
+        "location": None,
+        "email": "mailto:",
+        "github": "https://www.",
+        "linkedin": "https://www.",
+        "website": "https://www.",
+    }
