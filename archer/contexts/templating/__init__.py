@@ -14,12 +14,11 @@ Never: Makes content prioritization decisions
 
 from archer.contexts.templating.converter import (
     ConversionResult,
-    clean_yaml,
     generate_resume,
     parse_resume,
     validate_roundtrip_conversion,
 )
-from archer.contexts.templating.normalizer import (
+from archer.contexts.templating.latex_normalizer import (
     NormalizationResult,
     normalize_resume,
 )
@@ -28,10 +27,12 @@ from archer.contexts.templating.resume_data_structure import (
     ResumeDocumentArchive,
 )
 from archer.contexts.templating.resume_database import ResumeDatabase
+from archer.contexts.templating.yaml_normalizer import clean_yaml, normalize_yaml
 
 __all__ = [
     # Helpers and orchestrators for bidirectional conversion
     "clean_yaml",
+    "normalize_yaml",
     "validate_roundtrip_conversion",
     "parse_resume",
     "generate_resume",

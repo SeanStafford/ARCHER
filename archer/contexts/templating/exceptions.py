@@ -83,7 +83,34 @@ class InvalidYAMLStructureError(ValueError):
     Exception raised when YAML resume structure is invalid or missing required fields.
 
     This is raised when the YAML file doesn't conform to the expected resume document
-    schema (e.g., missing structural fields like 'pages', 'regions', etc.).
+    schema or is missing fields required for LaTeX generation.
     """
 
-    pass
+    @classmethod
+    def incomplete_yaml(cls, original_error: Optional[Exception] = None) -> "InvalidYAMLStructureError":
+        """
+        Create exception for incomplete YAML that needs normalization.
+
+        Used when YAML is missing fields that normalize_yaml() would add
+        (e.g., colors, setlengths, plaintext/latex_raw pairs).
+
+        Args:
+            original_error: The underlying error that triggered this
+
+        Returns:
+            InvalidYAMLStructureError with helpful normalization instructions
+        """
+        message = (
+            "This YAML file appears to be incomplete or missing required fields.\n\n"
+            "Try normalizing it:\n"
+            "    from archer.contexts.templating import normalize_yaml\n"
+            "    yaml_dict = normalize_yaml(yaml_dict)\n"
+            "    yaml_to_latex(yaml_path, output_path)\n\n"
+            "Or use the CLI:\n"
+            "    python scripts/convert_template.py clean <yaml_file>"
+        )
+
+        if original_error:
+            message += f"\n\nOriginal error: {str(original_error)}"
+
+        return cls(message)
