@@ -12,6 +12,7 @@ Owns: Resume structure representation, tex ↔ structured data conversion, LaTeX
 Never: Makes content prioritization decisions
 """
 
+from archer.contexts.templating.config_resolver import apply_presets
 from archer.contexts.templating.converter import (
     ConversionResult,
     generate_resume,
@@ -40,6 +41,8 @@ __all__ = [
     # Normalization orchestration
     "normalize_resume",
     "NormalizationResult",
+    # Config preset resolution
+    "apply_presets",
     # Data structure classes
     "ResumeDocument",
     "ResumeDocumentArchive",

@@ -1,0 +1,84 @@
+spacing:
+  default:
+    setlengths:
+      leftmargin: 0.4in
+      rightmargin: 0.4in
+      aboveheader: 10pt
+      bottommargin: 0.3in
+      headheight: 60pt
+      headervskip: 20pt
+      leftbarwidth: 0.275\paperwidth
+      sidecolwidth: \leftbarwidth-1.5\leftmargin
+      doublecolsep: 1\leftmargin
+      projlistvsep: 7pt
+      firstlistvsep: 10pt
+      highlightindent: 48pt
+      seclisttopsepcontent: -2pt
+      keyprojvsep: 8pt
+      seclistlabelsep: 11pt
+      sectionsep: 15pt
+  tight:
+    setlengths:
+      leftmargin: 0.4in
+      rightmargin: 0.5in
+      aboveheader: 10pt
+      bottommargin: 0.2in
+      headheight: 59pt
+      headervskip: 19pt
+      leftbarwidth: 0.275\paperwidth
+      sidecolwidth: \leftbarwidth-1.5\leftmargin
+      doublecolsep: 1\leftmargin
+      projlistvsep: 5pt
+      firstlistvsep: 8pt
+      highlightindent: 48pt
+      seclisttopsepcontent: 0pt
+      keyprojvsep: 3pt
+      seclistlabelsep: 11pt
+      sectionsep: 10pt
+  loose:
+    setlengths:
+      leftmargin: 0.5in
+      rightmargin: 0.5in
+      aboveheader: 15pt
+      bottommargin: 0.4in
+      headheight: 60pt
+      headervskip: 25pt
+      leftbarwidth: 0.275\paperwidth
+      sidecolwidth: \leftbarwidth-1.5\leftmargin
+      doublecolsep: 1\leftmargin
+      projlistvsep: 10pt
+      firstlistvsep: 15pt
+      highlightindent: 48pt
+      seclisttopsepcontent: -2pt
+      keyprojvsep: 10pt
+      seclistlabelsep: 11pt
+      sectionsep: 20pt
+  wide_margins:
+    setlengths:
+      leftmargin: 0.6in
+      rightmargin: 0.6in
+      aboveheader: 10pt
+      bottommargin: 0.4in
+      headheight: 60pt
+      headervskip: 20pt
+      leftbarwidth: 0.275\paperwidth
+      sidecolwidth: \leftbarwidth-1.5\leftmargin
+      doublecolsep: 1\leftmargin
+      projlistvsep: 7pt
+      firstlistvsep: 10pt
+      highlightindent: 48pt
+      seclisttopsepcontent: -2pt
+      keyprojvsep: 8pt
+      seclistlabelsep: 11pt
+      sectionsep: 15pt
+
+colors:
+  preferred:
+    colors:
+      emphcolor: MyDarkRed
+      topbarcolor: black
+      leftbarcolor: gray9
+      brandcolor: white
+      namecolor: MyRed
+    hlcolor: MyDarkRed
+
