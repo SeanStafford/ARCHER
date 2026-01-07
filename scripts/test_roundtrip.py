@@ -31,7 +31,6 @@ DEFAULT_MAX_LATEX_DIFFS = 6
 DEFAULT_MAX_YAML_DIFFS = 0
 
 app = typer.Typer(
-    add_completion=False,
     help="Test LaTeX ↔ YAML roundtrip conversion with validation",
     invoke_without_command=True,
 )

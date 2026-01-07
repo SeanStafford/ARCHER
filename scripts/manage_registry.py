@@ -48,7 +48,6 @@ RAW_ARCHIVE_PATH = Path(os.getenv("RAW_ARCHIVE_PATH"))
 RESULTS_PATH = Path(os.getenv("RESULTS_PATH"))
 
 app = typer.Typer(
-    add_completion=False,
     help="Manage the resume registry (resume_registry.csv)",
     invoke_without_command=True,
 )

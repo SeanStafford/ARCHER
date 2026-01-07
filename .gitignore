@@ -26,6 +26,9 @@ ENV/
 env/
 .venv/
 
+# direnv stuff
+.envrc
+
 # IDEs
 .vscode/
 .idea/

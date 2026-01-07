@@ -48,7 +48,6 @@ def display_path(path: Path) -> str:
 
 app = typer.Typer(
     help="Compile LaTeX resumes to PDF and validate compiled PDFs with registry tracking",
-    add_completion=False,
     invoke_without_command=True,
 )
 

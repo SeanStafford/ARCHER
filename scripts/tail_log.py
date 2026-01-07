@@ -26,10 +26,7 @@ PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT"))
 RESUME_REGISTRY = Path(os.getenv("RESUME_REGISTRY")).relative_to(PROJECT_ROOT)
 PIPELINE_EVENTS_FILE = Path(os.getenv("PIPELINE_EVENTS_FILE")).relative_to(PROJECT_ROOT)
 
-app = typer.Typer(
-    add_completion=False,
-    help="View recent pipeline events",
-)
+app = typer.Typer(help="View recent pipeline events")
 
 
 @app.command()
