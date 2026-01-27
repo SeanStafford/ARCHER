@@ -15,6 +15,7 @@ Commands:
     update   - Manually update resume status
     locate   - Get file path for a resume by identifier
     approve  - Approve resume and copy PDF to dated results directory
+    stage    - Copy PDF to staging directory for easy upload
 """
 
 import os
@@ -46,6 +47,8 @@ RESUME_ARCHIVE_PATH = Path(os.getenv("RESUME_ARCHIVE_PATH"))
 STRUCTURED_ARCHIVE_PATH = Path(os.getenv("STRUCTURED_ARCHIVE_PATH"))
 RAW_ARCHIVE_PATH = Path(os.getenv("RAW_ARCHIVE_PATH"))
 RESULTS_PATH = Path(os.getenv("RESULTS_PATH"))
+STAGED_RESUME_DIR = Path(os.getenv("STAGED_RESUME_DIR"))
+STAGED_RESUME_FILENAME = os.getenv("STAGED_RESUME_FILENAME")
 
 app = typer.Typer(
     help="Manage the resume registry (resume_registry.csv)",
@@ -526,6 +529,103 @@ def approve_command(
 
     except Exception as e:
         typer.secho(f"✗ Failed to update status: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
+@app.command("stage")
+def stage_command(
+    resume_name: Optional[str] = typer.Argument(
+        None, help="Resume identifier (default: most recently approved)"
+    ),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help=f"Output filename (default: {STAGED_RESUME_FILENAME})"
+    ),
+):
+    """
+    Stage a resume PDF for easy upload.
+
+    Copies the PDF to the staging directory (STAGED_RESUME_DIR) with a
+    standardized filename for quick access when applying to jobs.
+
+    If no resume is specified, stages the most recently approved resume.
+
+    Examples:\n
+
+        $ manage_registry.py stage                                    # Stage most recent approved
+
+        $ manage_registry.py stage Res202601_ResEng_GenAI_Microsoft   # Stage specific resume
+
+        $ manage_registry.py stage -o CustomName.pdf                  # Custom output filename
+    """
+    # Validate staging directory is configured
+    if not STAGED_RESUME_DIR or str(STAGED_RESUME_DIR) == "None":
+        typer.secho(
+            "Error: STAGED_RESUME_DIR not configured in .env", fg=typer.colors.RED, err=True
+        )
+        raise typer.Exit(code=1)
+
+    if not STAGED_RESUME_DIR.exists():
+        typer.secho(
+            f"Error: Staging directory does not exist: {STAGED_RESUME_DIR}",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    # If no resume specified, find most recently approved experimental resume
+    if resume_name is None:
+        approved_resumes = list_resumes_by_status("approved")
+        if not approved_resumes:
+            typer.secho("No approved resumes found in registry", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+        # Sort by last_updated descending to get most recent
+        approved_resumes.sort(key=lambda r: r["last_updated"], reverse=True)
+        resume_name = approved_resumes[0]["resume_name"]
+        typer.echo(f"Using most recently approved: {resume_name}")
+
+    # Verify resume exists and is approved
+    if not resume_is_registered(resume_name):
+        typer.secho(f"Resume '{resume_name}' not found in registry", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    entry = get_resume_status(resume_name)
+    if entry["status"] != "approved":
+        typer.secho(
+            f"Warning: Resume status is '{entry['status']}', not 'approved'",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
+
+    # Locate the PDF file
+    try:
+        pdf_path = get_resume_file(resume_name, "pdf")
+    except FileNotFoundError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+    except ValueError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    # Determine output filename
+    output_filename = output if output else STAGED_RESUME_FILENAME
+    if not output_filename:
+        typer.secho(
+            "Error: No output filename specified and STAGED_RESUME_FILENAME not configured",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    dest_path = STAGED_RESUME_DIR / output_filename
+
+    # Copy PDF to staging directory
+    try:
+        shutil.copy2(pdf_path, dest_path)
+        typer.secho(f"✓ Staged {resume_name}", fg=typer.colors.GREEN)
+        typer.echo(f"  {dest_path}")
+    except Exception as e:
+        typer.secho(f"✗ Failed to stage PDF: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
 
