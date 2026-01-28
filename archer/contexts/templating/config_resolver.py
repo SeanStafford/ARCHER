@@ -6,10 +6,10 @@ and can override each other, allowing flexible combination of spacing, colors, e
 
 Examples:
     # Apply multiple presets (later overrides earlier)
-    >>> apply_presets(yaml_data, ["spacing_tight", "colors_anthropic"])
+    >>> apply_presets(yaml_data, ["spacing_tight", "colors_warm"])
 
     # Mix base preset with override
-    >>> apply_presets(yaml_data, ["spacing_deluxe", "spacing_bigbottom", "colors_netflix"])
+    >>> apply_presets(yaml_data, ["spacing_deluxe", "spacing_bigbottom", "colors_cool"])
 """
 
 import os
@@ -34,7 +34,7 @@ def load_resume_presets(config_path: Path = None) -> Dict[str, Any]:
 
     Returns:
         Flattened dict mapping preset names to configs
-        Example: {"spacing_tight": {...}, "colors_anthropic": {...}}
+        Example: {"spacing_tight": {...}, "colors_warm": {...}}
     """
     if config_path is None:
         config_path = RESUME_PRESETS_PATH
@@ -63,7 +63,7 @@ def apply_presets(
 
     Args:
         yaml_data: Resume YAML data (must have document.metadata)
-        preset_names: List of preset names to apply (e.g., ["spacing_tight", "colors_anthropic"])
+        preset_names: List of preset names to apply (e.g., ["spacing_tight", "colors_warm"])
         config_path: Optional path to resume_presets.yaml (defaults to RESUME_PRESETS_PATH)
 
     Returns:
@@ -74,7 +74,7 @@ def apply_presets(
 
     Examples:
         >>> # Apply tight spacing and Anthropic colors
-        >>> yaml_data = apply_presets(yaml_data, ["spacing_tight", "colors_anthropic"])
+        >>> yaml_data = apply_presets(yaml_data, ["spacing_tight", "colors_warm"])
 
         >>> # Mix base preset with override
         >>> yaml_data = apply_presets(yaml_data, ["spacing_deluxe", "spacing_bigbottom"])
