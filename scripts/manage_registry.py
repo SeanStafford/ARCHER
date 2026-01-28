@@ -35,6 +35,7 @@ from archer.utils.resume_registry import (
     get_resume_status,
     list_resumes_by_status,
     list_resumes_by_type,
+    prompt_for_base_resume,
     prompt_for_reason,
     register_resume,
     resume_is_registered,
@@ -261,6 +262,14 @@ def register_command(
     except KeyboardInterrupt:
         raise typer.Exit(code=1)
 
+    # For experimental resumes, prompt for base resume to copy
+    base_resume = None
+    if resume_type == "experimental":
+        try:
+            base_resume = prompt_for_base_resume()
+        except KeyboardInterrupt:
+            raise typer.Exit(code=1)
+
     # Register the resume
     try:
         register_resume(
@@ -282,6 +291,25 @@ def register_command(
     except Exception as e:
         typer.secho(f"✗ Failed to register: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
+
+    # Copy base resume YAML if provided
+    if base_resume:
+        try:
+            source_path = get_resume_file(base_resume, file_type="yaml")
+            dest_dir = Path(os.getenv("DATA_PATH")) / "resumes" / "experimental" / "structured"
+            dest_path = dest_dir / f"{resume_name}.yaml"
+
+            shutil.copy2(source_path, dest_path)
+            typer.secho(
+                f"✓ Copied {source_path.name} → {dest_path.name}",
+                fg=typer.colors.GREEN,
+            )
+        except ValueError as e:
+            typer.secho(f"✗ Base resume not in registry: {e}", fg=typer.colors.RED, err=True)
+            typer.echo("  You can copy the YAML manually.")
+        except FileNotFoundError as e:
+            typer.secho(f"✗ Base resume YAML not found: {e}", fg=typer.colors.RED, err=True)
+            typer.echo("  You can copy the YAML manually.")
 
 
 @app.command("list")

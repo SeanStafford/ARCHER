@@ -148,6 +148,29 @@ def prompt_for_reason(user_prompt: Optional[str] = None) -> Optional[str]:
         raise
 
 
+def prompt_for_base_resume(user_prompt: Optional[str] = None) -> Optional[str]:
+    """
+    Prompt user for a base resume to copy from during experimental registration.
+
+    Args:
+        user_prompt: Custom prompt text (default: "Base resume identifier")
+
+    Returns:
+        Resume identifier string if provided, None if skipped
+
+    Raises:
+        KeyboardInterrupt: If user aborts with Ctrl+C
+    """
+    user_prompt = user_prompt or "Base resume identifier"
+    user_prompt += " (press Enter to skip, Ctrl+C to abort): "
+    try:
+        base_input = input(user_prompt).strip()
+        return base_input if base_input else None
+    except KeyboardInterrupt:
+        print("\n✗ Operation aborted by user")
+        raise
+
+
 def register_resume(
     resume_name: str,
     resume_type: str,
