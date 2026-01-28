@@ -94,9 +94,7 @@ def apply_presets(
     for preset_name in preset_names:
         if preset_name not in presets_dict:
             available = list(presets_dict.keys())
-            raise ValueError(
-                f"Preset '{preset_name}' not found. Available presets: {available}"
-            )
+            raise ValueError(f"Preset '{preset_name}' not found. Available presets: {available}")
 
         preset_config = presets_dict[preset_name]
 
