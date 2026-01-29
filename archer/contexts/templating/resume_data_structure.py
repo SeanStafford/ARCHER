@@ -33,7 +33,7 @@ from archer.utils.latex_parsing_tools import (
     to_plaintext,
 )
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
-from archer.utils.resume_registry import get_resume_status
+from archer.utils.resume_registry import get_resume_file, get_resume_status
 
 
 @dataclass
@@ -319,6 +319,27 @@ class ResumeDocument:
                 UserWarning,
             )
             raise ValueError(f"Failed to parse {tex_path}: {str(e)}") from e
+
+    @classmethod
+    def from_identifier(cls, identifier: str, mode: str = "markdown") -> "ResumeDocument":
+        """
+        Create a ResumeDocument from a resume identifier using the registry.
+
+        Resolves the identifier to a YAML path via the resume registry,
+        then loads the document.
+
+        Args:
+            identifier: Resume identifier (e.g. "Res202601_MLEng_CACI")
+            mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
+
+        Returns:
+            ResumeDocument instance
+
+        Raises:
+            ValueError: If identifier not found in registry or YAML file doesn't exist
+        """
+        yaml_path = get_resume_file(identifier, file_type="yaml")
+        return cls(yaml_path, mode=mode)
 
     def _get_plaintext_items_from_yaml_list(self, content):
         """Extract items from standardized list, respecting mode.
