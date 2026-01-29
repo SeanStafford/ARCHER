@@ -7,41 +7,13 @@ falling back to LLM extraction. This module has no LLM dependencies.
 
 from pathlib import Path
 
-from archer.contexts.intake.patterns import (
+from archer.contexts.intake.extraction_patterns import (
     JOB_ID_PATTERNS,
     LOCATION_PATTERNS,
     LocationPatterns,
     MetadataPatterns,
     SalaryPatterns,
 )
-
-# =============================================================================
-# FIELD DEFINITIONS
-# =============================================================================
-
-REQUIRED_FIELDS = ["Company", "Role", "Location"]
-
-# Optional fields that have validated LLM extraction
-OPTIONAL_FIELDS_LLM_VIABLE = []  # TBD
-
-# Optional fields for manual entry only (poor LLM performance)
-OPTIONAL_FIELDS_MANUAL = [
-    "Salary",
-    "Work Mode",
-    "Job ID",
-    "Source",
-    "URL",
-    "Clearance",
-    "Date Posted",
-]
-
-# All optional fields (for heuristic extraction, which is free to attempt)
-OPTIONAL_FIELDS = OPTIONAL_FIELDS_LLM_VIABLE + OPTIONAL_FIELDS_MANUAL
-
-# Fields viable for LLM fallback extraction (validated >80% accuracy)
-LLM_VIABLE_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS_LLM_VIABLE
-
-ALL_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS
 
 
 def extract_metadata_heuristic(text: str, filename: str | None = None) -> dict[str, str]:

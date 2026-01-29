@@ -14,6 +14,26 @@ import re
 from dataclasses import dataclass
 
 # =============================================================================
+# FIELD DEFINITIONS
+# =============================================================================
+
+REQUIRED_FIELDS = ["Company", "Role", "Location"]
+
+# Optional fields that have validated LLM extraction
+OPTIONAL_FIELDS_LLM_VIABLE = ["Salary", "Work Mode"]
+
+# Optional fields for manual entry only (satisfactory LLM performance not confirmed)
+OPTIONAL_FIELDS_MANUAL = ["Job ID", "Source", "URL", "Clearance", "Date Posted"]
+
+# All optional fields (for heuristic extraction, which is free to attempt)
+OPTIONAL_FIELDS = OPTIONAL_FIELDS_LLM_VIABLE + OPTIONAL_FIELDS_MANUAL
+
+# Fields viable for LLM fallback extraction (validated >80% accuracy)
+LLM_VIABLE_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS_LLM_VIABLE
+
+ALL_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS
+
+# =============================================================================
 # GEOGRAPHIC CONSTANTS
 # =============================================================================
 
