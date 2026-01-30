@@ -723,6 +723,8 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
         ("->", r"\to"),  # Bare arrow command
         ("->", r"\rightarrow"),  # Right arrow
         ("<-", r"\leftarrow"),  # Left arrow
+        ("↔", r"$\leftrightarrow$"),  # Bidirectional arrow (math mode)
+        ("↔", r"\leftrightarrow"),  # Bidirectional arrow (bare)
         ("<=", r"\leq"),  # Less than or equal
         (">=", r"\geq"),  # Greater than or equal
         ("!=", r"\neq"),  # Not equal
@@ -751,6 +753,11 @@ def to_plaintext(latex_str: str, strip_latex_params: bool = True) -> str:
     ]
     for replacement, escaped in escaped_chars:
         result = result.replace(escaped, replacement)
+
+    # Handle LaTeX dashes (must be before general cleanup)
+    # Order matters: longest first to avoid partial matches
+    result = result.replace("---", "—")  # Em dash
+    result = result.replace("--", "–")  # En dash
 
     # Remove math mode delimiters ($...$) after handling math symbols
     result = result.replace("$", "")
