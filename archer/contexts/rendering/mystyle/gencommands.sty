@@ -144,3 +144,17 @@
     \addtocounter{lipsumcounter}{#1}
     % max value is 2191
 }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ARCHER watermark positioning
+% Places watermark centered in left column at specified y position
+% Args: #1 = y position
+\newcommand{\placewatermark}[1]{%
+    \begin{textblock*}{\leftbarwidth}(0pt, #1)%
+        \centering
+        \href{https://github.com/SeanStafford/ARCHER}{%
+            {\small\color{black!30}Composed with}\\[0.1em]
+            \archerwatermark
+        }%
+    \end{textblock*}%
+}
