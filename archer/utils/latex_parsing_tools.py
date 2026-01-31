@@ -482,7 +482,7 @@ def parse_itemize_content(content: str, marker_pattern: str) -> List[dict]:
     return [extract_itemize_entry(e, marker_pattern) for e in entry_strs]
 
 
-def parse_itemize_with_complex_markers(content: str) -> List[dict]:
+def parse_itemize_with_complex_markers(content: str, marker_pattern: str) -> List[dict]:
     """
     Parse itemize content with balanced bracket matching for complex item markers.
 
@@ -495,22 +495,24 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
 
     Args:
         content: LaTeX content containing itemize entries with complex markers
+        marker_pattern: Regex pattern to match item markers. Use a pattern that
+                       matches \\item followed by [ or whitespace to avoid matching
+                       \\itemi, \\itemii, etc. inside nested environments.
 
     Returns:
         List of entry dicts with {marker, latex_raw, plaintext}
 
     Example:
         >>> content = r"\\item[\\raisebox{-1pt}{>} 20,000] GPU-hours\\item[X] Other"
-        >>> entries = parse_itemize_with_complex_markers(content)
+        >>> entries = parse_itemize_with_complex_markers(content, r"\\\\item(?=\\[|\\s)")
         >>> entries[0]["marker"]
         '\\item[\\raisebox{-1pt}{>} 20,000]'
         >>> entries[0]["latex_raw"]
         'GPU-hours'
     """
     items = []
-    item_pattern = r"\\item"
 
-    for match in re.finditer(item_pattern, content):
+    for match in re.finditer(marker_pattern, content):
         item_pos = match.end()
 
         # Check if this is \item[...] (with bracket)
@@ -530,7 +532,7 @@ def parse_itemize_with_complex_markers(content: str) -> List[dict]:
             marker = "\\item"
 
         # Find start of next \item or end of content
-        next_item = re.search(item_pattern, content[item_pos:])
+        next_item = re.search(marker_pattern, content[item_pos:])
         if next_item:
             content_end = item_pos + next_item.start()
         else:

@@ -7,8 +7,9 @@
 #       \item[\raisebox{-0.5pt}{>} 20,000] GPU-hours of training
 #   \end{itemize}
 #
-# NOTE: Uses custom split_by_item_markers operation instead of parse_itemize_content
-# because ITEM_ANY pattern can't handle nested braces in \item[...] brackets.
+# Uses parse_itemize_complex_markers operation with ITEM_VANILLA pattern to:
+# 1. Only match \item followed by [ or whitespace (not \itemi, \itemii, etc.)
+# 2. Handle nested braces in markers like \item[\raisebox{-1pt}{>} 20,000]
 
 operations:
   # Set type field
@@ -28,12 +29,10 @@ operations:
     param_names: [metadata.optional_params]
     output_context: environment_content
 
-  # Split content by \item markers to create raw item strings
-  # Each chunk starts with \item and goes until next \item
-  # We'll process these in Python code to extract markers properly
-  items:
-    operation: split
+  # Parse items with complex markers using balanced delimiter matching
+  # Uses ITEM_VANILLA pattern to avoid splitting on \itemii inside nested environments
+  bullets:
+    operation: parse_itemize_complex_markers
     source: environment_content
-    delimiter_pattern: '\\item'
-    keep_delimiter: true
-    output_context: item_chunks
+    marker_pattern: ITEM_VANILLA
+    output_path: content.bullets

@@ -399,6 +399,13 @@ class LaTeXToYAMLConverter:
                 marker_pattern = patterns.get("marker", r"\\item\b")
                 value = parse_itemize_content(content_source, marker_pattern)
 
+            elif operation == "parse_itemize_complex_markers":
+                # Parse itemize content with complex markers containing nested braces
+                # Uses balanced delimiter matching for markers like \item[\raisebox{-1pt}{>} 20,000]
+                # marker_pattern controls which \item variants to match (default: ITEM_VANILLA)
+                marker_pattern = patterns.get("marker", EnvironmentPatterns.ITEM_VANILLA)
+                value = parse_itemize_with_complex_markers(content_source, marker_pattern)
+
             elif operation == "recursive_parse":
                 # Extract and recursively parse nested types
                 output_path = operation_config["output_path"]
@@ -761,8 +768,13 @@ class LaTeXToYAMLConverter:
         are specified in the document and each item can have a different custom marker.
         Used for sections like "HPC Highlights".
 
-        Uses parse_itemize_with_complex_markers() utility to handle markers with
-        nested braces like \item[\raisebox{-1pt}{>} 20,000].
+        All extraction patterns are defined in types/custom_itemize/parse_config.yaml.
+        Uses ITEM_VANILLA pattern to avoid splitting on \itemii inside nested environments.
+
+        See: archer/contexts/templating/types/custom_itemize/
+             - type.yaml (schema)
+             - template.tex.jinja (generation template)
+             - parse_config.yaml (parsing patterns)
 
         Args:
             content: Section content containing an itemize environment
@@ -773,20 +785,8 @@ class LaTeXToYAMLConverter:
         Raises:
             ValueError: If itemize environment structure cannot be extracted
         """
-        # Extract environment and optional params
-        env_params, env_content, _, _ = extract_environment(
-            content, "itemize", num_params=0, num_optional_params=1
-        )
-
-        # Parse items with balanced bracket matching for complex markers
-        bullets = parse_itemize_with_complex_markers(env_content)
-
-        result = {"type": "custom_itemize", "metadata": {}, "content": {"bullets": bullets}}
-
-        # Add optional params if present
-        if env_params and len(env_params) > 0:
-            result["metadata"]["optional_params"] = env_params[0]
-
+        config = self.parse_config_registry.get_config("custom_itemize")
+        result = self.parse_with_config(content, config)
         return result
 
     def _parse_as_simple_list(self, content: str) -> Dict[str, Any]:
@@ -942,6 +942,12 @@ class LaTeXToYAMLConverter:
             args = extract_brace_arguments(command_str)
             decorations.append({"command": "bottombar", "args": args})
 
+        # Extract topgrad commands before removing
+        for match in re.finditer(PageRegex.TOPGRAD, latex_str):
+            command_str = match.group(0)
+            args = extract_brace_arguments(command_str)
+            decorations.append({"command": "topgrad", "args": args})
+
         # Extract topgradtri commands before removing
         for match in re.finditer(PageRegex.TOPGRADTRI, latex_str):
             command_str = match.group(0)
@@ -951,6 +957,7 @@ class LaTeXToYAMLConverter:
         # Remove decoration commands
         latex_str = re.sub(PageRegex.LEFTGRAD, "", latex_str)
         latex_str = re.sub(PageRegex.BOTTOMBAR, "", latex_str)
+        latex_str = re.sub(PageRegex.TOPGRAD, "", latex_str)
         latex_str = re.sub(PageRegex.TOPGRADTRI, "", latex_str)
 
         return latex_str, decorations

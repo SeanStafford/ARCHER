@@ -167,6 +167,10 @@ class EnvironmentPatterns:
     BEGIN_ITEMIZE_ANY: str = r"\\begin\{itemize[A-z]*\}"
     ITEM_ANY: str = r"\\(?P<marker>item[^ {}]+)"
 
+    # Vanilla \item only (followed by [ or whitespace, NOT itemi/itemii/itemLL)
+    # Used by custom_itemize to avoid splitting on \itemii inside nested environments
+    ITEM_VANILLA: str = r"\\item(?=\[|\s)"
+
     # Absolutely positioned textblock (bottom bar)
     BEGIN_TEXTBLOCK_STAR: str = r"\\begin\{textblock\*\}"
     END_TEXTBLOCK_STAR: str = r"\\end\{textblock\*\}"
