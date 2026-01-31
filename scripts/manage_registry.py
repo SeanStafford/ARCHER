@@ -10,6 +10,7 @@ Commands:
     init     - Initialize registry with historical resumes
     register - Register new test or experimental resume
     list     - List resumes (optionally filter by status/type)
+    search   - Search resumes by name pattern (substring or glob)
     stats    - Show registry statistics
     status   - Get status of a specific resume
     update   - Manually update resume status
@@ -354,6 +355,64 @@ def list_command(
         )
 
     typer.echo(f"\nTotal: {len(resumes)}")
+
+
+@app.command("search")
+def search_command(
+    pattern: str = typer.Argument(..., help="Pattern to match (substring or fnmatch glob)"),
+    ignore_case: bool = typer.Option(
+        False, "--ignore-case", "-i", help="Case-insensitive matching"
+    ),
+    glob: bool = typer.Option(
+        False, "--glob", "-g", help="Treat pattern as fnmatch glob (e.g., '*Turing*', 'Res2025*')"
+    ),
+):
+    """
+    Search for resumes by name pattern.
+
+    By default, performs case-sensitive substring matching.
+    Use -i for case-insensitive, --glob for wildcard patterns.
+
+    Examples:\n
+
+        $ manage_registry.py search NG               # Case-sensitive (finds _NG, not Eng)
+
+        $ manage_registry.py search -i turing        # Case-insensitive
+
+        $ manage_registry.py search --glob '*Quant*' # Glob pattern matching
+    """
+    import fnmatch
+
+    resumes = get_all_resumes()
+
+    if glob:
+        if ignore_case:
+            matches = [r for r in resumes if fnmatch.fnmatch(r["resume_name"].lower(), pattern.lower())]
+        else:
+            matches = [r for r in resumes if fnmatch.fnmatch(r["resume_name"], pattern)]
+    else:
+        if ignore_case:
+            pattern_lower = pattern.lower()
+            matches = [r for r in resumes if pattern_lower in r["resume_name"].lower()]
+        else:
+            matches = [r for r in resumes if pattern in r["resume_name"]]
+
+    if not matches:
+        typer.echo(f"No resumes matching '{pattern}'")
+        return
+
+    typer.secho(f"\nResumes matching '{pattern}':", fg=typer.colors.BLUE, bold=True)
+
+    # Find longest name for alignment
+    max_name_len = max(len(r["resume_name"]) for r in matches)
+
+    for resume in matches:
+        padding = " " * (max_name_len - len(resume["resume_name"]))
+        typer.echo(
+            f"  {resume['resume_name']}{padding}  {resume['resume_type']:12}  {resume['status']}"
+        )
+
+    typer.echo(f"\nTotal: {len(matches)}")
 
 
 @app.command("stats")
