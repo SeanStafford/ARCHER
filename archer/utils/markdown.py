@@ -1,11 +1,14 @@
 """
 Markdown Utilities
 
-Utilities for converting LaTeX formatting to markdown.
+Utilities for converting LaTeX formatting to markdown and parsing markdown structure.
 """
 
 import re
-from typing import List
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
+
+import mistune
 
 from archer.utils.latex_parsing_tools import replace_command
 from archer.utils.text_processing import extract_balanced_delimiters
@@ -124,3 +127,121 @@ def format_list_markdown(items: List[str], section_name: str) -> str:
         parts.append(f"- {item_text}")
 
     return "\n".join(parts)
+
+
+@dataclass
+class MarkdownTree:
+    """
+    Hierarchical representation of a markdown document.
+
+    Represents nested heading structure where each node has:
+    - title: The heading text (empty string for root)
+    - content: Text content under this heading (before any subheadings)
+    - subsections: Child headings nested under this one
+    """
+
+    title: str = ""
+    content: str = ""
+    subsections: List["MarkdownTree"] = field(default_factory=list)
+    truncation: Optional[int] = 50
+
+    def __str__(self) -> str:
+        """Print tree structure from this node down."""
+        lines = []
+        self._format_tree(lines, indent=0, truncation=self.truncation)
+        return "\n".join(lines)
+
+    def _format_tree(self, lines: List[str], indent: int, truncation: Optional[int]) -> None:
+        """Recursively format tree into lines."""
+        prefix = "  " * indent
+        title = self.title or "(root)"
+        content_preview = self.content.replace("\n", " ")
+        if truncation is not None and len(content_preview) > truncation:
+            content_preview = content_preview[: truncation - 3] + "..."
+        lines.append(f"{prefix}{title}: '{content_preview}'")
+        for sub in self.subsections:
+            sub._format_tree(lines, indent + 1, truncation)
+
+
+def _extract_text_from_token(token: dict[str, Any]) -> str:
+    """Recursively extract text from a mistune token."""
+    if token["type"] == "text":
+        return token["raw"]
+    if "children" in token:
+        return "".join(_extract_text_from_token(c) for c in token["children"])
+    if "raw" in token:
+        return token["raw"]
+    return ""
+
+
+def _tokens_to_text(tokens: List[dict[str, Any]]) -> str:
+    """Convert list of mistune tokens to plain text."""
+    parts = []
+    for tok in tokens:
+        if tok["type"] == "paragraph":
+            parts.append(_extract_text_from_token(tok))
+        elif tok["type"] == "list":
+            for item in tok["children"]:
+                item_text = _extract_text_from_token(item)
+                parts.append(f"* {item_text}")
+    return "\n".join(parts)
+
+
+# build_markdown_tree written by Claude Code
+def build_markdown_tree(text: str) -> MarkdownTree:
+    """
+    Parse markdown text into a hierarchical tree structure.
+
+    Uses mistune to tokenize markdown, then builds a tree based on heading levels.
+    Each heading becomes a node, with deeper headings (e.g., ### under ##)
+    becoming children in the subsections list.
+
+    Args:
+        text: Markdown text to parse
+
+    Returns:
+        MarkdownTree with nested structure reflecting heading hierarchy
+    """
+    md = mistune.create_markdown(renderer=None)
+    tokens = md(text)
+
+    root = MarkdownTree()
+    stack = [(0, root)]  # List[tuple[int, MarkdownTree]]
+    pending_content = []  # List[dict[str, Any]]
+
+    for tok in tokens:
+        if tok["type"] == "blank_line":
+            continue
+
+        if tok["type"] == "heading":
+            level = tok["attrs"]["level"]
+            title = _extract_text_from_token(tok)
+
+            # Flush pending content to current node
+            if pending_content:
+                _, current = stack[-1]
+                current.content = _tokens_to_text(pending_content)
+                pending_content = []
+
+            # Pop stack until we find parent level
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+
+            # Create new node
+            new_node = MarkdownTree(title=title)
+
+            # Add to parent's subsections
+            if stack:
+                _, parent = stack[-1]
+                parent.subsections.append(new_node)
+
+            stack.append((level, new_node))
+        else:
+            pending_content.append(tok)
+
+    # Flush final content
+    if pending_content and stack:
+        _, current = stack[-1]
+        current.content = _tokens_to_text(pending_content)
+
+    return root

@@ -27,6 +27,9 @@ dependencies = [
     "jinja2>=3.1.0",
     "loguru>=0.7.0",
 
+    # Markdown parsing
+    "mistune>=3.0.0",
+
     # PDF processing
     "PyPDF2>=3.0.0",
     "pdfplumber>=0.10.0",
