@@ -5,6 +5,8 @@ Provides JobListing class that represents a parsed job description
 with structured access methods for the Targeting context.
 """
 
+from __future__ import annotations
+
 import re
 import warnings as warnings_module
 from dataclasses import dataclass, field
@@ -84,7 +86,7 @@ class JobListing:
         job_identifier: Optional[str] = None,
         title: Optional[str] = None,
         use_markdown_tree: bool = False,
-    ) -> "JobListing":
+    ) -> JobListing:
         """
         Parse job description text and create a JobListing.
 
@@ -125,7 +127,7 @@ class JobListing:
     @classmethod
     def from_file(
         cls, file_path: Path, source_url: Optional[str] = None, use_markdown_tree: bool = False
-    ) -> "JobListing":
+    ) -> JobListing:
         """
         Parse job description file and create a JobListing.
 
@@ -156,7 +158,7 @@ class JobListing:
         raise NotImplementedError("Database source resolution is not yet implemented")
 
     @classmethod
-    def from_identifier(cls, identifier: str, use_markdown_tree: bool = False) -> "JobListing":
+    def from_identifier(cls, identifier: str, use_markdown_tree: bool = False) -> JobListing:
         """
         Load job by identifier, auto-resolving the source.
 
