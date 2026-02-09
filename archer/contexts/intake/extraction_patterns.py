@@ -165,11 +165,6 @@ class JobIdPatterns:
         r"(?:Job\s*(?:ID|#|Number|Ref))[:\s]*([A-Z0-9_-]+)", re.IGNORECASE
     )
 
-    # Requisition ID variations
-    REQUISITION_ID: re.Pattern = re.compile(
-        r"(?:Req(?:uisition)?\.?\s*(?:ID|#|Number)?)[:\s]*([A-Z0-9_-]+)", re.IGNORECASE
-    )
-
     # Position ID variations
     POSITION_ID: re.Pattern = re.compile(
         r"(?:Position\s*(?:ID|#|Number))[:\s]*([A-Z0-9_-]+)", re.IGNORECASE
@@ -179,7 +174,6 @@ class JobIdPatterns:
 # Convenience list for iteration
 JOB_ID_PATTERNS = [
     JobIdPatterns.JOB_ID,
-    JobIdPatterns.REQUISITION_ID,
     JobIdPatterns.POSITION_ID,
 ]
 

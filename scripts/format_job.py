@@ -18,6 +18,16 @@ from pathlib import Path
 import typer
 from dotenv import load_dotenv
 
+from archer.contexts.intake.extraction_patterns import (
+    ALL_FIELDS,
+    LLM_VIABLE_FIELDS,
+    OPTIONAL_FIELDS,
+    OPTIONAL_FIELDS_LLM_VIABLE,
+    REQUIRED_FIELDS,
+)
+from archer.contexts.intake.metadata_extractor import extract_metadata_heuristic
+from archer.contexts.intake.metadata_llm import extract_metadata_with_llm
+
 load_dotenv()
 
 # =============================================================================
@@ -143,8 +153,6 @@ def build_canonical_markdown(metadata: dict[str, str], body_text: str) -> str:
 
         ## <body content>
     """
-    from archer.contexts.intake.extraction_patterns import ALL_FIELDS
-
     lines = ["## Metadata", ""]
 
     for field in ALL_FIELDS:
@@ -204,6 +212,9 @@ def main(
         "openai", "--llm-provider", help="LLM provider (openai or anthropic)"
     ),
     skip_llm: bool = typer.Option(False, "--skip-llm", help="Never prompt for LLM extraction"),
+    skip_filename: bool = typer.Option(
+        False, "--skip-filename", help="Don't extract metadata hints from filename"
+    ),
 ):
     """Format raw markdown into canonical job format with metadata."""
     global _lines_printed
@@ -214,21 +225,11 @@ def main(
 
     text = input_file.read_text()
 
-    # Import here to avoid circular imports
-    from archer.contexts.intake.extraction_patterns import (
-        ALL_FIELDS,
-        LLM_VIABLE_FIELDS,
-        OPTIONAL_FIELDS,
-        OPTIONAL_FIELDS_LLM_VIABLE,
-        REQUIRED_FIELDS,
-    )
-    from archer.contexts.intake.metadata_extractor import extract_metadata_heuristic
-
     # Phase 1: Heuristic extraction
     typer.echo("\n=== Job Metadata Extraction ===")
     typer.echo("Attempting to extract metadata from raw markdown...\n")
 
-    extracted = extract_metadata_heuristic(text, filename=input_file.name)
+    extracted = extract_metadata_heuristic(text, filename=None if skip_filename else input_file.name)
     print_extraction_results(extracted, REQUIRED_FIELDS, OPTIONAL_FIELDS)
 
     typer.echo("\nEnter accepts [default], type to override, Ctrl+C aborts.")
@@ -271,8 +272,6 @@ def main(
 
             typer.echo("\nQuerying LLM...")
             _lines_printed += 2
-
-            from archer.contexts.intake.metadata_llm import extract_metadata_with_llm
 
             llm_results = extract_metadata_with_llm(
                 fields_for_llm, text, model=llm_model, provider=llm_provider
