@@ -26,6 +26,7 @@ from archer.contexts.intake.extraction_patterns import (
     REQUIRED_FIELDS,
 )
 from archer.contexts.intake.job_data_structure import JobListing
+from archer.contexts.intake.job_registry import register_job
 from archer.contexts.intake.metadata_extractor import extract_metadata_heuristic
 from archer.contexts.intake.metadata_llm import extract_metadata_with_llm
 from archer.contexts.intake.nomenclature import build_job_identifier
@@ -309,7 +310,7 @@ def main(
 
     print_final_summary(metadata, ALL_FIELDS)
 
-    # Phase 4: Build identifier and write output
+    # Phase 4: Confirm identifier, save file, optionally register
     jid = build_job_identifier(
         metadata.get("Role", ""),
         metadata.get("Company", ""),
@@ -319,13 +320,28 @@ def main(
     )
     suggested_id = str(jid) if jid else input_file.stem
 
-    output_path = output or (JOBS_PATH / f"{suggested_id}.md")
+    flush_input()
+    custom_id = input(f"  Identifier [{suggested_id}]: ").strip()
+    job_id = custom_id if custom_id else suggested_id
+
+    output_path = output or (JOBS_PATH / f"{job_id}.md")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     output_text = build_canonical_markdown(metadata, text)
     output_path.write_text(output_text)
 
     typer.secho(f"✓ Saved: {output_path}", fg=typer.colors.GREEN)
+
+    # Phase 5: Optional job registry registration
+    flush_input()
+    if typer.confirm("  Register in job registry?", default=True):
+        job = JobListing.from_file(output_path, use_markdown_tree=True)
+        job.job_identifier = job_id
+        added = register_job(job)
+        if added:
+            typer.secho(f"  ✓ Registered: {job_id}", fg=typer.colors.GREEN)
+        else:
+            typer.echo(f"  ✗ Already registered: {job_id}")
 
 
 if __name__ == "__main__":
