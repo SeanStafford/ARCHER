@@ -10,6 +10,7 @@ Usage:
 """
 
 import os
+import readline
 import sys
 import termios
 import time
@@ -82,25 +83,27 @@ def prompt_for_field(field: str, default: str = "") -> str:
     """
     Prompt user for a metadata field value with line overwrite.
 
-    - Shows [default] if provided
-    - Enter accepts default
-    - Typing overrides default
+    - Default is pre-filled as editable text (backspace to clear)
+    - Enter accepts current value
     - Ctrl+C aborts cleanly
     """
     global _lines_printed
-    prompt = f"> {field}" + (f" [{default}]" if default else "") + ": "
+    prompt = f"> {field}: "
     try:
         flush_input()
-        value = input(prompt).strip()
-        final_value = value if value else default
+        readline.set_startup_hook(lambda: readline.insert_text(default))
+        try:
+            value = input(prompt).strip()
+        finally:
+            readline.set_startup_hook()
 
         # Overwrite prompt line with confirmed value
-        display = f"{field}: {final_value}" if final_value else f"{field}: (skipped)"
+        display = f"{field}: {value}" if value else f"{field}: (skipped)"
         time.sleep(SMALL_DELAY)
         print(f"\033[A\r{display}\033[K")
         _lines_printed += 1
 
-        return final_value
+        return value
     except KeyboardInterrupt:
         print("\n\n✗ Operation aborted by user\n")
         raise typer.Exit(code=1)
