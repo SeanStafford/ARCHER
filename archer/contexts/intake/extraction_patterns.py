@@ -111,13 +111,12 @@ class LocationPatterns:
     """
 
     # City, State (2-letter abbreviation) - e.g., "Baltimore, MD"
-    CITY_STATE_ABBREV: re.Pattern = re.compile(
-        r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})\b"
-    )
+    # Uses literal space (not \s) to prevent matching across line breaks
+    CITY_STATE_ABBREV: re.Pattern = re.compile(r"\b([A-Z][a-z]+(?: [A-Z][a-z]+)*),\s*([A-Z]{2})\b")
 
     # City, State (full name) - e.g., "Baltimore, Maryland"
     CITY_STATE_FULL: re.Pattern = re.compile(
-        rf"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*({_US_STATE_PATTERN})\b"
+        rf"\b([A-Z][a-z]+(?: [A-Z][a-z]+)*),\s*({_US_STATE_PATTERN})\b"
     )
 
     # Work arrangement indicators
@@ -160,9 +159,9 @@ class JobIdPatterns:
     Regex patterns for extracting job/requisition IDs from job descriptions.
     """
 
-    # Job ID/Number/Ref variations
+    # Job ID/Number/Ref variations — word boundary after keyword prevents matching "Identification"
     JOB_ID: re.Pattern = re.compile(
-        r"(?:Job\s*(?:ID|#|Number|Ref))[:\s]*([A-Z0-9_-]+)", re.IGNORECASE
+        r"(?:Job\s*(?:ID|#|Number|Ref|Identification))\b[:\s]*([A-Z0-9_-]+)", re.IGNORECASE
     )
 
     # Position ID variations
