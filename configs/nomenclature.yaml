@@ -1,0 +1,46 @@
+word_abbreviations:
+  Machine Learning: ML
+  Data Science: DataSci
+  Data Scientist: DataSci
+  Artificial Intelligence: AI
+  Infrastructure: Infra
+  Operations: Ops
+  Engineering: Eng
+  Engineer: Eng
+  Scientist: Sci
+  Research: Res
+  Developer: Dev
+  Software: Soft
+
+seniority:
+  Senior: Sen
+  Sr.: Sen
+  Sr: Sen
+  Principal: Prin
+  Staff: Staff
+  Lead: Lead
+  Head: Head
+  Junior: Jr
+  Jr.: Jr
+  Mid: Mid
+  Chief: Chief
+  I: I
+  II: II
+  III: III
+  IV: IV
+  V: V
+
+companies:
+  Booz Allen Hamilton: BAH
+  Technology: Tech
+  Technologies: Tech
+
+company_suffixes_to_strip:
+- Inc
+- LLC
+- Corporation
+- Corp
+
+sources:
+  LinkedIn: LI
+  Glassdoor: GH
