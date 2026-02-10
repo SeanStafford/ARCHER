@@ -4,7 +4,7 @@ Format raw job markdown into canonical format with interactive metadata prompts.
 
 Usage:
     python scripts/format_job.py /tmp/archer/raw_job.md
-    python scripts/format_job.py /tmp/archer/raw_job.md -o data/jobs/MLEng_Disney_12345.md
+    python scripts/format_job.py /tmp/archer/raw_job.md -o data/jobs/MLEng_AcmeCorp_12345.md
     python scripts/format_job.py /tmp/archer/raw_job.md --llm-optional
     python scripts/format_job.py /tmp/archer/raw_job.md --skip-llm
 """
@@ -25,8 +25,10 @@ from archer.contexts.intake.extraction_patterns import (
     OPTIONAL_FIELDS_LLM_VIABLE,
     REQUIRED_FIELDS,
 )
+from archer.contexts.intake.job_data_structure import JobListing
 from archer.contexts.intake.metadata_extractor import extract_metadata_heuristic
 from archer.contexts.intake.metadata_llm import extract_metadata_with_llm
+from archer.contexts.intake.nomenclature import build_job_identifier
 
 load_dotenv()
 
@@ -212,9 +214,6 @@ def main(
         "openai", "--llm-provider", help="LLM provider (openai or anthropic)"
     ),
     skip_llm: bool = typer.Option(False, "--skip-llm", help="Never prompt for LLM extraction"),
-    skip_filename: bool = typer.Option(
-        False, "--skip-filename", help="Don't extract metadata hints from filename"
-    ),
 ):
     """Format raw markdown into canonical job format with metadata."""
     global _lines_printed
@@ -225,11 +224,20 @@ def main(
 
     text = input_file.read_text()
 
-    # Phase 1: Heuristic extraction
+    # Phase 1: Metadata extraction (structured parser, then heuristic fallback)
     typer.echo("\n=== Job Metadata Extraction ===")
     typer.echo("Attempting to extract metadata from raw markdown...\n")
 
-    extracted = extract_metadata_heuristic(text, filename=None if skip_filename else input_file.name)
+    extracted = extract_metadata_heuristic(text)
+
+    # Try structured markdown parser for files with ### metadata headers
+    try:
+        structured = JobListing.from_text(text, use_markdown_tree=True)
+        for key, value in structured.metadata.items():
+            if value and key not in extracted:
+                extracted[key] = value
+    except Exception:
+        pass
     print_extraction_results(extracted, REQUIRED_FIELDS, OPTIONAL_FIELDS)
 
     typer.echo("\nEnter accepts [default], type to override, Ctrl+C aborts.")
@@ -301,8 +309,17 @@ def main(
 
     print_final_summary(metadata, ALL_FIELDS)
 
-    # Phase 4: Write output
-    output_path = output or (JOBS_PATH / f"{input_file.stem}.md")
+    # Phase 4: Build identifier and write output
+    jid = build_job_identifier(
+        metadata.get("Role", ""),
+        metadata.get("Company", ""),
+        source=metadata.get("Source", ""),
+        job_id=metadata.get("Job ID", ""),
+        focus=metadata.get("Focus", ""),
+    )
+    suggested_id = str(jid) if jid else input_file.stem
+
+    output_path = output or (JOBS_PATH / f"{suggested_id}.md")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     output_text = build_canonical_markdown(metadata, text)
