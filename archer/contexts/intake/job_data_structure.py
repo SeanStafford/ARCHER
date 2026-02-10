@@ -15,6 +15,7 @@ from typing import Optional
 
 from archer.contexts.intake.job_parser import parse_job_structured_markdown, parse_job_text
 from archer.contexts.intake.nomenclature import (
+    build_job_identifier,
     identifier_from_filename,
     resolve_job_source,
 )
@@ -82,7 +83,6 @@ class JobListing:
     def from_text(
         cls,
         text: str,
-        source_url: Optional[str] = None,
         job_identifier: Optional[str] = None,
         title: Optional[str] = None,
         use_markdown_tree: bool = False,
@@ -94,7 +94,6 @@ class JobListing:
 
         Args:
             text: Raw job description markdown
-            source_url: Optional URL where job was fetched
             job_identifier: Optional job identifier (if not provided, will be None)
             title: Optional job title (if not provided, derived from first line)
 
@@ -103,9 +102,9 @@ class JobListing:
         """
 
         if use_markdown_tree:
-            parsed = parse_job_structured_markdown(text, source_url=source_url)
+            parsed = parse_job_structured_markdown(text)
         else:
-            parsed = parse_job_text(text, source_url=source_url)
+            parsed = parse_job_text(text)
 
         # Surface parser warnings
         for warning in parsed.warnings:
@@ -121,13 +120,10 @@ class JobListing:
             metadata=parsed.metadata,
             job_identifier=job_identifier,
             title=title,
-            source_url=parsed.source_url,
         )
 
     @classmethod
-    def from_file(
-        cls, file_path: Path, source_url: Optional[str] = None, use_markdown_tree: bool = False
-    ) -> JobListing:
+    def from_file(cls, file_path: Path, use_markdown_tree: bool = False) -> JobListing:
         """
         Parse job description file and create a JobListing.
 
@@ -136,7 +132,6 @@ class JobListing:
 
         Args:
             file_path: Path to markdown file
-            source_url: Optional URL (defaults to None)
 
         Returns:
             JobListing instance with parsed sections and extracted features
@@ -144,9 +139,7 @@ class JobListing:
         file_path = Path(file_path)  # Ensure Path object
         text = file_path.read_text()
         job_id = identifier_from_filename(file_path.name)
-        job = cls.from_text(
-            text, source_url=source_url, job_identifier=job_id, use_markdown_tree=use_markdown_tree
-        )
+        job = cls.from_text(text, job_identifier=job_id, use_markdown_tree=use_markdown_tree)
         # Derive title from metadata or file content
         if not job.title:
             job.title = job._derive_title()

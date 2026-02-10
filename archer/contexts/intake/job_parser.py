@@ -60,7 +60,6 @@ class ParsedJobData:
     preferred_qualifications_sections: list[str] = field(default_factory=list)
     section_archetypes: dict[str, str] = field(default_factory=dict)
     boilerplate_sections: set[str] = field(default_factory=set)
-    source_url: Optional[str] = None
     metadata: dict[str, str] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
@@ -259,7 +258,7 @@ def detect_boilerplate_sections(sections: dict[str, str]) -> set[str]:
     return boilerplate
 
 
-def parse_job_text(text: str, source_url: Optional[str] = None) -> ParsedJobData:
+def parse_job_text(text: str) -> ParsedJobData:
     """
     Parse job description markdown into structured data.
 
@@ -268,7 +267,6 @@ def parse_job_text(text: str, source_url: Optional[str] = None) -> ParsedJobData
 
     Args:
         text: Raw job description markdown
-        source_url: Optional URL where job was fetched
 
     Returns:
         ParsedJobData with all extracted information
@@ -295,24 +293,22 @@ def parse_job_text(text: str, source_url: Optional[str] = None) -> ParsedJobData
         preferred_qualifications_sections=preferred_qual,
         section_archetypes=section_archetypes,
         boilerplate_sections=boilerplate_sections,
-        source_url=source_url,
         warnings=warnings,
     )
 
 
-def parse_job_file(file_path: Path, source_url: Optional[str] = None) -> ParsedJobData:
+def parse_job_file(file_path: Path) -> ParsedJobData:
     """
     Parse job description from file.
 
     Args:
         file_path: Path to markdown file
-        source_url: Optional URL (defaults to None)
 
     Returns:
         ParsedJobData with all extracted information
     """
     text = file_path.read_text()
-    return parse_job_text(text, source_url=source_url)
+    return parse_job_text(text)
 
 
 def extract_metadata(tree: MarkdownTree) -> dict[str, str]:
@@ -402,7 +398,7 @@ def _flatten_tree_to_sections(tree: MarkdownTree) -> tuple[dict[str, str], list[
     return sections, warnings
 
 
-def parse_job_structured_markdown(text: str, source_url: Optional[str] = None) -> ParsedJobData:
+def parse_job_structured_markdown(text: str) -> ParsedJobData:
     """
     Parse job description using hierarchical markdown parsing.
 
@@ -411,7 +407,6 @@ def parse_job_structured_markdown(text: str, source_url: Optional[str] = None) -
 
     Args:
         text: Job description markdown with ## and ### headers
-        source_url: Optional URL where job was fetched
 
     Returns:
         ParsedJobData with section_tree populated
@@ -442,7 +437,6 @@ def parse_job_structured_markdown(text: str, source_url: Optional[str] = None) -
         preferred_qualifications_sections=preferred_qual,
         section_archetypes=section_archetypes,
         boilerplate_sections=boilerplate_sections,
-        source_url=source_url,
         metadata=metadata,
         warnings=warnings,
     )
