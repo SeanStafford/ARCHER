@@ -27,10 +27,10 @@ from archer.contexts.intake.extraction_patterns import (
     REQUIRED_FIELDS,
 )
 from archer.contexts.intake.job_data_structure import JobListing
-from archer.contexts.intake.job_registry import register_job
 from archer.contexts.intake.metadata_extractor import extract_metadata_heuristic
 from archer.contexts.intake.metadata_llm import extract_metadata_with_llm
 from archer.contexts.intake.nomenclature import build_job_identifier
+from archer.utils.job_registry import register_job
 
 load_dotenv()
 
