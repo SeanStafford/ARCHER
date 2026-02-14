@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from omegaconf import OmegaConf
+from tqdm import tqdm
 
 from archer.contexts.templating.converter import latex_to_yaml
 from archer.contexts.templating.markdown_formatter import (
@@ -626,6 +627,7 @@ class ResumeDocumentArchive:
         mode: str = "available",
         format_mode: str = "markdown",
         resume_types: Optional[Tuple[str]] = ("historical"),
+        show_progress: bool = False,
     ) -> List[ResumeDocument]:
         """
         Load resume documents from archive.
@@ -637,6 +639,7 @@ class ResumeDocumentArchive:
             format_mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
             resume_types: Filter to only include these resume types (e.g., ("historical")).
                 If None, includes all types.
+            show_progress: If True, show tqdm progress bar. Default False.
 
         Returns:
             List of successfully loaded ResumeDocument instances
@@ -648,9 +651,9 @@ class ResumeDocumentArchive:
             raise ValueError(f"Invalid mode: {mode}. Must be 'available' or 'all'")
 
         if mode == "available":
-            docs = self._load_available(format_mode)
+            docs = self._load_available(format_mode, show_progress=show_progress)
         else:
-            docs = self._load_all(format_mode)
+            docs = self._load_all(format_mode, show_progress=show_progress)
 
         # Filter by resume type if specified
         if resume_types is not None:
@@ -663,6 +666,7 @@ class ResumeDocumentArchive:
     def _load_available(
         self,
         format_mode: str = "markdown",
+        show_progress: bool = False,
     ) -> List[ResumeDocument]:
         """Load only pre-converted YAMLs from structured/ directory."""
         if not self.structured_path.exists():
@@ -677,7 +681,8 @@ class ResumeDocumentArchive:
         documents = []
         errors = []
 
-        for yaml_file in yaml_files:
+        iterator = tqdm(yaml_files, desc="Loading resumes") if show_progress else yaml_files
+        for yaml_file in iterator:
             try:
                 doc = ResumeDocument(yaml_file, mode=format_mode)
                 documents.append(doc)
@@ -695,6 +700,7 @@ class ResumeDocumentArchive:
     def _load_all(
         self,
         format_mode: str = "markdown",
+        show_progress: bool = False,
     ) -> List[ResumeDocument]:
         """Load all resumes, converting .tex files if needed."""
         # Get all .tex files
@@ -709,7 +715,8 @@ class ResumeDocumentArchive:
         documents = []
         errors = []
 
-        for tex_file in tex_files:
+        iterator = tqdm(tex_files, desc="Loading resumes") if show_progress else tex_files
+        for tex_file in iterator:
             try:
                 if tex_file.stem in existing_yamls:
                     # Load from YAML
