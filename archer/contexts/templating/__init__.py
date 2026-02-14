@@ -25,7 +25,7 @@ from archer.contexts.templating.latex_normalizer import (
 )
 from archer.contexts.templating.resume_data_structure import (
     ResumeDocument,
-    ResumeDocumentArchive,
+    ResumeDocumentCollection,
 )
 from archer.contexts.templating.resume_database import ResumeDatabase
 from archer.contexts.templating.yaml_normalizer import clean_yaml, normalize_yaml
@@ -45,6 +45,6 @@ __all__ = [
     "apply_presets",
     # Data structure classes
     "ResumeDocument",
-    "ResumeDocumentArchive",
+    "ResumeDocumentCollection",
     "ResumeDatabase",
 ]

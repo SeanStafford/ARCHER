@@ -12,7 +12,7 @@ The `ResumeDocument` class provides a high-level API for consuming structured re
 |-------|---------|
 | `ResumeDocument` | Load and query a single resume from YAML or .tex |
 | `ResumeSection` | Represents one section (skills, experience, etc.) |
-| `ResumeDocumentArchive` | Batch-load multiple resumes from archive |
+| `ResumeDocumentCollection` | Batch-load resumes via registry (preferred) |
 
 ---
 
@@ -53,19 +53,32 @@ Converts LaTeX → YAML internally via temp file, then loads. Use YAML when avai
 
 ### Batch Loading
 ```python
-from archer.contexts.templating.resume_data_structure import ResumeDocumentArchive
+from archer.contexts.templating import ResumeDocumentCollection
 
-archive = ResumeDocumentArchive(Path("data/resume_archive"))
+# Load all historical resumes (default)
+collection = ResumeDocumentCollection()
 
-# Load pre-converted YAMLs only (fast)
-docs = archive.load(mode="available", format_mode="plaintext")
-
-# Load all, converting .tex if needed (slower)
-docs = archive.load(mode="all", format_mode="markdown")
+# Load with options
+collection = ResumeDocumentCollection(
+    resume_types=("historical", "experimental"),
+    format_mode="plaintext",
+    show_progress=True,
+)
 
 # Access by filename
-doc = archive.documents["_test_Res202511_Fry_MomCorp"]
+doc = collection["Res202506"]
+
+# Iterate
+for doc in collection:
+    print(doc.filename)
+
+# Add more types later
+collection._load(("test",), format_mode="plaintext")
 ```
+
+Uses the resume registry to enumerate resumes by type, checks status eligibility
+(e.g. historical must be `"parsed"`, experimental must be `"approved"`), and
+resolves YAML paths via `get_resume_file()`.
 
 ---
 

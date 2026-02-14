@@ -3,16 +3,15 @@ Resume Archive Pattern Analyzer
 
 Analyzes statistical patterns in historical resume archive using structured data.
 
-Uses ResumeDocument and ResumeDocumentArchive from the Templating context to
+Uses ResumeDocument and ResumeDocumentCollection from the Templating context to
 operate on structured resume data rather than raw LaTeX. This separation respects
 context boundaries and enables powerful text-based analysis capabilities.
 """
 
 from collections import defaultdict
-from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
-from archer.contexts.templating import ResumeDocument, ResumeDocumentArchive
+from archer.contexts.templating import ResumeDocument, ResumeDocumentCollection
 from archer.utils.report_formatter import Column, TableFormatter
 
 # Default exclusion list: personality/fun sections
@@ -37,44 +36,33 @@ class ResumeArchiveAnalyzer:
     analysis needs.
 
     Attributes:
-        archive_path: Path to resume archive directory
         mode: Content formatting mode ("markdown" or "plaintext")
         documents: List of loaded ResumeDocument instances
     """
 
-    def __init__(self, archive_path: Path, mode: str = "plaintext"):
+    def __init__(
+        self,
+        resume_types: Tuple[str, ...] = ("historical",),
+        mode: str = "plaintext",
+        show_progress: bool = False,
+    ):
         """
-        Initialize analyzer with archive directory path.
+        Initialize analyzer and load resumes from the registry.
 
         Args:
-            archive_path: Path to resume archive directory
+            resume_types: Tuple of resume types to load (default: ("historical",))
             mode: Content formatting mode - "markdown" or "plaintext" (default: plaintext)
                   "plaintext" recommended for statistical analysis and search
                   "markdown" preserves inline formatting for LLM consumption
+            show_progress: If True, show tqdm progress bar (default: False)
         """
-        self.archive_path = archive_path
         self.mode = mode
-        self._archive = ResumeDocumentArchive(archive_path)
-        self.documents: List[ResumeDocument] = []
-
-    def load_archive(self, load_mode: str = "available") -> int:
-        """
-        Load resume documents using ResumeDocumentArchive.
-
-        Args:
-            load_mode: Loading strategy
-                - "available": Load only pre-converted YAMLs from structured/ (fast, recommended)
-                - "all": Load all .tex files, converting if needed (slow, fallback)
-
-        Returns:
-            Number of resumes successfully loaded
-
-        Note:
-            Uses ResumeDocumentArchive.load() which handles errors gracefully
-            and emits warnings for failed files.
-        """
-        self.documents = self._archive.load(mode=load_mode, format_mode=self.mode)
-        return len(self.documents)
+        collection = ResumeDocumentCollection(
+            resume_types=resume_types,
+            format_mode=mode,
+            show_progress=show_progress,
+        )
+        self.documents: List[ResumeDocument] = list(collection)
 
     def get_resume_count(self) -> int:
         """
@@ -97,9 +85,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping section name → count of resumes containing it
             Sorted by prevalence (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
-
         counts = defaultdict(int)
 
         for doc in self.documents:
@@ -123,9 +108,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping section type → total count across all resumes
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
-
         counts = defaultdict(int)
 
         for doc in self.documents:
@@ -142,9 +124,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             Nested dict: section → {co-occurring section → count}
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
-
         co_occurrence = defaultdict(lambda: defaultdict(int))
 
         for doc in self.documents:
@@ -174,9 +153,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping title → count of resumes with that title
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
-
         counts = defaultdict(int)
 
         for doc in self.documents:
@@ -196,8 +172,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping date → count of resumes with that date
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         counts = defaultdict(int)
 
@@ -218,8 +192,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping title component → count of resumes containing it
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         counts = defaultdict(int)
 
@@ -246,8 +218,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             Nested dict: title component → {co-occurring component → count}
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         co_occurrence = defaultdict(lambda: defaultdict(int))
 
@@ -282,8 +252,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             Dict mapping filename → count of work experiences
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         counts = {}
 
@@ -313,8 +281,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             Set of unique skill strings (plaintext format)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         exclude_set = set(exclude_sections)
         skills = set()
@@ -351,8 +317,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping skill → count of resumes containing it
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         exclude_set = set(exclude_sections)
         counts = defaultdict(int)
@@ -410,8 +374,6 @@ class ResumeArchiveAnalyzer:
         Raises:
             ValueError: If field_name is not a valid field
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         # Validate field name
         valid_fields = ["professional_title", "name", "date", "filename"]
@@ -461,8 +423,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             List of filenames containing the keyword
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         matches = []
 
@@ -489,8 +449,6 @@ class ResumeArchiveAnalyzer:
             Dict mapping keyword → count of resumes containing it
             Sorted by frequency (most common first)
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         counts = {}
 
@@ -545,8 +503,6 @@ class ResumeArchiveAnalyzer:
         Returns:
             Dict mapping keys → lists of resumes with that key
         """
-        if not self.documents:
-            raise ValueError("No resumes loaded. Call load_archive() first.")
 
         groups = defaultdict(list)
 
@@ -581,7 +537,7 @@ class ResumeArchiveAnalyzer:
         )
 
         formatter.add_section_header("SECTION PREVALENCE ACROSS RESUME ARCHIVE")
-        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_text(f"Analyzed {total} resumes")
         formatter.add_blank_line()
         formatter.add_table_header()
         formatter.add_separator("-")
@@ -612,7 +568,7 @@ class ResumeArchiveAnalyzer:
         )
 
         formatter.add_section_header("SECTION TYPE DISTRIBUTION")
-        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_text(f"Analyzed {total} resumes")
         formatter.add_blank_line()
         formatter.add_table_header()
         formatter.add_separator("-")
@@ -646,7 +602,7 @@ class ResumeArchiveAnalyzer:
         )
 
         formatter.add_section_header("PROFESSIONAL TITLE DISTRIBUTION")
-        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_text(f"Analyzed {total} resumes")
         formatter.add_blank_line()
         formatter.add_table_header()
         formatter.add_separator("-")
@@ -683,7 +639,7 @@ class ResumeArchiveAnalyzer:
         )
 
         formatter.add_section_header("TITLE COMPONENT FREQUENCY")
-        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_text(f"Analyzed {total} resumes")
         formatter.add_blank_line()
         formatter.add_table_header()
         formatter.add_separator("-")
@@ -720,9 +676,7 @@ class ResumeArchiveAnalyzer:
             )
 
             formatter.add_section_header(f"TITLE COMPONENT CO-OCCURRENCE: {component}")
-            formatter.add_text(
-                f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}"
-            )
+            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes")
             formatter.add_blank_line()
 
             if component not in co_occur:
@@ -747,9 +701,7 @@ class ResumeArchiveAnalyzer:
             formatter = TableFormatter(columns=[], total_width=100)
 
             formatter.add_section_header("TITLE COMPONENT CO-OCCURRENCE (Top 5 Components)")
-            formatter.add_text(
-                f"Analyzed {self.get_resume_count()} resumes from {self.archive_path}"
-            )
+            formatter.add_text(f"Analyzed {self.get_resume_count()} resumes")
             formatter.add_blank_line()
 
             # Get top 5 components by frequency
@@ -801,7 +753,7 @@ class ResumeArchiveAnalyzer:
         )
 
         formatter.add_section_header(f"SKILL FREQUENCY (Top {top_n})")
-        formatter.add_text(f"Analyzed {total} resumes from {self.archive_path}")
+        formatter.add_text(f"Analyzed {total} resumes")
         formatter.add_blank_line()
         formatter.add_table_header()
         formatter.add_separator("-")

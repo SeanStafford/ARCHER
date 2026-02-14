@@ -21,7 +21,7 @@ ARCHER tracks four types of resumes:
 - Intermediate state between fully manual and fully automated
 
 **Example workflow**:
-- Select base resume from archive using `ResumeDocumentArchive`
+- Select base resume from archive using `ResumeDocumentCollection`
 - Copy and edit YAML in `experimental/structured/`
 - Convert YAML → LaTeX (templating context)
 - Compile LaTeX → PDF (rendering context)

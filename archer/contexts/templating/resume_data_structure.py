@@ -34,7 +34,11 @@ from archer.utils.latex_parsing_tools import (
     to_plaintext,
 )
 from archer.utils.markdown import format_list_markdown, latex_to_markdown
-from archer.utils.resume_registry import get_resume_file, get_resume_status
+from archer.utils.resume_registry import (
+    get_resume_file,
+    get_resume_status,
+    list_resumes_by_type,
+)
 
 
 @dataclass
@@ -610,6 +614,10 @@ class ResumeDocumentArchive:
     Manager for loading and accessing multiple resume documents.
 
     Provides batch loading with error handling and summary reporting.
+
+    .. deprecated::
+        Use `ResumeDocumentCollection` instead, which loads via the resume registry
+        and requires no path arguments.
     """
 
     def __init__(self, archive_path: Path):
@@ -741,3 +749,86 @@ class ResumeDocumentArchive:
             )
 
         return documents
+
+
+# Status gates: which statuses indicate a resume has a loadable YAML
+LOADABLE_STATUSES = {
+    "historical": {"parsed"},
+    "experimental": {"approved"},
+    "test": None,  # any status
+}
+
+
+class ResumeDocumentCollection(dict):
+    """
+    Container for batch-loaded ResumeDocument objects.
+
+    Inherits from dict (filename → ResumeDocument). Loads resumes from the
+    registry on instantiation. Uses registry functions to enumerate resumes
+    by type, check status eligibility, and resolve YAML paths.
+
+    Iteration yields ResumeDocument values (not keys). Use .keys() for filenames.
+
+    Args:
+        resume_types: Tuple of resume types to load (default: ("historical",))
+        format_mode: Content formatting mode - "markdown" or "plaintext" (default: "markdown")
+        show_progress: If True, show tqdm progress bar (default: False)
+    """
+
+    def __init__(
+        self,
+        resume_types: Tuple[str, ...] = ("historical",),
+        format_mode: str = "markdown",
+        show_progress: bool = False,
+    ):
+        super().__init__()
+        self._load(resume_types, format_mode, show_progress)
+
+    def _load(
+        self,
+        resume_types: Tuple[str, ...],
+        format_mode: str = "markdown",
+        show_progress: bool = False,
+    ) -> None:
+        """
+        Load resumes of the given types from the registry.
+
+        Can be called after init to add resumes of additional types.
+        Merges new documents into the existing collection.
+
+        Args:
+            resume_types: Tuple of resume types to load
+            format_mode: Content formatting mode - "markdown" or "plaintext"
+            show_progress: If True, show tqdm progress bar
+        """
+        # Collect eligible resumes across all requested types
+        candidates = []
+        for rtype in resume_types:
+            allowed = LOADABLE_STATUSES.get(rtype)
+            for entry in list_resumes_by_type(rtype):
+                if allowed is not None and entry["status"] not in allowed:
+                    continue
+                candidates.append(entry["resume_name"])
+
+        errors = []
+        iterator = tqdm(candidates, desc="Loading resumes") if show_progress else candidates
+        for name in iterator:
+            try:
+                yaml_path = get_resume_file(name, file_type="yaml", file_expected=True)
+                doc = ResumeDocument(yaml_path, mode=format_mode)
+                self[doc.filename] = doc
+            except (FileNotFoundError, ValueError) as e:
+                errors.append((name, str(e)))
+
+        if errors:
+            error_summary = "\n".join(f"  - {name}: {err}" for name, err in errors[:10])
+            if len(errors) > 10:
+                error_summary += f"\n  ... and {len(errors) - 10} more"
+            warnings.warn(
+                f"Failed to load {len(errors)} resume(s):\n{error_summary}",
+                UserWarning,
+            )
+
+    def __iter__(self):
+        """Iterate over ResumeDocument values. Use .keys() for filenames."""
+        return iter(self.values())
